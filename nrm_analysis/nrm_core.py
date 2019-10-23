@@ -149,26 +149,6 @@ class FringeFitter:
             else:
                 pass
 
-        #######################################################################
-
-        #--------------------------------------------------------------------------
-        #05/18 2017: commented these lines out because this should all be 
-        #            saved in the InstrumentData object (and it crashes for polz data
-        #            which is polychrom & has a 3rd axis).
-        #np.savetxt(self.savedir+"/coordinates.txt", self.instrument_data.mask.ctrs)
-        #np.savetxt(self.savedir+"/wavelengths.txt", self.instrument_data.wls[0])
-        #--------------------------------------------------------------------------
-
-        #nrm = NRM_Model(mask = self.instrument_data.mask, pixscale = self.instrument_data.pscale_rad, over = self.oversample, holeshape=self.instrument_data.holeshape)
-        #print nrm.holeshape
-        # In future can just pass instrument_data to NRM_Model
-
-        #plot conditions
-        #if self.debug==True or self.auto_scale==True or self.auto_rotate==True:
-        #    import matplotlib.pyplot as plt
-        #if self.debug==True:
-        #    import poppy.matrixDFT as mft
-
     ###
     # May 2017 J Sahlmann updates: parallelized fringe-fitting!
     ###
@@ -184,7 +164,6 @@ class FringeFitter:
 
         t2 = time.time()
         for jj, fn in enumerate(fns):
-            #it_fringes_parallel({"object":self, "file": self.datadir+"/"+fn,\ # AS remove self.datadir
             fit_fringes_parallel({"object":self, "file":                  fn,\
                                   "id":jj}, threads)
         t3 = time.time()
@@ -256,7 +235,7 @@ def fit_fringes_parallel(args, threads):
     self = args['object']
     filename = args['file']
     id_tag = args['id']
-    self.scidata, self.scihdr = self.instrument_data.read_data(filename)
+    self.prihdr, self.scihdr, self.scidata = self.instrument_data.read_data(filename)
 
     self.sub_dir_str = self.instrument_data.sub_dir_str
     try:
@@ -312,9 +291,6 @@ def fit_fringes_single_integration(args):
                         r = (self.npix -1)//2 - 2, cntrimg=True)  
     else:
         self.ctrd = utils.center_imagepeak(self.scidata[slc, :,:])  
-        # Old AG LG++ version
-        #self.ctrd = utils.center_imagepeak(self.scidata[slc, :,:], 
-        #                r = (self.npix -1)//2 - 2)  
 
     # returned values have offsets x-y flipped:
     # Finding centroids the Fourier way assumes no bad pixels case - Fourier domain mean slope

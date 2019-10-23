@@ -48,11 +48,11 @@ test_cal = datadir + cr + ".fits"
 
 print("tsavedir:", tsavedir, "\ntest_dir:", test_tar)
 
-data=fits.getdata(datadir + tr + ".fits")
-print(data.shape)
+#data=fits.getdata(datadir + tr + ".fits")
+#print(data.shape)
 
 # ### First we specify the instrument & filter # (defaults: Spectral type set to A0V)
-niriss = InstrumentData.NIRISS(filt)
+niriss = InstrumentData.NIRISS(filt, )
 
 #print(niriss.nwav)
 

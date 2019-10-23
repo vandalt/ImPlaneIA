@@ -493,8 +493,9 @@ class NIRISS:
         # for single slice data, need to read as 3D (1, npix, npix)
         # for utr data, need to read as 3D (ngroup, npix, npix)
         fitsfile = fits.open(fn)
-        scidata=fitsfile[0].data
-        hdr=fitsfile[0].header
+        scidata=fitsfile[1].data
+        prihdr=fitsfile[0].header
+        scihdr=fitsfile[1].header
         #self.sub_dir_str = self.filt+""
         self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
         if len(scidata.shape)==3:
@@ -502,9 +503,11 @@ class NIRISS:
             [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
             return scidata, hdr
         elif len(scidata.shape)==2:
-            return np.array([scidata,]), hdr
+            return prihdr, scihdr, np.array([scidata,]),
         else:
             sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
+    
+    def 
 
     def _generate_filter_files():
         """Either from WEBBPSF, or tophat, etc. A set of filter files will also be provided"""
