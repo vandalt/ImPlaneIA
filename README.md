@@ -2,6 +2,9 @@
 
 Reduces aperture masking images to fringe observables, calibrates, does basic model fitting. Package development led by Alexandra Greenbaum following legacy code by Greenbaum, Anand Sivaramakrishnan, and Laurent Pueyo. Contributions from Sivaramakrishnan, Deepashri Thatte, and Johannes Sahlmann.
 
+
+Devmasthdr branch first change
+
 To get the source files:
 
 	git clone https://github.com/agreenbaum/nrm_analysis.git
