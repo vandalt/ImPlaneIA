@@ -4,6 +4,7 @@ Reduces aperture masking images to fringe observables, calibrates, does basic mo
 
 
 Devmasthdr branch first change
+                  second change (anand) - after checkout by collaborator
 
 To get the source files:
 
