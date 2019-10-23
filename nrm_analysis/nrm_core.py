@@ -836,6 +836,7 @@ class Calibrate:
 
         print("\t mask.ctrs is of type: ", type(self.instrument_data.mask.ctrs))
         #oif = OIfits(self.instrument_data.mask, self.obskeywords)
+        """
         glue_js_oifits.write(
                     obskeywords=self.obskeywords,
                     v2=self.v2_calibrated[0,:], v2err=self.v2_err_calibrated[0,:],
@@ -848,7 +849,7 @@ class Calibrate:
                     nholes=self.instrument_data.mask.ctrs.shape[0],
                     ctrs = self.instrument_data.mask.ctrs ,
                     )
-        """ 
+         
         interface_oifits_js_writ(v2=self.v2_calibrated, v2err=self.v2_err_calibrated, \
                     cps=self.cp_calibrated_deg, cperr=self.cp_err_calibrated_deg, \
                     pha = self.pha_calibrated_deg, phaerr = self.pha_err_calibrated_deg) 

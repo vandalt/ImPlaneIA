@@ -121,6 +121,6 @@ calib = nrm_core.Calibrate((tsavedir+"/"+tr+"/", csavedir+"/"+cr+"/"),
                            savedir = datadir, #####"calibrated_example/", 
                            interactive=False)
 
-oifitsfn = "example.oifits"
-calib.save_to_oifits(oifitsfn) # will save into specified "savedir"
-sys.exit("Stop before fitting binary w/mcmc coarsely")
+#oifitsfn = "example.oifits"
+#calib.save_to_oifits(oifitsfn) # will save into specified "savedir"
+sys.exit("Stop before writing oifits")
