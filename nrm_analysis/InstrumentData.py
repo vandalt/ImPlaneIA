@@ -496,6 +496,7 @@ class NIRISS:
         scidata=fitsfile[1].data
         prihdr=fitsfile[0].header
         scihdr=fitsfile[1].header
+        updatewithheaderinfo(prihdr, scihdr)
         #self.sub_dir_str = self.filt+""
         self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
         if len(scidata.shape)==3:
@@ -507,7 +508,49 @@ class NIRISS:
         else:
             sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
     
-    def 
+    def updatewithheaderinfo(ph, sh):
+        """ input: primary header, science header MAST"""
+
+        #self.filt = (ph["FILTER"], get comment string for all these)
+
+        self.filt = ph["FILTER"]
+        self.objname =  ph["TARGNAME"]
+        self.ra = ph["TARG_RA"]
+        self.dec = ph["TARG_DEC"]
+
+        self.instrument = ph["INSTRUME"]
+        self.pupil =  ph["PUPIL"]
+        self.arrname = ("jwst_g7s6c", "ImPlaneIA internal mask name")
+
+        pscalex_deg = sc["CDELT1"]
+        pscaley_deg = sc["CDELT2"]
+        self.pscale_mas = 0.5 * (pscalex_deg +  pscaley_deg) * (60*60*1000)
+        self.pscale_rad = utils.mas2rad(self.pscale_mas)
+        self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=chooseholes )
+        self.mask.hdia = self.mask.hdia
+        self.mask.ctrs = np.array(self.mask.ctrs)
+
+        self.telname= "JWST"
+
+
+
+        str = ph["DATE-OBS"]
+        self.year = str[:4]
+        self.month = str[5:7]
+        self.day = str[8:10]
+
+        try:
+            self.parang = self.hdr0["PAR_ANG"]
+        except:
+            self.parang = 00
+
+        self.pa = sh["PA_V3"]
+
+        try:
+            self.itime = self.hdr1["ITIME"]
+        except:
+            self.itime = 00
+
 
     def _generate_filter_files():
         """Either from WEBBPSF, or tophat, etc. A set of filter files will also be provided"""
