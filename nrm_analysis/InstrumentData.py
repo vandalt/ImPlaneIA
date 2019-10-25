@@ -404,8 +404,6 @@ class NIRISS:
         self.pscale_mas = 65.6
         self.pscale_rad = utils.mas2rad(self.pscale_mas)
         self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=chooseholes )
-        self.mask.hdia = self.mask.hdia
-        self.mask.ctrs = np.array(self.mask.ctrs)
         # Hard code any rotations? 
         # (can be moved to NRM_mask_definitions later)
         # Add in hole/baseline properties ?
@@ -513,6 +511,7 @@ class NIRISS:
 
         #self.filt = (ph["FILTER"], get comment string for all these)
 
+        self.telname= "JWST"
         self.filt = ph["FILTER"]
         self.objname =  ph["TARGNAME"]
         self.ra = ph["TARG_RA"]
@@ -527,29 +526,21 @@ class NIRISS:
         self.pscale_mas = 0.5 * (pscalex_deg +  pscaley_deg) * (60*60*1000)
         self.pscale_rad = utils.mas2rad(self.pscale_mas)
         self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=chooseholes )
-        self.mask.hdia = self.mask.hdia
-        self.mask.ctrs = np.array(self.mask.ctrs)
-
-        self.telname= "JWST"
-
-
 
         str = ph["DATE-OBS"]
         self.year = str[:4]
         self.month = str[5:7]
         self.day = str[8:10]
+        self.parang = sc["ROLL_REF"]
+        self.pa = sc["PA_V3"]
 
-        try:
-            self.parang = self.hdr0["PAR_ANG"]
-        except:
-            self.parang = 00
-
-        self.pa = sh["PA_V3"]
-
-        try:
-            self.itime = self.hdr1["ITIME"]
-        except:
-            self.itime = 00
+        # An INTegration is NGROUPS "frames", not relevant here but context info.
+        # 2d => "cal" file combines all INTegrations (ramps)
+        # 3d=> "calints" file is a cube of all INTegrations (ramps)
+        if sc["NAXIS"] == 2:
+            self.itime = scihdr["EFFINTTM"] * scihdr["NINT"] # all INTegrations or 'ramps'
+        elif sc["NAXIS"] == 3:
+            self.itime = scihdr["EFFINTTM"] # each slice is one INTegration or 'ramp'
 
 
     def _generate_filter_files():
