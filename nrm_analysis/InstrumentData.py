@@ -517,6 +517,9 @@ class NIRISS:
         self.ra = ph["TARG_RA"]
         self.dec = ph["TARG_DEC"]
 
+        self.crpix1 = sh["CRPIX1"] # / axis 1 DS9 coordinate of the reference pixel       
+        self.crpix2 = sh["CRPIX2"] # / axis 2 DS9 coordinate of the reference pixel       
+
         self.instrument = ph["INSTRUME"]
         self.pupil =  ph["PUPIL"]
         self.arrname = ("jwst_g7s6c", "ImPlaneIA internal mask name")
