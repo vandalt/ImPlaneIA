@@ -378,7 +378,7 @@ class NIRISS:
         
         if chooseholes:
             print("    **** InstrumentData.NIRISS: ", chooseholes)
-
+        self.chooseholes = chooseholes
         # define bandpass either by tophat or webbpsf filt file
         #self.wls = np.array([self.bandpass,])
         self.filt = filt
@@ -494,19 +494,19 @@ class NIRISS:
         scidata=fitsfile[1].data
         prihdr=fitsfile[0].header
         scihdr=fitsfile[1].header
-        updatewithheaderinfo(prihdr, scihdr)
+        self.updatewithheaderinfo(prihdr, scihdr)
         #self.sub_dir_str = self.filt+""
         self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
         if len(scidata.shape)==3:
             self.nwav=scidata.shape[0]
             [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
-            return scidata, hdr
+            return prihdr, scihdr, scidata
         elif len(scidata.shape)==2:
-            return prihdr, scihdr, np.array([scidata,]),
+            return prihdr, scihdr, scidata
         else:
             sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
     
-    def updatewithheaderinfo(ph, sh):
+    def updatewithheaderinfo(self, ph, sh):
         """ input: primary header, science header MAST"""
 
         #self.filt = (ph["FILTER"], get comment string for all these)
@@ -524,18 +524,18 @@ class NIRISS:
         self.pupil =  ph["PUPIL"]
         self.arrname = ("jwst_g7s6c", "ImPlaneIA internal mask name")
 
-        pscalex_deg = sc["CDELT1"]
-        pscaley_deg = sc["CDELT2"]
+        pscalex_deg = sh["CDELT1"]
+        pscaley_deg = sh["CDELT2"]
         self.pscale_mas = 0.5 * (pscalex_deg +  pscaley_deg) * (60*60*1000)
         self.pscale_rad = utils.mas2rad(self.pscale_mas)
-        self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=chooseholes )
+        self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=self.chooseholes)
 
         str = ph["DATE-OBS"]
         self.year = str[:4]
         self.month = str[5:7]
         self.day = str[8:10]
-        self.parang = sc["ROLL_REF"]
-        self.pa = sc["PA_V3"]
+        self.parangh= sh["ROLL_REF"]
+        self.pa = sh["PA_V3"]
 
         # An INTegration is NGROUPS "frames", not relevant here but context info.
         # 2d => "cal" file combines all INTegrations (ramps)

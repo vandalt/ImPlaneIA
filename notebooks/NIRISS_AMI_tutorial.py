@@ -36,8 +36,8 @@ oversample = 3
 # small  disk, noise, call name different cos of central pix kluge, but it's correct.
 # copied these from ami_sim output ~/scene_noise/..."
 datadir = "../example_data/noise/"
-tr = "t_disk_small2_0__PSF_MASK_NRM_F430M_x11_0.82_ref__00"  # root name target
-cr =       "c_disk3_4__PSF_MASK_NRM_F430M_x11_0.82_ref__00"  # root name calibrator
+tr = "t_disk_small2_0__PSF_MASK_NRM_F430M_x11_0.82_ref__00_mir"  # root name target
+cr =       "c_disk3_4__PSF_MASK_NRM_F430M_x11_0.82_ref__00_mir"  # root name calibrator
 
 # Directories where ascii output files of fringe fitting will go:
 tsavedir = datadir+"tgt_ov%d"%oversample

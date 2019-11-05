@@ -44,15 +44,14 @@ class NRM_mask_definitions():
     def __init__(self, maskname=None, rotdeg=None, holeshape="circ", rescale=False,\
                  verbose=False, chooseholes=None):
 
-        print("NRM_Mask_definitions.NIRISS: maskname",  maskname)
+        print("{0:s}".format(maskname))
         if maskname not in ["gpi_g10s40",  "jwst_g7s6", "jwst_g7s6c", "visir_sam", \
                             "p1640", "keck_nirc2", "pharo", "NIRC2_9NRM"]:
-            # Second row hopefully coming someday
-            raise ValueError("mask %s not supported" % maskname)
+            raise ValueError("mask not supported")
         if holeshape == None:
             holeshape = 'circ'
         if holeshape not in ["circ", "hex",]:
-            raise ValueError("mask %s not supported" % maskname)
+            raise ValueError("Unsupported mask: '{0:s}'".format(maskname))
         self.maskname = maskname
         if verbose:
             print("\n\t=====================================")
@@ -76,7 +75,7 @@ class NRM_mask_definitions():
 
         elif self.maskname == "jwst_g7s6c":
             """ activeD and D taken from webbpsf-data/NIRISS/coronagraph/MASK_NRM.fits"""
-            print('self.maskname == "jwst_g7s6c":')
+            print('self.maskname = "jwst_g7s6c"')
             self.hdia, self.ctrs = jwst_g7s6c(chooseholes=chooseholes) # 
             self.activeD =  6.559*m # webbpsf kwd DIAM  - not a 'circle including all holes'
             self.OD = 6.610645669291339*m # Full pupil file size, incl padding, webbpsf kwd PUPLDIAM
