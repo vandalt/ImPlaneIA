@@ -235,6 +235,7 @@ def fit_fringes_parallel(args, threads):
     self = args['object']
     filename = args['file']
     id_tag = args['id']
+    import pdb; pdb.set_trace()
     self.prihdr, self.scihdr, self.scidata = self.instrument_data.read_data(filename)
 
     self.sub_dir_str = self.instrument_data.sub_dir_str

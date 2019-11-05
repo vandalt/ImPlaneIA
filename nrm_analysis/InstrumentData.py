@@ -401,13 +401,14 @@ class NIRISS:
         # only one NRM on JWST:
         self.instrument = "NIRISS"
         self.arrname = "jwst_g7s6c"
-        self.pscale_mas = 65.6
-        self.pscale_rad = utils.mas2rad(self.pscale_mas)
-        self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=chooseholes )
+        #self.pscale_mas = 65.6
+        #self.pscale_rad = utils.mas2rad(self.pscale_mas)
+        self.holeshape="hex"
+        self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=chooseholes, 
+                                         holeshape=self.holeshape )
         # Hard code any rotations? 
         # (can be moved to NRM_mask_definitions later)
         # Add in hole/baseline properties ?
-        self.holeshape="hex"
 
         # save affine deformation of pupil object or create a no-deformation object. 
         # We apply this when sampling the PSF, not to the pupil geometry.
@@ -454,37 +455,6 @@ class NIRISS:
         self.wavextension = ([lam_c[self.filt],], [lam_w[self.filt],])
         self.nwav=1
 
-        #############################
-        # Observation info - I don't know yet how JWST data headers will be structured
-        self.telname= "JWST"
-        try:
-            self.ra, self.dec = self.hdr0["RA"], self.hdr0["DEC"]
-        except:
-            self.ra, self.dec = 00, 00
-        try:
-            self.date = self.hdr0["DATE"]
-            self.month = self.date[-5:-3]
-            self.day = self.date[-2:]
-            self.year = self.date[:4]
-        except:
-            lt = time.localtime()
-            self.date = "{0}{1:02d}{2:02d}".format(lt[0],lt[1],lt[2])
-            self.month = lt[1]
-            self.day = lt[2]
-            self.year = lt[0]
-        try:
-            self.parang = self.hdr0["PAR_ANG"]
-        except:
-            self.parang = 00
-        try:
-            self.pa = self.hdr0["PA"]
-        except:
-            self.pa = 00
-        try:
-            self.itime = self.hdr1["ITIME"]
-        except:
-            self.itime = 00
-        #############################
 
     def read_data(self, fn, mode="slice"):
         # mode options are slice or UTR
@@ -522,13 +492,14 @@ class NIRISS:
 
         self.instrument = ph["INSTRUME"]
         self.pupil =  ph["PUPIL"]
-        self.arrname = ("jwst_g7s6c", "ImPlaneIA internal mask name")
+        self.arrname = "jwst_g7s6c" # "ImPlaneIA internal mask name" - same as maskname
 
         pscalex_deg = sh["CDELT1"]
         pscaley_deg = sh["CDELT2"]
         self.pscale_mas = 0.5 * (pscalex_deg +  pscaley_deg) * (60*60*1000)
         self.pscale_rad = utils.mas2rad(self.pscale_mas)
-        self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=self.chooseholes)
+        self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=self.chooseholes,
+                                         holeshape=self.holeshape)
 
         str = ph["DATE-OBS"]
         self.year = str[:4]
@@ -540,10 +511,10 @@ class NIRISS:
         # An INTegration is NGROUPS "frames", not relevant here but context info.
         # 2d => "cal" file combines all INTegrations (ramps)
         # 3d=> "calints" file is a cube of all INTegrations (ramps)
-        if sc["NAXIS"] == 2:
-            self.itime = scihdr["EFFINTTM"] * scihdr["NINT"] # all INTegrations or 'ramps'
-        elif sc["NAXIS"] == 3:
-            self.itime = scihdr["EFFINTTM"] # each slice is one INTegration or 'ramp'
+        if sh["NAXIS"] == 2:
+            self.itime = ph["EFFINTTM"] * ph["NINTS"] # all INTegrations or 'ramps'
+        elif sh["NAXIS"] == 3:
+            self.itime = ph["EFFINTTM"] # each slice is one INTegration or 'ramp'
 
 
     def _generate_filter_files():
