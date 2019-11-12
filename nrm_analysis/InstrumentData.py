@@ -401,14 +401,9 @@ class NIRISS:
         # only one NRM on JWST:
         self.instrument = "NIRISS"
         self.arrname = "jwst_g7s6c"
-        #self.pscale_mas = 65.6
-        #self.pscale_rad = utils.mas2rad(self.pscale_mas)
         self.holeshape="hex"
         self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=chooseholes, 
                                          holeshape=self.holeshape )
-        # Hard code any rotations? 
-        # (can be moved to NRM_mask_definitions later)
-        # Add in hole/baseline properties ?
 
         # save affine deformation of pupil object or create a no-deformation object. 
         # We apply this when sampling the PSF, not to the pupil geometry.
@@ -440,9 +435,6 @@ class NIRISS:
 
         # Wavelength info for NIRISS bands F277W, F380M, F430M, or F480M
         try:
-            # If user has webbpsf installed, this will work
-            #self.throughput = utils.get_webbpsf_filter(self.filt+"_throughput.fits", \
-            #    trim = (lam_c[self.filt], lam_w[self.filt]))
             self.throughput = utils.trim_webbpsf_filter(self.filt, specbin=lam_bin[self.filt])
         except:
             self.throughput = utils.tophatfilter(lam_c[self.filt], lam_w[self.filt], npoints=11)
@@ -455,6 +447,16 @@ class NIRISS:
         self.wavextension = ([lam_c[self.filt],], [lam_w[self.filt],])
         self.nwav=1
 
+    def set_pscale(self, pscalex_deg=None, pscaley_deg=None):
+        """
+        Override pixel scale in header
+        """
+        if pscalex_deg is not None:
+            self.pscalex_deg = pscalex_deg
+        if pscaley_deg is not None:
+            self.pscaley_deg = pscaley_deg
+        self.pscale_mas = 0.5 * (pscalex_deg +  pscaley_deg) * (60*60*1000)
+        self.pscale_rad = utils.mas2rad(self.pscale_mas)
 
     def read_data(self, fn, mode="slice"):
         # mode options are slice or UTR
