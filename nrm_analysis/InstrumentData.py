@@ -489,8 +489,9 @@ class NIRISS:
         self.ra = ph["TARG_RA"]
         self.dec = ph["TARG_DEC"]
 
-        self.crpix1 = sh["CRPIX1"] # / axis 1 DS9 coordinate of the reference pixel       
-        self.crpix2 = sh["CRPIX2"] # / axis 2 DS9 coordinate of the reference pixel       
+        self.crpix1 = sh["CRPIX1"] # / axis 1 DS9 coordinate of the reference pixel (always POS1)
+        self.crpix2 = sh["CRPIX2"] # / axis 2 DS9 coordinate of the reference pixel (always POS1)
+        # need Paul Goudfrooij's table for actual crval[1,2] for true pointing to detector pixel coords (DS9)
 
         self.instrument = ph["INSTRUME"]
         self.pupil =  ph["PUPIL"]
