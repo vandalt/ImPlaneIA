@@ -50,8 +50,6 @@ print("tsavedir:", tsavedir, "\ntest_dir:", test_tar)
 
 # ### First we specify the instrument & filter # (defaults: Spectral type set to A0V)
 niriss = InstrumentData.NIRISS(filt)
-niriss.set_pscale(pscalex_deg=65.6/(60*60*1000),pscaley_deg=65.6/(60*60*1000))
-#print(niriss.nwav)
 
 # ### Next: get fringe observables via image plane fringe-fitting
 # * Need to pass the InstrumentData object, some keywords.

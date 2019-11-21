@@ -497,8 +497,11 @@ class NIRISS:
         self.pupil =  ph["PUPIL"]
         self.arrname = "jwst_g7s6c" # "ImPlaneIA internal mask name" - same as maskname
 
-        pscalex_deg = sh["CDELT1"]
-        pscaley_deg = sh["CDELT2"]
+        pscalex_deg = sh["CDELT1"]  # if data was generated on the average pixel scale of the header
+        pscaley_deg = sh["CDELT2"]  #then this is the right value that gets read in, and used in fringe fitting
+        # To use ami_sim's eg 65.6 mas/pixel scale we hardcode it here...
+        pscalex_deg = 65.6 / (1000 *60 * 60)
+        pscaley_deg = 65.6 / (1000 *60 * 60)
         self.pscale_mas = 0.5 * (pscalex_deg +  pscaley_deg) * (60*60*1000)
         self.pscale_rad = utils.mas2rad(self.pscale_mas)
         self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=self.chooseholes,
