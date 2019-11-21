@@ -68,9 +68,7 @@ class FringeFitter:
         verbose_save - saves more than the standard files
         interactive - default True, prompts user to overwrite/create fresh directory.  
                       False will overwrite files where necessary.
-
-        auto_pixscale - will search for the best pixel scale value for your data given instrument geometry
-        auto_rotate - will search for the best rotation value for your data given instrument geometry
+        find_rotation - will find the best pupil rotation that matches the data
 
         main method:
         * fit_fringes
@@ -86,11 +84,11 @@ class FringeFitter:
         else:
             #default oversampling is 3
             self.oversample = 3
-        if "auto_rotate" in kwargs:
+        if "find_rotation" in kwargs:
             # can be True/False or 1/0
-            self.auto_rotate = kwargs["auto_rotate"]
+            self.find_rotation = kwargs["find_rotation"]
         else:
-            self.auto_rotate = False
+            self.find_rotation = False
         if "centering" in kwargs or "psf_offset" in kwargs: # if so do not find center of image in data
             self.hold_centering = kwargs["psf_offset"] # already-known psf offset from array ctr
             if "centering" in kwargs:
@@ -221,7 +219,7 @@ class FringeFitter:
     def save_auto_figs(self, slc, nrm):
         
         # rotation
-        if self.auto_rotate==True:
+        if self.find_rotation==True:
             plt.figure()
             plt.plot(nrm.rots, nrm.corrs)
             plt.vlines(nrm.rot_measured, nrm.corrs[0],
@@ -235,7 +233,6 @@ def fit_fringes_parallel(args, threads):
     self = args['object']
     filename = args['file']
     id_tag = args['id']
-    import pdb; pdb.set_trace()
     self.prihdr, self.scihdr, self.scidata = self.instrument_data.read_data(filename)
 
     self.sub_dir_str = self.instrument_data.sub_dir_str
@@ -262,7 +259,6 @@ def fit_fringes_single_integration(args):
     self = args["object"]
     slc = args["slc"]
     id_tag = args["slc"]
-
     nrm = NRM_Model(mask=self.instrument_data.mask,
                     pixscale=self.instrument_data.pscale_rad,
                     holeshape=self.instrument_data.holeshape,
@@ -324,7 +320,6 @@ def fit_fringes_single_integration(args):
     else:
         print(">>>> nrm_core.fit_image(): hold_centering UNTESTED w/ new utils.centroid().  psf_offset from user... <<<<")
         nrm.bestcenter = self.psf_offset # if center already known, python-style offsets from array center are here.
-
     nrm.make_model(fov = self.ctrd.shape[0], bandpass=nrm.bandpass, 
                    over=self.oversample,
                    psf_offset=nrm.bestcenter,  
