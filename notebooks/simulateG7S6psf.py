@@ -10,6 +10,41 @@ import time
 from scipy.integrate import simps 
 from nrm_analysis import nrm_core, InstrumentData, fringefitting
 
+""" Hokey but in webbpsf_driver_NIRISS_nojitter.py output for A0V on a 255x255 detector we see:   
+
+filter      sampling  psftot    psfpeak       cpf
+F430_G2V    detector    0.1503   2.6923e-5   0.01945
+
+F480M A0V:
+    Total of PSF is: 0.14983928265312782
+    Peak pixel is:  0.0023813565623978152
+    Central pixel fraction is:  0.015892738674614215
+F430M_A0V:
+    Total of PSF is: 0.15029221331182707
+    Peak pixel is:  0.0029221329659187313
+    Central pixel fraction is:  0.01944300973102229
+F380M_A0V
+    Total of PSF is: 0.15064757333183165
+    Peak pixel is:  0.0035334896463460517
+    Central pixel fraction is:  0.023455337302797623
+F377W_A0V:
+    Total of PSF is: 0.1515569249392621
+    Peak pixel is:  0.005893341903346654
+    Central pixel fraction is:  0.038885335696197766
+"""
+#use A0V for photometry for now...
+
+filt_psftot = {"F480M":0.1498,
+               "F430M":0.1503,
+               "F380M":0.1506,
+               "F277W":0.1516
+               }
+filt_cpf    = {"F480M":0.002381,
+               "F430M":0.002922,
+               "F380M":0.023455,
+               "F277W":0.038885,
+               }
+
 webbpsffiledir = "./webbpsffiles_for_filters/"
 def get_webbpsffilters():
     """ 
@@ -71,7 +106,7 @@ def get_webbpsffilters():
 
 def psf(filt, fbp, cw, ew, beta, data_dir,
               oversample = 11, 
-              n_image = 77, 
+              n_image = 81, 
               pixelscale_as=0.0656, 
               f2f = 0.82):
     
@@ -107,7 +142,8 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
         (year, month, day, hour, minute, second, weekday, DOY, DST) =  time.gmtime()
         # optional writing of oversampled image
         if 1:
-            psf_over_n = jw.psf_over/jw.psf_over.sum()
+            psf_over_n = jw.psf_over[:80*oversample,:80*oversample]/jw.psf_over[:80*oversample,:80*oversample].sum()
+            psf_over_n = psf_over_n * filt_psftot[filt] # "sum of webbpsf sim done at 11x over"
             fits.writeto(psf_image, psf_over_n, overwrite=True)
             header = fits.getheader(psf_image)
             header['PIXELSCL'] = pixelscale_as/oversample, "arcsec per pixel"
@@ -140,7 +176,7 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
             header['NRM_Y_A6'] = jw.ctrs[5,1], 'Y coordinate (m) of NRM sub-aperture 5'          
             header['NRM_X_A7'] = jw.ctrs[6,0], 'X coordinate (m) of NRM sub-aperture 6'          
             header['NRM_Y_A7'] = jw.ctrs[6,1], 'Y coordinate (m) of NRM sub-aperture 6'   
-            header['PSFTOT'] = psf_over_n.sum()
+            header['PSFTOT'] = filt_psftot[filt], "sum of webbpsf sim done at 11x over"
             header['PSFPEAK'] = psf_over_n.max()
             header["SRC"] = ( "simulateG7S6psf.py", "ImplaneIA/notebooks/")
             header['AUTHOR'] = '%s@%s' % (os.getenv('USER'), os.getenv('HOST')), 'username@host for calculation'
@@ -148,7 +184,9 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
             header['F2F'] = (0.82, "flat2flat hole size m")
             fits.update(psf_image, psf_over_n, header=header)
         # PSF without oversampling
-        psf_det_n = jw.psf/jw.psf.sum()
+        psf_det_n = jw.psf[:80,:80]/jw.psf[:80,:80].sum()  # we can delete this line but I'm in a hurry...
+        webbpsfnorm = filt_cpf[filt] / psf_det_n.max()
+        psf_det_n = psf_det_n * webbpsfnorm # forces central pixel values to agree ^see above
         fits.writeto(psf_image_without_oversampling, psf_det_n, overwrite=True)
         header = fits.getheader(psf_image_without_oversampling)
         header['PIXELSCL'] = pixelscale_as, "arcsec per pixel"
@@ -183,6 +221,7 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
         header['NRM_Y_A7'] = jw.ctrs[6,1], 'Y coordinate (m) of NRM sub-aperture 6'   
         header['PSFTOT'] = psf_det_n.sum()
         header['PSFPEAK'] = psf_det_n.max()
+        header['CPF'] = filt_cpf[filt]
         header["SRC"] = ( "simulateG7S6psf.py", "ImplaneIA/notebooks/")
         header['AUTHOR'] = '%s@%s' % (os.getenv('USER'), os.getenv('HOST')), 'username@host for calculation'
         header['DATE'] = '%4d-%02d-%02dT%02d:%02d:%02d' %  (year, month, day, hour, minute, second), 'Date of calculation'
