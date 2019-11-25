@@ -39,8 +39,6 @@ for fname in (tr, cr):
 
     mirobj[1].data[:,:77,:77] = fobj_ami_sim[0].data[:,:,:] # replace with ami_sim data
 
-    import pdb; pdb.set_trace()
-
     mirobj.writeto(datadir+fname+mirext+".fits", overwrite=True)
     
 
