@@ -108,7 +108,8 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
               oversample = 11, 
               n_image = 81, 
               pixelscale_as=0.0656, 
-              f2f = 0.82):
+              f2f = 0.82,
+              saveover = True):
     
     arcsec2rad = u.arcsec.to(u.rad)
 
@@ -141,7 +142,7 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
         print("simulateG7S6psf: simulation oversampling is", oversample)
         (year, month, day, hour, minute, second, weekday, DOY, DST) =  time.gmtime()
         # optional writing of oversampled image
-        if 1:
+        if saveover:
             psf_over_n = jw.psf_over[:80*oversample,:80*oversample]/jw.psf_over[:80*oversample,:80*oversample].sum()
             psf_over_n = psf_over_n * filt_psftot[filt] # "sum of webbpsf sim done at 11x over"
             fits.writeto(psf_image, psf_over_n, overwrite=True)
@@ -150,8 +151,7 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
             header['FILTER'] = filt
             header['PUPIL'] = mask 
             header["OVER"] = ( oversample, "oversample")
-            header["PEAK"] = psf_over_n.max(),  "peak pixel fraction"
-            header["SPTYPE"] = "FLAT",  "source spectral type"
+            header["SPTYPE"] = "FLAT",  "source spectral type unspecified"
             header["NWAVES"] = fbp.shape[0]
             header["WAVELEN"] = cw, "Weighted mean wavelength in meters "
             header["FILT_EW"] = ew, "Filter equiv width"
@@ -193,8 +193,7 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
         header['FILTER'] = filt
         header['PUPIL'] = mask 
         header["OVER"] = ( oversample, "oversample pre-rebin")
-        header["PEAK"] = psf_det_n.max(), "peak pixel fraction"
-        header["SPTYPE"] = "FLAT", "source spectral type"
+        header["SPTYPE"] = "FLAT", "source spectral type unspecified"
         header["NWAVES"] = fbp.shape[0]
         header["WAVELEN"] = cw, "Weighted mean wavelength in meters "
         header["FILT_EW"] = ew, "Filter equiv width"
@@ -232,4 +231,4 @@ if __name__ == "__main__":
     bpd, cwd, ewd, betad = get_webbpsffilters()
     filters = ("F480M", "F430M", "F380M", "F277W")
     for ff in filters:
-        psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/')
+        psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/', saveover=False)
