@@ -481,47 +481,65 @@ class NIRISS:
     def updatewithheaderinfo(self, ph, sh):
         """ input: primary header, science header MAST"""
 
-        #self.filt = (ph["FILTER"], get comment string for all these)
+        # The info4oif_dict will get pickled to disk when we write txt files of results.
+        # That way we don't drag in objects like InstrumentData into code that reads text results
+        # and writes oifits files - a simple built-in dictionary is the only object used in this transfer.
+        info4oif_dict = {}
+        self.telname= "JWST"; info4oif_dict['telname'] = self.telname
+        self.instrument= "JWST"; info4oif_dict['telname'] = self.telname
+        self.filt = ph["FILTER"]; info4oif_dict['filt'] = self.filt
+        self.objname =  ph["TARGNAME"]; info4oif_dict['objname'] = self.objname
+        self.ra = ph["TARG_RA"]; info4oif_dict['ra'] = self.ra
+        self.dec = ph["TARG_DEC"]; info4oif_dict['dec'] = self.dec
 
-        self.telname= "JWST"
-        self.filt = ph["FILTER"]
-        self.objname =  ph["TARGNAME"]
-        self.ra = ph["TARG_RA"]
-        self.dec = ph["TARG_DEC"]
-
-        self.crpix1 = sh["CRPIX1"] # / axis 1 DS9 coordinate of the reference pixel (always POS1)
-        self.crpix2 = sh["CRPIX2"] # / axis 2 DS9 coordinate of the reference pixel (always POS1)
+        # / axis 1 DS9 coordinate of the reference pixel (always POS1)
+        # / axis 2 DS9 coordinate of the reference pixel (always POS1)
+        self.crpix1 = sh["CRPIX1"]; info4oif_dict['crpix1'] = self.crpix1
+        self.crpix2 = sh["CRPIX2"]; info4oif_dict['crpix2'] = self.crpix2
         # need Paul Goudfrooij's table for actual crval[1,2] for true pointing to detector pixel coords (DS9)
 
-        self.instrument = ph["INSTRUME"]
-        self.pupil =  ph["PUPIL"]
-        self.arrname = "jwst_g7s6c" # "ImPlaneIA internal mask name" - same as maskname
+        self.instrument = ph["INSTRUME"]; info4oif_dict['instrument'] = self.instrument
+        self.pupil =  ph["PUPIL"]; info4oif_dict['pupil'] = self.pupil
+        # "ImPlaneIA internal mask name" - same as maskname
+        self.arrname = "jwst_g7s6c"; info4oif_dict['arrname'] = self.arrname   # ???unclean hardcoding
 
-        pscalex_deg = sh["CDELT1"]  # if data was generated on the average pixel scale of the header
-        pscaley_deg = sh["CDELT2"]  #then this is the right value that gets read in, and used in fringe fitting
+        # if data was generated on the average pixel scale of the header
+        # then this is the right value that gets read in, and used in fringe fitting
+        pscalex_deg = sh["CDELT1"]
+        pscaley_deg = sh["CDELT2"]
+        #
         # To use ami_sim's eg 65.6 mas/pixel scale we hardcode it here...
         pscalex_deg = 65.6 / (1000 *60 * 60)
         pscaley_deg = 65.6 / (1000 *60 * 60)
-        self.pscale_mas = 0.5 * (pscalex_deg +  pscaley_deg) * (60*60*1000)
-        self.pscale_rad = utils.mas2rad(self.pscale_mas)
+        info4oif_dict['pscalex_deg'] = pscalex_deg
+        info4oif_dict['pscaley_deg'] = pscaley_deg
+        # Whatever we did set is averaged for isotropic pixel scale here
+        self.pscale_mas = 0.5 * (pscalex_deg + pscaley_deg) * (60*60*1000); info4oif_dict['pscale_mas'] = self.pscale_mas
+        self.pscale_rad = utils.mas2rad(self.pscale_mas); info4oif_dict['pscale_rad'] = self.pscale_rad
         self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=self.chooseholes,
                                          holeshape=self.holeshape)
 
         str = ph["DATE-OBS"]
-        self.year = str[:4]
-        self.month = str[5:7]
-        self.day = str[8:10]
-        self.parangh= sh["ROLL_REF"]
-        self.pa = sh["PA_V3"]
+        self.year = str[:4]; info4oif_dict['year'] = self.year
+        self.month = str[5:7]; info4oif_dict['month'] = self.month
+        self.day = str[8:10]; info4oif_dict['day'] = self.day
+        self.parangh= sh["ROLL_REF"]; info4oif_dict['parangh'] = self.parangh
+        self.pa = sh["PA_V3"]; info4oif_dict['pa'] = self.pa
 
         # An INTegration is NGROUPS "frames", not relevant here but context info.
         # 2d => "cal" file combines all INTegrations (ramps)
         # 3d=> "calints" file is a cube of all INTegrations (ramps)
         if sh["NAXIS"] == 2:
-            self.itime = ph["EFFINTTM"] * ph["NINTS"] # all INTegrations or 'ramps'
+            # all INTegrations or 'ramps'
+            self.itime = ph["EFFINTTM"] * ph["NINTS"]; info4oif_dict['itime'] = self.itime
         elif sh["NAXIS"] == 3:
-            self.itime = ph["EFFINTTM"] # each slice is one INTegration or 'ramp'
+            # each slice is one INTegration or 'ramp'
+            self.itime = ph["EFFINTTM"]; info4oif_dict['itime'] = self.itime
 
+
+        info4oif_dict['ctrs'] = self.mask.ctrs
+        info4oif_dict['hdia'] = self.mask.hdia
+        self.info4oif_dict = info4oif_dict # save it when writing extracted observables txt
 
     def _generate_filter_files():
         """Either from WEBBPSF, or tophat, etc. A set of filter files will also be provided"""

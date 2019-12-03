@@ -41,7 +41,7 @@ import matplotlib.pyplot as plt
 # Module imports
 from nrm_analysis.fringefitting.LG_Model import NRM_Model
 from nrm_analysis.misctools import utils  # AS LG++
-from nrm_analysis.misctools.utils import mas2rad, baselinify, rad2mas
+#rom nrm_analysis.misctools.utils import mas2rad, baselinify, rad2mas
 from nrm_analysis.modeling.binarymodel import model_cp_uv, model_allvis_uv, model_v2_uv, model_t3amp_uv
 from nrm_analysis.modeling.multimodel import model_bispec_uv
 
@@ -199,6 +199,15 @@ class FringeFitter:
                    "/CPs_{0:02d}.txt".format(slc), nrm.redundant_cps)
         np.savetxt(self.savedir+self.sub_dir_str+\
                    "/CAs_{0:02d}.txt".format(slc), nrm.redundant_cas)
+
+        # write info that oifits wants only when writing out first slice.
+        # this will relevant to all slices... so no slice number here.
+        if slc == 0:
+            pfn = self.savedir+self.sub_dir_str+"/info4oif_dict.pkl"
+            pfd = open(pfn,'wb')
+            pickle.dump(self.instrument_data.info4oif_dict,pfd)
+            pfd.close()
+
 
         # optional save outputs
         if self.verbose_save:

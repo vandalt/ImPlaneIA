@@ -11,6 +11,7 @@ anand@stsci.edu started 2019 09 26
 """
 
 import os, sys, time, glob
+import pickle
 import numpy as np
 from scipy.special import comb
 from scipy.stats import sem, mstats
@@ -25,6 +26,7 @@ class ObservablesFromText():
     def __init__(self, nh, txtpath=None, 
                            oifpath=None, 
                            observables= ("phases","amplitudes","CPs","CAs"), 
+                           oifinfofn='info4oif_dict.pkl',
                            angunit="radians",
                            verbose=True):
         """
@@ -39,10 +41,13 @@ class ObservablesFromText():
             nslices: 1 for eg unpolarized single filter observation, 
                      2 or more for polarized observations, 
                      many for IFU observations (int)
-            qty_names: If ("phases", "amplitudes", "CPs", "CAs") for example - ImPlaneIA nomenclature
-                       then files need to be named: "/phases_{0:02d}.txt".format(slc)
+            observables: If ("phases", "amplitudes", "CPs", "CAs") for example - ImPlaneIA nomenclature
+                       then the files need to be named: "/phases_{0:02d}.txt".format(slc)
                        Three or four quantities (omitting CA is optional)
                        Order is relevant... pha, amp, cp [, ca]
+            oifinfofn: default 'info4oif_dict.pkl' suits ImPlaneIA
+                      Pickle file of info oifits writers might need, in a dictionary
+                      Located in the same dir as text observable files.  Only one for all slices...
             If you want to trim low and/or high ends of eg IFU spectral observables trim them
             on-the-fly before calling this routine.  Or write a trimming method for this module.
 
@@ -54,6 +59,7 @@ class ObservablesFromText():
         self.oifpath = oifpath
         self.verbose = verbose
         self.observables = observables
+        self.oifinfofn = oifinfofn
         # Assume same number of observable output files for each observable.
         # Each image analyzed has a phases, an amplitudes, ... txt output file in thie txtdir.
         # Each file might contain different numbers of individual quantities 
@@ -79,6 +85,55 @@ class ObservablesFromText():
 
         self._readtxtdata()
         if self.verbose: self._showdata()
+    
+    def mask_geometry(self, ctr):
+        """ baselines, triples, quads, in SI (m)
+        """
+        pass
+
+    def _maketriples(self, ctrs):
+        nholes=ctrs.shape[0]
+        tlist = []
+        for i in range(nholes):
+            for j in range(nholes):
+                for k in range(nholes):
+                    if i<j:
+                     if j<k:
+                         tlist.append((i,j,k))
+        tarray = np.array(tlist).astype(np.int)
+        #print(tarray)
+        tname = []
+        tlist = []
+        for triple in tlist:
+            """
+            blname.append("{0:d}_{1:d}".format(basepair[0],basepair[1]))
+            baseline = ctrs[basepair[0]] - ctrs[basepair[1]]
+            bllist.append(baseline)
+            """
+            pass
+        return None #np.array(blname), np.array(bllist)
+
+    def _makebaselines(self, ctrs):
+        """
+        ctrs (nh,2) in m
+        returns np arrays of eg 21 baselinenames ('0_1',...), eg (21,2) baselinevectors (2-floats)
+        in the same numbering as implaneia
+        """
+        nholes=ctrs.shape[0]
+        blist = []
+        for i in range(nholes):
+            for j in range(nholes):
+                if i<j:
+                    blist.append((i,j))
+        barray = np.array(blist).astype(np.int)
+        blname = []
+        bllist = []
+        for basepair in blist:
+            blname.append("{0:d}_{1:d}".format(basepair[0],basepair[1]))
+            baseline = ctrs[basepair[0]] - ctrs[basepair[1]]
+            bllist.append(baseline)
+        return np.array(blname), np.array(bllist)
+
 
     def _showdata(self, prec=4):
         """ set precision of your choice in calling this"""
@@ -96,6 +151,11 @@ class ObservablesFromText():
         print(self.cp.shape, "cp (degrees, but stored internally in radians):\n", self.cp*self.degree, "\n")
         if len(self.observables)==4:
             print(self.ca.shape, "ca:\n", self.ca, "\n")
+        #print(self.info4oif_dict)
+        print(self.blnames, self.bls)
+        print(self.ctrs.shape)
+
+    
 
     def _readtxtdata(self):
         # to only be called from init
@@ -119,6 +179,20 @@ class ObservablesFromText():
             if len(self.observables) == 4:
                 self.ca[slice:] = np.loadtxt(fnheads[3].format(slice))
 
+        """ get this data in...
+        pfn = self.savedir+self.sub_dir_str+"/info4oif_dict.pkl"
+        pfd = open(pfn,'wb')
+        pickle.dump(info4oif_fn,pfd)
+        pfd.close()
+        """
+        # read in the info oif might need...
+        pfd = open(self.txtpath+'/'+self.oifinfofn,'rb')
+        self.info4oif_dict = pickle.load(pfd)
+        pfd.close()
+        self.ctrs = self.info4oif_dict['ctrs']
+        self.blnames, self.bls = self._makebaselines(self.ctrs)
+        #self.tnames, self.ts = self._maketriples(self.ctrs)
+        self._maketriples(self.ctrs)
 
 def mainsmall(nh=None):
     " Assemble list of object observables' paths, target usually first, one or multiple calibrators"
