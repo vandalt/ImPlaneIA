@@ -41,7 +41,6 @@ import matplotlib.pyplot as plt
 # Module imports
 from nrm_analysis.fringefitting.LG_Model import NRM_Model
 from nrm_analysis.misctools import utils  # AS LG++
-#rom nrm_analysis.misctools.utils import mas2rad, baselinify, rad2mas
 from nrm_analysis.modeling.binarymodel import model_cp_uv, model_allvis_uv, model_v2_uv, model_t3amp_uv
 from nrm_analysis.modeling.multimodel import model_bispec_uv
 

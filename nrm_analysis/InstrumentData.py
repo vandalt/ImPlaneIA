@@ -399,6 +399,7 @@ class NIRISS:
         #############################
 
         # only one NRM on JWST:
+        self.telname = "NIRISS"
         self.instrument = "NIRISS"
         self.arrname = "jwst_g7s6c"
         self.holeshape="hex"
@@ -486,8 +487,13 @@ class NIRISS:
         # and writes oifits files - a simple built-in dictionary is the only object used in this transfer.
         info4oif_dict = {}
         self.telname= "JWST"; info4oif_dict['telname'] = self.telname
-        self.instrument= "JWST"; info4oif_dict['telname'] = self.telname
-        self.filt = ph["FILTER"]; info4oif_dict['filt'] = self.filt
+        info4oif_dict['telname'] = self.telname
+
+        info4oif_dict['filt'] = self.filt
+        info4oif_dict['lam_c'] = self.lam_c
+        info4oif_dict['lam_w'] = self.lam_w
+        info4oif_dict['lam_bin'] = self.lam_bin
+
         self.objname =  ph["TARGNAME"]; info4oif_dict['objname'] = self.objname
         self.ra = ph["TARG_RA"]; info4oif_dict['ra'] = self.ra
         self.dec = ph["TARG_DEC"]; info4oif_dict['dec'] = self.dec

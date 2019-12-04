@@ -86,40 +86,67 @@ class ObservablesFromText():
         self._readtxtdata()
         if self.verbose: self._showdata()
     
-    def mask_geometry(self, ctr):
-        """ baselines, triples, quads, in SI (m)
-        """
-        pass
 
-    def _maketriples(self, ctrs):
-        nholes=ctrs.shape[0]
+    def _makequads_all(self):
+        """ returns int array of quad hole indices (0-based), 
+            and float array of three uvw vectors in all quads
+        """
+        nholes=self.ctrs.shape[0]
+        qlist = []
+        for i in range(nholes):
+            for j in range(nholes):
+                for k in range(nholes):
+                    for q in range(nholes):
+                        if i<j and j<k and k<q:
+                            qlist.append((i,j,k,q))
+        qarray = np.array(qlist).astype(np.int)
+        if self.verbose: print("qarray", qarray.shape, "\n", qarray)
+        qname = []
+        uvwlist = []
+        # foreach row of 3 elts...
+        for quad in qarray:
+            qname.append("{0:d}_{1:d}_{2:d}_{3:d}".format(quad[0], quad[1], quad[2], quad[3]))
+            if self.verbose: print('quad:', quad, qname[-1])
+            uvwlist.append((self.ctrs[quad[0]] - self.ctrs[quad[1]],
+                            self.ctrs[quad[1]] - self.ctrs[quad[2]],
+                            self.ctrs[quad[2]] - self.ctrs[quad[3]]))
+        if self.verbose: print( qarray.shape, np.array(uvwlist).shape)
+        return qarray, np.array(uvwlist)
+
+    def _maketriples_all(self):
+        """ returns int array of triple hole indices (0-based), 
+            and float array of two uv vectors in all triangles
+        """
+        nholes=self.ctrs.shape[0]
         tlist = []
         for i in range(nholes):
             for j in range(nholes):
                 for k in range(nholes):
-                    if i<j:
-                     if j<k:
+                    if i<j and j<k:
                          tlist.append((i,j,k))
         tarray = np.array(tlist).astype(np.int)
-        #print(tarray)
+        if self.verbose: print("tarray", tarray.shape, "\n", tarray)
+        
         tname = []
-        tlist = []
-        for triple in tlist:
-            """
-            blname.append("{0:d}_{1:d}".format(basepair[0],basepair[1]))
-            baseline = ctrs[basepair[0]] - ctrs[basepair[1]]
-            bllist.append(baseline)
-            """
-            pass
-        return None #np.array(blname), np.array(bllist)
+        uvlist = []
+        # foreach row of 3 elts...
+        for triple in tarray:
+            tname.append("{0:d}_{1:d}_{2:d}".format(triple[0], triple[1], triple[2]))
+            if self.verbose: print('triple:', triple, tname[-1])
+            uvlist.append( (self.ctrs[triple[0]] - self.ctrs[triple[1]],
+                            self.ctrs[triple[1]] - self.ctrs[triple[2]]) )
+        #print(len(uvlist), "uvlist", uvlist) 
+        if self.verbose: print( tarray.shape, np.array(uvlist).shape)
+        return tarray, np.array(uvlist)
 
-    def _makebaselines(self, ctrs):
+
+    def _makebaselines(self):
         """
         ctrs (nh,2) in m
         returns np arrays of eg 21 baselinenames ('0_1',...), eg (21,2) baselinevectors (2-floats)
         in the same numbering as implaneia
         """
-        nholes=ctrs.shape[0]
+        nholes=self.ctrs.shape[0]
         blist = []
         for i in range(nholes):
             for j in range(nholes):
@@ -129,10 +156,10 @@ class ObservablesFromText():
         blname = []
         bllist = []
         for basepair in blist:
-            blname.append("{0:d}_{1:d}".format(basepair[0],basepair[1]))
-            baseline = ctrs[basepair[0]] - ctrs[basepair[1]]
+            #blname.append("{0:d}_{1:d}".format(basepair[0],basepair[1]))
+            baseline = self.ctrs[basepair[0]] - self.ctrs[basepair[1]]
             bllist.append(baseline)
-        return np.array(blname), np.array(bllist)
+        return barray, np.array(bllist)
 
 
     def _showdata(self, prec=4):
@@ -152,8 +179,17 @@ class ObservablesFromText():
         if len(self.observables)==4:
             print(self.ca.shape, "ca:\n", self.ca, "\n")
         #print(self.info4oif_dict)
-        print(self.blnames, self.bls)
-        print(self.ctrs.shape)
+
+        print("hole centers array shape:", self.ctrs.shape)
+
+        print(len(self.bholes), "baseline hole indices\n", self.bholes)
+        print(self.bls.shape, "baselines:\n", self.bls)
+
+        print(self.tholes.shape, "triple hole indices:\n", self.tholes)
+        print(self.tuv.shape, "triple uv vectors:\n", self.tuv )
+
+        print(self.qholes.shape, "quad hole indices:\n", self.qholes)
+        print(self.quvw.shape, "quad uvw vectors:\n", self.quvw)
 
     
 
@@ -185,14 +221,14 @@ class ObservablesFromText():
         pickle.dump(info4oif_fn,pfd)
         pfd.close()
         """
-        # read in the info oif might need...
+        # read in pickle of the info oifits might need...
         pfd = open(self.txtpath+'/'+self.oifinfofn,'rb')
         self.info4oif_dict = pickle.load(pfd)
         pfd.close()
         self.ctrs = self.info4oif_dict['ctrs']
-        self.blnames, self.bls = self._makebaselines(self.ctrs)
-        #self.tnames, self.ts = self._maketriples(self.ctrs)
-        self._maketriples(self.ctrs)
+        self.bholes, self.bls = self._makebaselines()
+        self.tholes, self.tuv = self._maketriples_all()
+        self.qholes, self.quvw = self._makequads_all()
 
 def mainsmall(nh=None):
     " Assemble list of object observables' paths, target usually first, one or multiple calibrators"
@@ -203,14 +239,14 @@ def mainsmall(nh=None):
         observables_list.append(ObservablesFromText(nh, obj))
         # can mod to use glob above to count number of slices...
 
-def main_ansou(nh=None, txtdir=None):
+def main_ansou(nh=None, txtdir=None, verbose=True):
     "Reads in every observable available into a list of Observables"
     observables_list = []
-    observables_list.append(ObservablesFromText(nh, txtdir))
+    observables_list.append(ObservablesFromText(nh, txtdir, verbose=verbose))
 
 
 if __name__ == "__main__":
     #mainsmall(nh=7)
     # one sky object's ImPlaneIA text output directory
     objecttextdir="../example_data/example_anthonysoulain/cal_ov3/c_myscene_disk_r=100mas__F430M_81_flat_x11__00_mir"
-    main_ansou(nh=7, txtdir=objecttextdir)
+    main_ansou(nh=7, txtdir=objecttextdir, verbose=False)
