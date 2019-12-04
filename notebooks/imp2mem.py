@@ -7,6 +7,7 @@ Writes them out into oifits files in the same directory.
 Chunkwide averaging might be a later development for real data.
 
 anand@stsci.edu started 2019 09 26 
+anand@stsci.edu beta 2019 12 04
 
 """
 
@@ -40,21 +41,26 @@ class ObservablesFromText():
             oifpath: directory (str).  If omitted, oifits goes to same directory as textpath
             nslices: 1 for eg unpolarized single filter observation, 
                      2 or more for polarized observations, 
-                     many for IFU observations (int)
+                     many for IFU or repeated integration observations (int)
             observables: If ("phases", "amplitudes", "CPs", "CAs") for example - ImPlaneIA nomenclature
                        then the files need to be named: "/phases_{0:02d}.txt".format(slc)
                        Three or four quantities (omitting CA is optional)
                        Order is relevant... pha, amp, cp [, ca]
+                       Implaneia txt data will be in txtpath/*.txt
             oifinfofn: default 'info4oif_dict.pkl' suits ImPlaneIA
                       Pickle file of info oifits writers might need, in a dictionary
                       Located in the same dir as text observable files.  Only one for all slices...
+                      Implaneia writes this dictionary out with the default name.
             If you want to trim low and/or high ends of eg IFU spectral observables trim them
-            on-the-fly before calling this routine.  Or write a trimming method for this module.
+            on-the-fly before calling this routine.
 
             ImPlaneIA saves fp cp in RADIANS.
+
+            Units: as SI as possible.
+
         """
 
-        print( "=== ObservablesFromText ===\nObject text observables' directorypath:\n    ", txtpath)
+        print( "=== ObservablesFromText ===\n One object's *.txt observables' directory path:\n    ", txtpath)
         self.txtpath = txtpath
         self.oifpath = oifpath
         self.verbose = verbose
@@ -164,8 +170,8 @@ class ObservablesFromText():
 
     def _showdata(self, prec=4):
         """ set precision of your choice in calling this"""
-        print('nh {0:d}  nslices {1:d}  nbl {2:d}  ncp {3:d}  '.format(
-                          self.nh, self.nslices, self.nbl, self.ncp), end="")
+        print('nh {0:d}  nslices {1:d}  nbl {2:d}  ncp {3:d}  nca {4:d}  '.format(
+                          self.nh, self.nslices, self.nbl, self.ncp, self.nca), end="")
         print("observables in np arrays with {:d} rows".format(self.nslices))
 
         if len(self.observables)==4: print('nca', self.nca)
@@ -215,20 +221,24 @@ class ObservablesFromText():
             if len(self.observables) == 4:
                 self.ca[slice:] = np.loadtxt(fnheads[3].format(slice))
 
-        """ get this data in...
-        pfn = self.savedir+self.sub_dir_str+"/info4oif_dict.pkl"
-        pfd = open(pfn,'wb')
-        pickle.dump(info4oif_fn,pfd)
-        pfd.close()
-        """
         # read in pickle of the info oifits might need...
         pfd = open(self.txtpath+'/'+self.oifinfofn,'rb')
         self.info4oif_dict = pickle.load(pfd)
+        if self.verbose: 
+            for key in self.info4oif_dict.keys():
+                print(key)
         pfd.close()
         self.ctrs = self.info4oif_dict['ctrs']
         self.bholes, self.bls = self._makebaselines()
         self.tholes, self.tuv = self._maketriples_all()
         self.qholes, self.quvw = self._makequads_all()
+
+    def write_oif(self, oifn):
+        """
+            Write out an OIFITS file using the data that was read in during initialisation
+        """
+        print("I don't know how to write " + oifn + " at this moment.")
+
 
 def mainsmall(nh=None):
     " Assemble list of object observables' paths, target usually first, one or multiple calibrators"
@@ -241,12 +251,12 @@ def mainsmall(nh=None):
 
 def main_ansou(nh=None, txtdir=None, verbose=True):
     "Reads in every observable available into a list of Observables"
-    observables_list = []
-    observables_list.append(ObservablesFromText(nh, txtdir, verbose=verbose))
+    observables = ObservablesFromText(nh, txtdir, verbose=verbose)
+    print(observables.nslices, "slices of data were analysed by ImPlaneIA, and read in")
+    observables.write_oif("write_me_oifits.fits")
 
 
 if __name__ == "__main__":
-    #mainsmall(nh=7)
     # one sky object's ImPlaneIA text output directory
     objecttextdir="../example_data/example_anthonysoulain/cal_ov3/c_myscene_disk_r=100mas__F430M_81_flat_x11__00_mir"
     main_ansou(nh=7, txtdir=objecttextdir, verbose=False)
