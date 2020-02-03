@@ -232,19 +232,22 @@ if __name__ == "__main__":
     bpd, cwd, ewd, betad = get_webbpsffilters()
     filters = ("F480M", "F430M", "F380M", "F277W")
 
-    parser = argparse.ArgumentParser(description="Simulate mochromatic or polychromatic NRM PSF. Use 0 for monochromatic, 1 for polychromatic. Python simulateG7S6psf.py -m 0")
-    parser.add_argument('-m','--monochromatic',  type=int, choices=[0,1], help='monochromatic yes/no, must be either 0 or 1', )
+    parser = argparse.ArgumentParser(description="Creates polychromatic (default) or monochromatic NRM PSFs. E.g. simulateG7S6psf.py -m 1")
+    parser.add_argument('-m','--monochromatic',  type=int, default=0, choices=[0,1], help='monochromatic 1, default is polychromatic', )
     args = parser.parse_args(sys.argv[1:])
     monochromatic = args.monochromatic
     
     for ff in filters:
-        if monochromatic == 0:
-           bpdm = np.zeros((1,2))
-           bpdm[0,0] = 1.0
-           bpdm[0,1] = cwd[ff]
-           bpd[ff] = bpdm
-           ewd[ff] = 0.0
-           betad[ff] = 0.0
-           psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/', n_image=81, saveover=False)
-        else:
-           psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/', n_image=81, saveover=False)
+
+        if monochromatic:
+            """
+            Create monochromatic psfs in the bands' transmission-weighted central wavelengths.
+            """
+            bpdm = np.zeros((1,2)) # filter's bandpass dictionary value for one wavelength
+            bpdm[0,0] = 1.0        # weight for the wavelength
+            bpdm[0,1] = cwd[ff]    # wavelength / m
+            bpd[ff] = bpdm         # replace polychromatioc bandpass dictionary value with entries for monochromatic 
+            ewd[ff] = 0.0          # equivalent width dictionary value for one wavelength
+            betad[ff] = 0.0        # fractional bandwidth dictionary value for one wavelength
+
+        psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/', n_image=81, saveover=False)
