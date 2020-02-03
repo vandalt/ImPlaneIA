@@ -6,6 +6,7 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy import units as u
 import sys
+import argparse
 import time
 from scipy.integrate import simps 
 from nrm_analysis import nrm_core, InstrumentData, fringefitting
@@ -230,5 +231,20 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
 if __name__ == "__main__":
     bpd, cwd, ewd, betad = get_webbpsffilters()
     filters = ("F480M", "F430M", "F380M", "F277W")
+
+    parser = argparse.ArgumentParser(description="Simulate mochromatic or polychromatic NRM PSF. Use 0 for monochromatic, 1 for polychromatic. Python simulateG7S6psf.py -m 0")
+    parser.add_argument('-m','--monochromatic',  type=int, choices=[0,1], help='monochromatic yes/no, must be either 0 or 1', )
+    args = parser.parse_args(sys.argv[1:])
+    monochromatic = args.monochromatic
+    
     for ff in filters:
-        psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/', saveover=False)
+        if monochromatic == 0:
+           bpdm = np.zeros((1,2))
+           bpdm[0,0] = 1.0
+           bpdm[0,1] = cwd[ff]
+           bpd[ff] = bpdm
+           ewd[ff] = 0.0
+           betad[ff] = 0.0
+           psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/', n_image=81, saveover=False)
+        else:
+           psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/', n_image=81, saveover=False)
