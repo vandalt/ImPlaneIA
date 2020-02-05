@@ -47,8 +47,11 @@ filt_cpf    = {"F480M":0.002381,
                }
 
 webbpsffiledir = "./webbpsffiles_for_filters/"
-def get_webbpsffilters():
+def get_webbpsffilters(mono=False):
     """ 
+        mono = False: full filter bandpass
+        mono = True: transmission-weighted central wavelength of filter
+
         read in psf headers and scoop out filter bandpasses 
         returns bpd, cwd, ewd, betad dictionaries keyed by filter name
         filter bandpass dictionary values are np array[npoints,2] with
@@ -102,7 +105,21 @@ def get_webbpsffilters():
         print("\tfrac bandpass {:.2e}".format(ew/wavelen))
         print()
 
+    if mono:
+         filt_bpd, filt_cw, filt_ew, filt_beta = monochromatize(filters, filt_bpd, filt_cw, filt_ew, filt_beta)
+    
     return filt_bpd, filt_cw, filt_ew, filt_beta
+
+def monochromatize(ffs, bpd, cwd, ewd, betad):
+    """create monochromatic filter info from full band data """
+    for ff in ffs:
+        bpdm = np.zeros((1,2)) # filter's bandpass dictionary value for one wavelength
+        bpdm[0,0] = 1.0        # weight for the wavelength
+        bpdm[0,1] = cwd[ff]    # wavelength / m
+        bpd[ff] = bpdm         # replace polychromatioc bandpass dictionary value with entries for monochromatic 
+        ewd[ff] = 0.0          # equivalent width dictionary value for one wavelength
+        betad[ff] = 0.0        # fractional bandwidth dictionary value for one wavelength
+    return bpd, cwd, ewd, betad
 
 
 def psf(filt, fbp, cw, ew, beta, data_dir,
@@ -229,25 +246,21 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
 
 
 if __name__ == "__main__":
-    bpd, cwd, ewd, betad = get_webbpsffilters()
+
+    parser = argparse.ArgumentParser(description="Creates JWST AMI psfs in its allowed filters")
+    #parser.add_argument('-m','--monochromatic', help=" monochromatic at transmission-weighted band center '
+    parser.add_argument("-m", "--monochromatic", help = "monochromatic psf at transmission-weighted band center", action="store_true")
+    args = parser.parse_args(sys.argv[1:])
+
+    monochromatic = False
+    if args.monochromatic:
+        monochromatic = True
+    print("monochromatic", monochromatic)
+    
+    bpd, cwd, ewd, betad = get_webbpsffilters(mono=monochromatic)
     filters = ("F480M", "F430M", "F380M", "F277W")
 
-    parser = argparse.ArgumentParser(description="Creates polychromatic (default) or monochromatic NRM PSFs. E.g. simulateG7S6psf.py -m 1")
-    parser.add_argument('-m','--monochromatic',  type=int, default=0, choices=[0,1], help='monochromatic 1, default is polychromatic', )
-    args = parser.parse_args(sys.argv[1:])
-    monochromatic = args.monochromatic
-    
-    for ff in filters:
 
-        if monochromatic:
-            """
-            Create monochromatic psfs in the bands' transmission-weighted central wavelengths.
-            """
-            bpdm = np.zeros((1,2)) # filter's bandpass dictionary value for one wavelength
-            bpdm[0,0] = 1.0        # weight for the wavelength
-            bpdm[0,1] = cwd[ff]    # wavelength / m
-            bpd[ff] = bpdm         # replace polychromatioc bandpass dictionary value with entries for monochromatic 
-            ewd[ff] = 0.0          # equivalent width dictionary value for one wavelength
-            betad[ff] = 0.0        # fractional bandwidth dictionary value for one wavelength
+    for ff in filters:
 
         psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/', n_image=81, saveover=False)
