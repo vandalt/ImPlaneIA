@@ -1,11 +1,9 @@
 # nrm_analysis README #
 
-Reduces aperture masking images to fringe observables, calibrates, does basic model fitting. Package development led by Alexandra Greenbaum following legacy code by Greenbaum, Anand Sivaramakrishnan, and Laurent Pueyo. Contributions from Sivaramakrishnan, Deepashri Thatte, and Johannes Sahlmann.
+Reduces aperture masking images to fringe observables, calibrates, does basic model fitting. Package development led by Alexandra Greenbaum following legacy code by Greenbaum, Anand Sivaramakrishnan, and Laurent Pueyo. Contributions from Sivaramakrishnan, Deepashri Thatte, Johannes Sahlmann, Anthony Soulain.
 
 
-Devmasthdr branch first change
-                  second change (anand) - after checkout by collaborator
-                  third change (Deepashri) - after doing 'git pull' to incorporate the second change
+Devmasthdr branch  dedicated for the moment to JWST NIRISS AMI
 
 To get the source files:
 
@@ -17,7 +15,6 @@ Necessary Python packages:
 * scipy
 * astropy
 * matplotlib
-* a copy of [Paul Boley's oifits.py](http://astro.ins.urfu.ru/pages/~pboley/oifits/) in your python path
 * emcee [available here](http://dan.iel.fm/emcee/current/) or by pip install
 * DFM's corner [source here](https://github.com/dfm/corner.py) or by pip install
 * uncertainties package [information and instruction here](https://pythonhosted.org/uncertainties/)
@@ -29,7 +26,7 @@ Optional Python packages:
 * poppy [available here](https://github.com/mperrin/poppy) or by pip install
 * pysynphot
 
-*we recommend downloading the anaconda distribution for python*
+*we recommend downloading the anaconda distribution for python3*
 
 **For usage examples check the notebooks folder, which contains some basic tutorials.**
 
