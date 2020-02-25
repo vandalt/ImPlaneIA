@@ -31,6 +31,7 @@ def show_cvsupport_threshold(instr):
     """ Show threshold for where 'splodge' data in CV space contains signal """
     print("cvsupport_threshold is: ", instr.cvsupport_threshold)
     print(instr.cvsupport_threshold)
+
 def set_cvsupport_threshold(instr, k, v):
     """ Set threshold for where 'splodge' data in CV space contains signal
         
@@ -364,6 +365,7 @@ class NIRISS:
                        out_dir='', 
                        chooseholes=None, 
                        affine2d=None, 
+                       fastdebug=False,
                        **kwargs):
         """
         Initialize NIRISS class
@@ -384,18 +386,15 @@ class NIRISS:
         self.filt = filt
         self.objname = objname
         #############################
-        lam_c = {"F277W":2.77e-6, 
-                 "F380M": 3.8e-6, 
-                 "F430M": 4.28521033106325E-06,
-                 "F480M": 4.8e-6}
-        
-
-        lam_w = {"F277W":0.2, "F380M": 0.1, "F430M": 0.0436, "F480M": 0.08}
-        # about 12 wavs in f430m lam_bin = {"F277W": 50, "F380M": 20, "F430M":40, "F480M":30}
-        lam_bin = {"F277W": 50, "F380M": 20, "F430M":150, "F480M":30}
-        self.lam_c = lam_c
-        self.lam_w = lam_w
-        self.lam_bin = lam_bin
+        self.lam_c = {"F277W":2.77e-6,  # central wavelength (SI)
+                      "F380M": 3.8e-6, 
+                      "F430M": 4.28521033106325E-06,
+                      "F480M": 4.8e-6}
+        self.lam_w = {"F277W":0.2, "F380M": 0.1, "F430M": 0.0436, "F480M": 0.08} # fractional filter width 
+        if fastdebug: 
+            self.lam_bin = {"F277W": 50, "F380M": 20, "F430M":150, "F480M":30} # about 3 waves in f430 - development
+        else: 
+            self.lam_bin = {"F277W": 50, "F380M": 20, "F430M":40,  "F480M":30} # about 12 waves in f430 - data analysis
         #############################
 
         # only one NRM on JWST:
@@ -436,16 +435,16 @@ class NIRISS:
 
         # Wavelength info for NIRISS bands F277W, F380M, F430M, or F480M
         try:
-            self.throughput = utils.trim_webbpsf_filter(self.filt, specbin=lam_bin[self.filt])
+            self.throughput = utils.trim_webbpsf_filter(self.filt, specbin=self.lam_bin[self.filt])
         except:
-            self.throughput = utils.tophatfilter(lam_c[self.filt], lam_w[self.filt], npoints=11)
+            self.throughput = utils.tophatfilter(self.lam_c[self.filt], self.lam_w[self.filt], npoints=11)
 
         try:
             self.wls = [utils.combine_transmission(self.throughput, src), ]
         except:
             self.wls = [self.throughput, ]
 
-        self.wavextension = ([lam_c[self.filt],], [lam_w[self.filt],])
+        self.wavextension = ([self.lam_c[self.filt],], [self.lam_w[self.filt],])
         self.nwav=1
 
     def set_pscale(self, pscalex_deg=None, pscaley_deg=None):
@@ -467,8 +466,7 @@ class NIRISS:
         scidata=fitsfile[1].data
         prihdr=fitsfile[0].header
         scihdr=fitsfile[1].header
-        self.updatewithheaderinfo(prihdr, scihdr)
-        #self.sub_dir_str = self.filt+""
+        self.updatewithheaderinfo(prihdr, scihdr) # mirage header or MAST header
         self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
         if len(scidata.shape)==3:
             self.nwav=scidata.shape[0]

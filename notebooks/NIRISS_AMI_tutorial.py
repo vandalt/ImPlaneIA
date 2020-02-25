@@ -7,9 +7,6 @@
 # * calibrate target closure phases with the calibrator
 # * fit for a binary
 
-# In[ ]:
-
-
 import glob
 import os, sys, time
 from astropy.io import fits
@@ -20,12 +17,13 @@ from nrm_analysis import nrm_core, InstrumentData
 import matplotlib.pyplot as plt
 #get_ipython().run_line_magic('matplotlib', 'inline')
 
+debug = True
+home = os.path.expanduser('~')
+
 np.set_printoptions(precision=4)
-print("Current working directory is ", os.getcwd())
-print("InstrumentData is file: ", InstrumentData.__file__)
-"""
-InstrumentData is file:  /Users/anand/gitsrc/agreenbaum/ImPlaneIA/nrm_analysis/InstrumentData.py
-works oifits"""
+if debug:
+    print("Current working directory is ", os.getcwd())
+    print("InstrumentData is file: ", InstrumentData.__file__)
 
 # ### Where the data lives:
 
@@ -35,13 +33,9 @@ oversample = 3
 
 # small  disk, noise, call name different cos of central pix kluge, but it's correct.
 # copied these from ami_sim output ~/scene_noise/..."
-datadir = "../example_data/noise/"
-tr = "t_disk_small2_0__PSF_MASK_NRM_F430M_x11_0.82_ref__00_mir"  # root name target
-cr =       "c_disk3_4__PSF_MASK_NRM_F430M_x11_0.82_ref__00_mir"  # root name calibrator
-datadir = "/Users/anand/gitsrc/ImPlaneIA/example_data/example_anthonysoulain/"
-
-cr="c_myscene_disk_r=100mas__F430M_81_flat_x11__00_mir"
-tr="t_myscene_disk_r=100mas__F430M_81_flat_x11__00_mir"
+datadir = home+"/Downloads/asoulain_arch2019.12.07/Simulated_data/"
+cr = "c_dsk_100mas__F430M_81_flat_x11__00_mir"
+tr = "t_dsk_100mas__F430M_81_flat_x11__00_mir"
 # Directories where ascii output files of fringe fitting will go:
 tsavedir = datadir+"tgt_ov%d"%oversample
 csavedir = datadir+"cal_ov%d"%oversample
@@ -49,10 +43,12 @@ csavedir = datadir+"cal_ov%d"%oversample
 test_tar = datadir + tr + ".fits"
 test_cal = datadir + cr + ".fits"
 
-print("tsavedir:", tsavedir, "\ntest_dir:", test_tar)
+if debug:
+    print("tsavedir:", tsavedir, "\ntest_tar:", test_tar)
+    print("csavedir:", csavedir, "\ntest_cal:", test_cal)
 
 # ### First we specify the instrument & filter # (defaults: Spectral type set to A0V)
-niriss = InstrumentData.NIRISS(filt)
+niriss = InstrumentData.NIRISS(filt, fastdebug=True)
 
 # ### Next: get fringe observables via image plane fringe-fitting
 # * Need to pass the InstrumentData object, some keywords.
@@ -61,7 +57,6 @@ niriss = InstrumentData.NIRISS(filt)
 ff_t = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=tsavedir, oversample=oversample, interactive=False) 
 ff_c = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=csavedir, oversample=oversample, interactive=False) 
 #in general set interactive to False unless you really don't know what you are doing
-# originally oversample=7  reduce for debug speed
                                                         
 # This can take a little while -- there is a parallelization option, set threads=n_threads
 # output of this is long -- may also want to do this scripted instead of in notebook,
@@ -112,13 +107,9 @@ plt.colorbar(fraction=0.046, pad=0.04)
 # correct parameters so wavelength, pixelscale, etc. can be interpreted into
 # on-sky spatial frequency. This can write out an oifits file.
 
-niriss = InstrumentData.NIRISS(filt) # temp fix to reset nwav appropriately to 1
+niriss = InstrumentData.NIRISS(filt, fastdebug=True) # temp fix to reset nwav appropriately to 1
 # Pass the location of where to save calibrated quantities as 'savedir' here:
 calib = nrm_core.Calibrate((tsavedir+"/"+tr+"/", csavedir+"/"+cr+"/"), 
                            niriss, 
                            savedir = datadir, #####"calibrated_example/", 
                            interactive=False)
-
-#oifitsfn = "example.oifits"
-#calib.save_to_oifits(oifitsfn) # will save into specified "savedir"
-sys.exit("Stop before writing oifits")
