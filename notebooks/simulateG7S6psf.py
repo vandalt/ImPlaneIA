@@ -248,7 +248,6 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Creates JWST AMI psfs in its allowed filters")
-    #parser.add_argument('-m','--monochromatic', help=" monochromatic at transmission-weighted band center '
     parser.add_argument("-m", "--monochromatic", help = "monochromatic psf at transmission-weighted band center", action="store_true")
     args = parser.parse_args(sys.argv[1:])
 
