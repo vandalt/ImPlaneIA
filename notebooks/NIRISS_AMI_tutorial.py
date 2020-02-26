@@ -25,11 +25,11 @@ if debug:
     print("Current working directory is ", os.getcwd())
     print("InstrumentData is file: ", InstrumentData.__file__)
 
-# ### Where the data lives:
-
 filt="F430M"
 
 oversample = 3
+
+# ### Where the data lives:
 
 # small  disk, noise, call name different cos of central pix kluge, but it's correct.
 # copied these from ami_sim output ~/scene_noise/..."
@@ -48,9 +48,10 @@ if debug:
     print("csavedir:", csavedir, "\ntest_cal:", test_cal)
 
 # ### First we specify the instrument & filter # (defaults: Spectral type set to A0V)
-bandpass = None
-bandpass = np.array([(1.0, 4.3e-6),])
-niriss = InstrumentData.NIRISS(filt, bandpass=bandpass)
+bp3= np.array([(0.1, 4.2e-6),(0.8, 4.3e-6),(0.1,4.4e-6)])
+default = None
+bpmono = np.array([(1.0, 4.3e-6),])
+niriss = InstrumentData.NIRISS(filt, bandpass=default)
 
 # ### Next: get fringe observables via image plane fringe-fitting
 # * Need to pass the InstrumentData object, some keywords.
@@ -109,7 +110,9 @@ plt.colorbar(fraction=0.046, pad=0.04)
 # correct parameters so wavelength, pixelscale, etc. can be interpreted into
 # on-sky spatial frequency. This can write out an oifits file.
 
-niriss.reset_nwav(1) # a kluge that AZG replaces calling InstrumentData just to reset nwav to unity.
+niriss.reset_nwav(1) # a kluge that replaces calling InstrumentData just to reset nwav to unity.
+                     # Not sure why we need to do this.  Lower level code
+                     # cleanup could in futurew obviate the necessity of doing this!
 
 # Pass the location of where to save calibrated quantities as 'savedir' here:
 calib = nrm_core.Calibrate((tsavedir+"/"+tr+"/", csavedir+"/"+cr+"/"), 

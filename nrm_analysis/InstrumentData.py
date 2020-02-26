@@ -387,14 +387,11 @@ class NIRISS:
             print("    **** InstrumentData.NIRISS: ", chooseholes)
         self.chooseholes = chooseholes
 
-        self.filt = filt
         self.objname = objname
+
+        self.filt = filt
+
         #############################
-        self.lam_c = {"F277W": 2.77e-6,  # central wavelength (SI)
-                      "F380M": 3.8e-6, 
-                      "F430M": 4.28521033106325E-06,
-                      "F480M": 4.8e-6}
-        self.lam_w = {"F277W":0.2, "F380M": 0.1, "F430M": 0.0436, "F480M": 0.08} # fractional filter width 
         self.lam_bin = {"F277W": 50, "F380M": 20, "F430M":40,  "F480M":30} # 12 waves in f430 - data analysis
                                                                            # use 150 for 3 waves ax f430m 
         try:
@@ -402,8 +399,23 @@ class NIRISS:
         except:
             self.throughput = utils.tophatfilter(self.lam_c[self.filt], self.lam_w[self.filt], npoints=11)
 
+        # Nominal
+        self.lam_c = {"F277W": 2.77e-6,  # central wavelength (SI)
+                      "F380M": 3.8e-6, 
+                      "F430M": 4.28521033106325E-06,
+                      "F480M": 4.8e-6}
+        self.lam_w = {"F277W":0.2, "F380M": 0.1, "F430M": 0.0436, "F480M": 0.08} # fractional filter width 
+
+        # update nominal filter parameters with those of the filter read in and used in the analysis...
+        # Weighted mean wavelength in meters, etc, etc "central wavelength" for the filter:
+        from scipy.integrate import simps 
+        self.lam_c[self.filt] = (self.throughput[:,1] * self.throughput[:,0]).sum() / self.throughput[:,0].sum() 
+        area = simps(self.throughput[:,0], self.throughput[:,1])
+        ew = area / self.throughput[:,0].max() # equivalent width
+        beta = ew/self.lam_c[self.filt] # fractional bandpass
+        self.lam_w[self.filt] = beta
+
         if bandpass is not None:
-            from scipy.integrate import simps 
             bandpass = np.array(bandpass)  # type simplification
             wt = bandpass[:,0]
             wl = bandpass[:,1]
@@ -415,12 +427,15 @@ class NIRISS:
             self.lam_c = {"F277W":cw, "F380M": cw, "F430M": cw, "F480M": cw,}
             self.lam_w = {"F277W": beta, "F380M": beta, "F430M": beta, "F480M": beta} 
             self.throughput = bandpass
+        print(self.filt, 
+              ": central wavelength {:.4e} microns, ".format(self.lam_c[self.filt]/um), end="")
+        print("fractional bandpass {:.3f}".format(self.lam_w[self.filt]))
 
         try:
             self.wls = [utils.combine_transmission(self.throughput, src), ]
         except:
             self.wls = [self.throughput, ]
-        print("self.throughput with user-specified bandpass:\n", self.throughput)
+        print("self.throughput:\n", self.throughput)
 
         # Wavelength info for NIRISS bands F277W, F380M, F430M, or F480M
         self.wavextension = ([self.lam_c[self.filt],], [self.lam_w[self.filt],])
@@ -448,8 +463,6 @@ class NIRISS:
                                            xo=0.0,yo=0.0, name="Ideal")
         else:
             self.affine2d = affine2d
-
-
 
         # finding centroid from phase slope only considered cv_phase data 
         # when cv_abs data exceeds this cvsupport_threshold.  
