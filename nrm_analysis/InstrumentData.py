@@ -365,7 +365,7 @@ class NIRISS:
                        out_dir='', 
                        chooseholes=None, 
                        affine2d=None, 
-                       fastdebug=False,
+                       bandpass=None,
                        **kwargs):
         """
         Initialize NIRISS class
@@ -376,25 +376,55 @@ class NIRISS:
         UTR
         Or just look at the file structure
         Either user has webbpsf and filter file can be read, or this will use a tophat and give a warning
+        chooseholes: None, or e.g. ['B2', 'B4', 'B5', 'B6'] for a four-hole mask
+
+        bandpass: None or [(wt,wlen),(wt,wlen),...].  Monochromatic would be e.g. [(1.0, 4.3e-6)]
+                  Explicit bandpass arg will replace *all* niriss filter-specific variables with 
+                  the given bandpass, so you can simulate 21cm psfs through something called "F430M"!
         """
         
         if chooseholes:
             print("    **** InstrumentData.NIRISS: ", chooseholes)
         self.chooseholes = chooseholes
-        # define bandpass either by tophat or webbpsf filt file
-        #self.wls = np.array([self.bandpass,])
+
         self.filt = filt
         self.objname = objname
         #############################
-        self.lam_c = {"F277W":2.77e-6,  # central wavelength (SI)
+        self.lam_c = {"F277W": 2.77e-6,  # central wavelength (SI)
                       "F380M": 3.8e-6, 
                       "F430M": 4.28521033106325E-06,
                       "F480M": 4.8e-6}
         self.lam_w = {"F277W":0.2, "F380M": 0.1, "F430M": 0.0436, "F480M": 0.08} # fractional filter width 
-        if fastdebug: 
-            self.lam_bin = {"F277W": 50, "F380M": 20, "F430M":150, "F480M":30} # about 3 waves in f430 - development
-        else: 
-            self.lam_bin = {"F277W": 50, "F380M": 20, "F430M":40,  "F480M":30} # about 12 waves in f430 - data analysis
+        self.lam_bin = {"F277W": 50, "F380M": 20, "F430M":40,  "F480M":30} # 12 waves in f430 - data analysis
+                                                                           # use 150 for 3 waves ax f430m 
+        try:
+            self.throughput = utils.trim_webbpsf_filter(self.filt, specbin=self.lam_bin[self.filt])
+        except:
+            self.throughput = utils.tophatfilter(self.lam_c[self.filt], self.lam_w[self.filt], npoints=11)
+
+        if bandpass is not None:
+            from scipy.integrate import simps 
+            bandpass = np.array(bandpass)  # type simplification
+            wt = bandpass[:,0]
+            wl = bandpass[:,1]
+            print(" which is now  overwritten with user-specified bandpass:\n", bandpass)
+            cw = (wl*wt).sum()/wt.sum() # Weighted mean wavelength in meters "central wavelength"
+            area = simps(wt, wl)
+            ew = area / wt.max() # equivalent width
+            beta = ew/cw # fractional bandpass
+            self.lam_c = {"F277W":cw, "F380M": cw, "F430M": cw, "F480M": cw,}
+            self.lam_w = {"F277W": beta, "F380M": beta, "F430M": beta, "F480M": beta} 
+            self.throughput = bandpass
+
+        try:
+            self.wls = [utils.combine_transmission(self.throughput, src), ]
+        except:
+            self.wls = [self.throughput, ]
+        print("self.throughput with user-specified bandpass:\n", self.throughput)
+
+        # Wavelength info for NIRISS bands F277W, F380M, F430M, or F480M
+        self.wavextension = ([self.lam_c[self.filt],], [self.lam_w[self.filt],])
+        self.nwav=1
         #############################
 
         # only one NRM on JWST:
@@ -433,19 +463,6 @@ class NIRISS:
 
         self.ref_imgs_dir = os.path.join(out_dir,"refimgs_"+self.filt+"/")
 
-        # Wavelength info for NIRISS bands F277W, F380M, F430M, or F480M
-        try:
-            self.throughput = utils.trim_webbpsf_filter(self.filt, specbin=self.lam_bin[self.filt])
-        except:
-            self.throughput = utils.tophatfilter(self.lam_c[self.filt], self.lam_w[self.filt], npoints=11)
-
-        try:
-            self.wls = [utils.combine_transmission(self.throughput, src), ]
-        except:
-            self.wls = [self.throughput, ]
-
-        self.wavextension = ([self.lam_c[self.filt],], [self.lam_w[self.filt],])
-        self.nwav=1
 
     def set_pscale(self, pscalex_deg=None, pscaley_deg=None):
         """
@@ -545,9 +562,15 @@ class NIRISS:
         info4oif_dict['hdia'] = self.mask.hdia
         self.info4oif_dict = info4oif_dict # save it when writing extracted observables txt
 
+    # rather than calling InstrumentData in the niriss example just to reset just call this routine
+    def reset_nwav(self, nwav):
+        print("Resetting InstrumentData instantiation's nwave to", nwav)
+        self.nwav = nwav
+
     def _generate_filter_files():
         """Either from WEBBPSF, or tophat, etc. A set of filter files will also be provided"""
         return None
+
 
 class NIRC2:
     def __init__(self, reffile, **kwargs):

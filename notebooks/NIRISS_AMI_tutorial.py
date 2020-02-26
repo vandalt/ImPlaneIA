@@ -48,7 +48,9 @@ if debug:
     print("csavedir:", csavedir, "\ntest_cal:", test_cal)
 
 # ### First we specify the instrument & filter # (defaults: Spectral type set to A0V)
-niriss = InstrumentData.NIRISS(filt, fastdebug=True)
+bandpass = None
+bandpass = np.array([(1.0, 4.3e-6),])
+niriss = InstrumentData.NIRISS(filt, bandpass=bandpass)
 
 # ### Next: get fringe observables via image plane fringe-fitting
 # * Need to pass the InstrumentData object, some keywords.
@@ -107,7 +109,8 @@ plt.colorbar(fraction=0.046, pad=0.04)
 # correct parameters so wavelength, pixelscale, etc. can be interpreted into
 # on-sky spatial frequency. This can write out an oifits file.
 
-niriss = InstrumentData.NIRISS(filt, fastdebug=True) # temp fix to reset nwav appropriately to 1
+niriss.reset_nwav(1) # a kluge that AZG replaces calling InstrumentData just to reset nwav to unity.
+
 # Pass the location of where to save calibrated quantities as 'savedir' here:
 calib = nrm_core.Calibrate((tsavedir+"/"+tr+"/", csavedir+"/"+cr+"/"), 
                            niriss, 
