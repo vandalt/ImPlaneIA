@@ -51,15 +51,17 @@ if debug:
 bp3= np.array([(0.1, 4.2e-6),(0.8, 4.3e-6),(0.1,4.4e-6)])
 default = None
 bpmono = np.array([(1.0, 4.3e-6),])
-niriss = InstrumentData.NIRISS(filt, bandpass=default)
+niriss = InstrumentData.NIRISS(filt, bandpass=bpmono)
 
-# ### Next: get fringe observables via image plane fringe-fitting
+# ### Next: Extract fringe observables using image plane fringe-fitting
 # * Need to pass the InstrumentData object, some keywords.
-# * Files will be saved into specified directory + new directory named by filename
+# * Observables are (over)written to a new savedir/input_datafile_root (eg cr or tr here)
+# * Initialize FringeFitter with save_txt_only=True to switch off diagnostic fits file writing
+# *files written out to these directories.
 
 ff_t = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=tsavedir, oversample=oversample, interactive=False) 
 ff_c = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=csavedir, oversample=oversample, interactive=False) 
-#in general set interactive to False unless you really don't know what you are doing
+# set interactive to False unless you don't know what you are doing
                                                         
 # This can take a little while -- there is a parallelization option, set threads=n_threads
 # output of this is long -- may also want to do this scripted instead of in notebook,
@@ -69,53 +71,40 @@ ff_t.fit_fringes(test_tar)
 ff_c.fit_fringes(test_cal)
 
 
-# You'll find some new files. Text files save the observables you are trying to
-# measure, but there are also some diagnostic fits files written: centered_X
-# are the cropped/centered data, modelsolution_XX are the best fit model to the
-# data, and residual_XX is the difference between the two. 
+# Text files contain the observables you are trying to
+# measure, but some diagnostic fits files written: centered_nn
+# are the cropped/centered data, modelsolution_nn are the best fit model to the
+# data, and residual_nn is the data - model_solution
 
-target_outputdir = tsavedir + "/" +  tr 
-data =   fits.getdata(target_outputdir + "/centered_0.fits")
-fmodel = fits.getdata(target_outputdir + "/modelsolution_01.fits")
-res =    fits.getdata(target_outputdir + "/residual_01.fits")
+showfig = False
+if showfig:
+    target_outputdir = tsavedir + "/" +  tr 
+    data =   fits.getdata(target_outputdir + "/centered_0.fits")
+    fmodel = fits.getdata(target_outputdir + "/modelsolution_01.fits")
+    res =    fits.getdata(target_outputdir + "/residual_01.fits")
 
-plt.figure(figsize=(12,4))
-plt.subplot(131)
-plt.title("Input data")
-im = plt.imshow(pow(data/data.max(), 0.5))
-plt.axis("off")
-plt.colorbar(fraction=0.046, pad=0.04)
-plt.subplot(132)
-plt.title("best model")
-im = plt.imshow(pow(fmodel/data.max(), 0.5))
-plt.axis("off")
-plt.colorbar(fraction=0.046, pad=0.04)
-plt.subplot(133)
-plt.title("residual")
-im = plt.imshow(res/data.max())
-plt.axis("off")
-plt.colorbar(fraction=0.046, pad=0.04)
+    plt.figure(figsize=(12,4))
+    plt.subplot(131)
+    plt.title("Input data")
+    im = plt.imshow(pow(data/data.max(), 0.5))
+    plt.axis("off")
+    plt.colorbar(fraction=0.046, pad=0.04)
+    plt.subplot(132)
+    plt.title("best model")
+    im = plt.imshow(pow(fmodel/data.max(), 0.5))
+    plt.axis("off")
+    plt.colorbar(fraction=0.046, pad=0.04)
+    plt.subplot(133)
+    plt.title("residual")
+    im = plt.imshow(res/data.max())
+    plt.axis("off")
+    plt.colorbar(fraction=0.046, pad=0.04)
+    plt.show()
 
 
 # If you don't want to clog up your hardrive with fits files you can initialize
 # FringeFitter with keyword "save_txt_only=True" -- but you may want to save
 # out everything the first time you reduce the data to check it. Above we can
 # see a pretty good fit the magnification of the model is a bit off. This shows
-# up as a radial patter in the residual. Finely fitting the exact magnification
+# up as a radial pattern in the residual. Finely fitting the exact magnification
 # and rotation should be done before fringe fitting. 
-
-# ### Calibration is simple: point to the data
-# 
-# The most important thing is to pass the right InstrumentData object with
-# correct parameters so wavelength, pixelscale, etc. can be interpreted into
-# on-sky spatial frequency. This can write out an oifits file.
-
-niriss.reset_nwav(1) # a kluge that replaces calling InstrumentData just to reset nwav to unity.
-                     # Not sure why we need to do this.  Lower level code
-                     # cleanup could in futurew obviate the necessity of doing this!
-
-# Pass the location of where to save calibrated quantities as 'savedir' here:
-calib = nrm_core.Calibrate((tsavedir+"/"+tr+"/", csavedir+"/"+cr+"/"), 
-                           niriss, 
-                           savedir = datadir, #####"calibrated_example/", 
-                           interactive=False)
