@@ -266,7 +266,7 @@ def Format_STAINDEX_T3(tab):
         STA_INDEX.append(line)
     return STA_INDEX
 
-def NRMtoOifits2(dic, filename = None, verbose = False):
+def NRMtoOifits2(dic, filename = None, oifprefix=None, verbose = False):
     """
     Save dictionnary formatted data into a proper OIFITS (version 2) format file.
     
@@ -277,6 +277,8 @@ def NRMtoOifits2(dic, filename = None, verbose = False):
         Dictionnary containing all extracted data (keys: 'OI_VIS2', 'OI_VIS', 'OI_T3', 'OI_WAVELENGTH', 'info'),
     filename: str
         By default None, the filename is constructed using informations included in the input dictionnary ('info').
+    oifprefix: str / None
+        Mnemonic prefix added to filename (eg ov_7)
     
     """
     
@@ -295,7 +297,12 @@ def NRMtoOifits2(dic, filename = None, verbose = False):
     if type(filename) == str:
         pass
     else:
-        filename = '%s_%s_%s_%s_%2.0f.oifits'%(dic['info']['TARGET'].replace(' ', ''), dic['info']['INSTRUME'], dic['info']['MASK'], dic['info']['FILT'], dic['info']['MJD'])
+        filename = '%s_%s_%s_%s_%2.0f.oifits'%(dic['info']['TARGET'].replace(' ', ''), 
+                                               dic['info']['INSTRUME'], 
+                                               dic['info']['MASK'], 
+                                               dic['info']['FILT'], 
+                                               dic['info']['MJD'])
+        filename = oifprefix + filename
     
     #------------------------------
     #       Creation OIFITS
@@ -713,8 +720,7 @@ plt.close('all')
 
 
 
-#if __name__ == "__main__":
-def implane2oifits2(OV, objecttextdir_c, objecttextdir_t):
+def implane2oifits2(OV, objecttextdir_c, objecttextdir_t, oifprefix):
     """
     textrootdir = "/Users/anand/Downloads/asoulain_arch2019.12.07/"
 
@@ -852,16 +858,19 @@ def implane2oifits2(OV, objecttextdir_c, objecttextdir_t):
                     }
 
     # Anand put this call inside Anthony's __main__ so it can be converted into a function.
-    NRMtoOifits2(dic, verbose=False) # Function to save oifits file (version 2)
+    NRMtoOifits2(dic, oifprefix=oifprefix, verbose=False) # Function to save oifits file (version 2)
 
 
 if __name__ == "__main__":
     from pathlib import Path
+    textrootdir = str(Path.home())+"/Downloads/asoulain_arch2019.12.07/"
     textrootdir = str(Path.home())+"/Downloads/asoulain_arch2019.12.07/"
     OV_main = 3
     objecttextdir_c_main = textrootdir+\
               "Simulated_data/cal_ov{:d}/c_dsk_100mas__F430M_81_flat_x11__00_mir".format(OV_main) # Calibrator result ImPlaneIA
     objecttextdir_t_main = textrootdir+ \
               "Simulated_data/tgt_ov{:d}/t_dsk_100mas__F430M_81_flat_x11__00_mir".format(OV_main) # Target result ImPlaneIA
-    implane2oifits2(OV_main, objecttextdir_c_main, objecttextdir_t_main)
+    oifprefix_main = "ov{:d}_".format(OV_main) # Target calibrated observables Saveoifits directory
+
+    implane2oifits2(OV_main, objecttextdir_c_main, objecttextdir_t_main, oifprefix_main)
 
