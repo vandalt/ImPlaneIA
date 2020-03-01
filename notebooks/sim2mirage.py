@@ -1,45 +1,56 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+"""
+    Change hard-coded amisim files you wish to convert to mirage-y (MAST) format
+"""
+"""
+    read in amisim cube of data, 2D or 3D cube
+    graft mirage-like headers on the data part
+"""
 
 import glob
 import os, sys, time
 from astropy.io import fits
 import numpy as np
 
-datadir = "../example_data/noise/"
-filt1 = "PSF_MASK_NRM_F430M_x11_0.82_ref_det"  # root name target
+print(sys.argv[0])
+
+######## EDIT ME
+from pathlib import Path
+datadir = str(Path.home())+"/Downloads/asoulain_arch2019.12.07/Simulated_data/"
+amisimfns = ("t_dsk_100mas__F430M_81_flat_x11__00",  # Target first
+             "c_dsk_100mas__F430M_81_flat_x11__00",  # One calibrator (for now)
+             )
+
+targets = ("t_dsk_100mas", # Replace TARGET kwd in primary HDU
+           "c_dsk_100mas")
+######## END EDIT
 mirext = "_mir"
+mirexample = str(Path.home()) + \
+             "/gitsrc/ImPlaneIA/example_data/" + \
+             "/jw00793001001_01101_00001_nis_cal.fits"
 
 
-datadir = "simulatedpsfs/"
-
-mirexample = "jw00793001001_01101_00001_nis_cal.fits"
-
-
-for fname in (filt1,):
+for (fname,target) in list(zip(amisimfns, targets)):
     fobj_sim = fits.open(datadir+fname+".fits")
-    print(fobj_sim[0].data.shape)
+    #rint(fobj_sim[0].data.shape)
     if len(fobj_sim[0].data.shape) == 2:    #make single slice of data into a 1 slice cube
         d = np.zeros((1, fobj_sim[0].data.shape[0], fobj_sim[0].data.shape[1]))
         d[0,:,:] = fobj_sim[0].data
         fobj_sim[0].data = d
 
-    mirobj = fits.open(datadir+mirexample) # read in sample mirage file
-    #import pdb;pdb.set_trace()
+    mirobj = fits.open(mirexample) # read in sample mirage file
+    mirobj[0].header["TARGNAME"] = target # modify any target name
     
-    # make cube of data for mirage from input ami_sim file...
-    mirobj[1].data = np.zeros((fobj_sim[0].data.shape[0], #"slices of data cube of integrations"
-                                     mirobj[1].data.shape[0], 
-                                     mirobj[1].data.shape[1]))
+    # make cube of data for mirage from input ami_sim file... even a 1-deep cube.
+    mirobj[1].data = np.zeros((fobj_sim[0].data.shape[0], #"slices of cube of integrations"
+                                 mirobj[1].data.shape[0], 
+                                 mirobj[1].data.shape[1]))
     
     mirobj[1].data = mirobj[1].data.astype(np.float32)
     mirobj[1].data = fobj_sim[0].data # replace with ami_sim data
     mirobj[1].data = mirobj[1].data[:,:80,:80]
-    print(mirobj[1].data.shape)
 
+    print("    TARGNAME =", mirobj[0].header["TARGNAME"], 
+             " Output cube shape", mirobj[1].data.shape)
     mirobj.writeto(datadir+fname+mirext+".fits", overwrite=True)
-    
-
-
-
