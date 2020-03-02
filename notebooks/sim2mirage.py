@@ -22,8 +22,6 @@ amisimfns = ("t_dsk_100mas__F430M_81_flat_x11__00",  # Target first
              "c_dsk_100mas__F430M_81_flat_x11__00",  # One calibrator (for now)
              )
 
-targets = ("t_dsk_100mas", # Replace TARGET kwd in primary HDU
-           "c_dsk_100mas")
 ######## END EDIT
 mirext = "_mir"
 mirexample = str(Path.home()) + \
@@ -31,7 +29,7 @@ mirexample = str(Path.home()) + \
              "/jw00793001001_01101_00001_nis_cal.fits"
 
 
-for (fname,target) in list(zip(amisimfns, targets)):
+for fname in amisimfns:
     fobj_sim = fits.open(datadir+fname+".fits")
     #rint(fobj_sim[0].data.shape)
     if len(fobj_sim[0].data.shape) == 2:    #make single slice of data into a 1 slice cube
@@ -40,7 +38,6 @@ for (fname,target) in list(zip(amisimfns, targets)):
         fobj_sim[0].data = d
 
     mirobj = fits.open(mirexample) # read in sample mirage file
-    mirobj[0].header["TARGNAME"] = target # modify any target name
     
     # make cube of data for mirage from input ami_sim file... even a 1-deep cube.
     mirobj[1].data = np.zeros((fobj_sim[0].data.shape[0], #"slices of cube of integrations"

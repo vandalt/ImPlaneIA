@@ -202,9 +202,11 @@ class FringeFitter:
         # write info that oifits wants only when writing out first slice.
         # this will relevant to all slices... so no slice number here.
         if slc == 0:
-            pfn = self.savedir+self.sub_dir_str+"/info4oif_dict.pkl"
-            pfd = open(pfn,'wb')
-            pickle.dump(self.instrument_data.info4oif_dict,pfd)
+            pfn = self.savedir+self.sub_dir_str + "/info4oif_dict.pkl"
+            pfd = open(pfn, 'wb')
+            pickle.dump(self.instrument_data.info4oif_dict, pfd)
+            #rint("--nrm_core.save_output self.instrument_data.info4oif_dict['objname']", 
+            #     self.instrument_data.info4oif_dict['objname'])
             pfd.close()
 
 

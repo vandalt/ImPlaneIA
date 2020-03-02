@@ -13,6 +13,7 @@ from astropy.io import fits
 import numpy as np
 
 from nrm_analysis import nrm_core, InstrumentData
+print(InstrumentData.__file__)
 
 import matplotlib.pyplot as plt
 #get_ipython().run_line_magic('matplotlib', 'inline')

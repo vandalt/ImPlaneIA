@@ -575,6 +575,7 @@ class NIRISS:
         info4oif_dict['hdia'] = self.mask.hdia
         self.info4oif_dict = info4oif_dict # save it when writing extracted observables txt
 
+
     # rather than calling InstrumentData in the niriss example just to reset just call this routine
     def reset_nwav(self, nwav):
         print("Resetting InstrumentData instantiation's nwave to", nwav)

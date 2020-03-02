@@ -192,7 +192,7 @@ class ObservablesFromText():
         print(self.cp.shape, "cp (degrees, but stored internally in radians):\n", self.cp*self.degree, "\n")
         if len(self.observables)==4:
             print(self.ca.shape, "ca:\n", self.ca, "\n")
-        #print(self.info4oif_dict)
+        #print("implane2oifits._showdata: self.info4oif_dict['objname']", self.info4oif_dict)
 
         print("hole centers array shape:", self.ctrs.shape)
 
@@ -241,11 +241,6 @@ class ObservablesFromText():
         self.tholes, self.tuv = self._maketriples_all()
         self.qholes, self.quvw = self._makequads_all()
 
-    def write_oif(self, oifn):
-        """
-            Write out an OIFITS file using the data that was read in during initialisation
-        """
-        print("I don't know how to write " + oifn + " at this moment.")
 
 def Format_STAINDEX_V2(tab):
     STA_INDEX = []
@@ -266,7 +261,7 @@ def Format_STAINDEX_T3(tab):
         STA_INDEX.append(line)
     return STA_INDEX
 
-def NRMtoOifits2(dic, filename = None, oifprefix=None, verbose = False):
+def NRMtoOifits2(dic, filename = None, oifprefix=None, datadir=None, verbose = False):
     """
     Save dictionnary formatted data into a proper OIFITS (version 2) format file.
     
@@ -288,7 +283,8 @@ def NRMtoOifits2(dic, filename = None, oifprefix=None, verbose = False):
         cprint('\nError NRMtoOifits2 : Wrong data format!', on_color='on_red')
         return None
     
-    datadir = 'Saveoifits/'
+    if datadir is None: datadir = 'Saveoifits/'
+    if datadir[-1] != '/': datadir = datadir + '/'
         
     if not os.path.exists(datadir):
         print('### Create %s directory to save all requested Oifits ###'%datadir)
@@ -713,14 +709,13 @@ def main_ansou(nh=None, txtdir=None, verbose=True):
     "Reads in every observable available into a list of Observables"
     observables = ObservablesFromText(nh, txtdir, verbose=verbose)
     print(observables.nslices, "slices of data were analysed by ImPlaneIA, and read in")
-    #observables.write_oif("write_me_oifits.fits")
     return observables
 
 plt.close('all')
 
 
 
-def implane2oifits2(OV, objecttextdir_c, objecttextdir_t, oifprefix):
+def implane2oifits2(OV, objecttextdir_c, objecttextdir_t, oifprefix, datadir):
     """
     textrootdir = "/Users/anand/Downloads/asoulain_arch2019.12.07/"
 
@@ -856,9 +851,9 @@ def implane2oifits2(OV, objecttextdir_c, objecttextdir_t, oifprefix):
                     'ISZ' : 77, # size of the image needed (or fov)
                     'NFILE' : 0}        
                     }
-
+    print("info[OBJECT]", dic['info']['OBJECT'])
     # Anand put this call inside Anthony's __main__ so it can be converted into a function.
-    NRMtoOifits2(dic, oifprefix=oifprefix, verbose=False) # Function to save oifits file (version 2)
+    NRMtoOifits2(dic, oifprefix=oifprefix, datadir=datadir, verbose=False) # Function to save oifits file (version 2)
 
 
 if __name__ == "__main__":
@@ -866,11 +861,14 @@ if __name__ == "__main__":
     textrootdir = str(Path.home())+"/Downloads/asoulain_arch2019.12.07/"
     textrootdir = str(Path.home())+"/Downloads/asoulain_arch2019.12.07/"
     OV_main = 3
+
     objecttextdir_c_main = textrootdir+\
               "Simulated_data/cal_ov{:d}/c_dsk_100mas__F430M_81_flat_x11__00_mir".format(OV_main) # Calibrator result ImPlaneIA
     objecttextdir_t_main = textrootdir+ \
               "Simulated_data/tgt_ov{:d}/t_dsk_100mas__F430M_81_flat_x11__00_mir".format(OV_main) # Target result ImPlaneIA
+    datadir_main = str(Path.home())+"/Downloads/asoulain_arch2019.12.07/Saveoifits"  # place calibrated oifits of tgt here
     oifprefix_main = "ov{:d}_".format(OV_main) # Target calibrated observables Saveoifits directory
+    
 
-    implane2oifits2(OV_main, objecttextdir_c_main, objecttextdir_t_main, oifprefix_main)
+    implane2oifits2(OV_main, objecttextdir_c_main, objecttextdir_t_main, oifprefix_main, datadir_main)
 
