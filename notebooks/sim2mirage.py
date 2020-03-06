@@ -36,7 +36,7 @@ print("""
 
 mirext = "_mir"
 mirexample = str(Path.home()) + \
-             "/gitsrc/ImPlaneIA/example_data/" + \
+             "/gitsrc/ImPlaneIA/example_data/example_niriss/" + \
              "jw00793001001_01101_00001_nis_cal.fits" 
 
 
