@@ -6,7 +6,8 @@
 """
     Read in [ami]sim cube of data, 2D or 3D cube and graft mirage-like headers on the data part, 
     Also cube the data if incoming data is 2D.
-    Input files are in the list variable simfile
+    Input files are in the list variable simfile, so edit this as needed.
+    MIRAGE template file is in the string variable mirexample
 """
 
 import glob
@@ -36,10 +37,11 @@ print("""
 mirext = "_mir"
 mirexample = str(Path.home()) + \
              "/gitsrc/ImPlaneIA/example_data/" + \
-             "/jw00793001001_01101_00001_nis_cal.fits" 
+             "jw00793001001_01101_00001_nis_cal.fits" 
 
 
 for fname in amisimfns:
+    print(fname+':', end='')
     fobj_sim = fits.open(datadir+fname+".fits")
     #rint(fobj_sim[0].data.shape)
     if len(fobj_sim[0].data.shape) == 2:    #make single slice of data into a 1 slice cube
@@ -47,7 +49,10 @@ for fname in amisimfns:
         d[0,:,:] = fobj_sim[0].data
         fobj_sim[0].data = d
 
-    mirobj = fits.open(mirexample) # read in sample mirage file
+    try:
+        mirobj = fits.open(mirexample) # read in sample mirage file
+    except FileNotFoundError:
+        sys.exit("*** ERROR sim2mirage.py:  mirage example {:s} file not found ***".format(mirexample))
     
     # make cube of data for mirage from input ami_sim file... even a 1-deep cube.
     mirobj[1].data = np.zeros((fobj_sim[0].data.shape[0], #"slices of cube of integrations"
