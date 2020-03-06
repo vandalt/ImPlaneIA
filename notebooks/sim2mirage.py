@@ -31,8 +31,8 @@ print("""
     The MIRAGE fits file that provides the structure to wrap your simulated
     data to look like MAST data is for the F480M filter.  If you use it to
     convert any  other other filter's simulated data into mirage format, change
-    this with 'mirobj[0].header["FILTER"] = "F430M"' to the filter used to
-    create the simulated data.\n*** ***""")
+    this with e.g., 'mirobj[0].header["FILTER"] = "F430M"' or other filter used
+    to create the simulated data.\n*** ***""")
 
 mirext = "_mir"
 mirexample = str(Path.home()) + \
