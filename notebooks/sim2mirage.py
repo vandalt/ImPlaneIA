@@ -43,7 +43,6 @@ mirexample = str(Path.home()) + \
 for fname in amisimfns:
     print(fname+':', end='')
     fobj_sim = fits.open(datadir+fname+".fits")
-    #rint(fobj_sim[0].data.shape)
     if len(fobj_sim[0].data.shape) == 2:    #make single slice of data into a 1 slice cube
         d = np.zeros((1, fobj_sim[0].data.shape[0], fobj_sim[0].data.shape[1]))
         d[0,:,:] = fobj_sim[0].data
@@ -61,18 +60,18 @@ for fname in amisimfns:
     
     mirobj[1].data = mirobj[1].data.astype(np.float32)
     mirobj[1].data = fobj_sim[0].data # replace with ami_sim data
-    mirobj[1].data = mirobj[1].data[:,:80,:80]
+    mirobj[1].data = mirobj[1].data[:,:80,:80]  # trim ends of cols, rows (if needed) to 80 x 80
 
     print(" TARGNAME =", mirobj[0].header["TARGNAME"], 
-          " Input shape", fobj_sim[0].data.shape,
-          " Output shape", mirobj[1].data.shape)
+          " Input", fobj_sim[0].data.shape,
+          " Output", mirobj[1].data.shape)
 
     # Transfer non-conflicting keywords from sim data to mirage file header
     mirkeys = list(mirobj[0].header.keys())
 
     for kwd in fobj_sim[0].header.keys():
         if  kwd not in mirkeys and 'NAXIS' not in kwd:
-            mirobj[0].header[kwd] = fobj_sim[0].header[kwd], "copied from input  sim fits"
-
+            mirobj[0].header[kwd] = (fobj_sim[0].header[kwd], fobj_sim[0].header.comments[kwd])
+   
     # write out miragized sim data
     mirobj.writeto(datadir+fname+mirext+".fits", overwrite=True)
