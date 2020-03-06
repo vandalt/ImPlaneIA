@@ -4,8 +4,9 @@
     Convert hard-coded [ami]sim files to mirage-y (MAST) format
 """
 """
-    read in [ami]sim cube of data, 2D or 3D cube and graft mirage-like headers on the data part, 
-    Also cube the data if incoming data is 2D
+    Read in [ami]sim cube of data, 2D or 3D cube and graft mirage-like headers on the data part, 
+    Also cube the data if incoming data is 2D.
+    Input files are in the list variable simfile
 """
 
 import glob
@@ -24,13 +25,13 @@ amisimfns = ("t_dsk_100mas__F430M_81_flat_x11__00",  # Target first
 
 ######## END EDIT
 
-print(""" *** WARNING *** sim2mirage.py:
-
+print(""" 
+*** WARNING *** sim2mirage.py:
     The MIRAGE fits file that provides the structure to wrap your simulated
     data to look like MAST data is for the F480M filter.  If you use it to
     convert any  other other filter's simulated data into mirage format, change
     this with 'mirobj[0].header["FILTER"] = "F430M"' to the filter used to
-    create the simulated data.  """)
+    create the simulated data.\n*** ***""")
 
 mirext = "_mir"
 mirexample = str(Path.home()) + \
