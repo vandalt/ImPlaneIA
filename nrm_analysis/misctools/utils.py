@@ -8,6 +8,7 @@ import pickle as pickle
 from scipy.special import comb
 import time
 import poppy.matrixDFT as matrixDFT
+from webbpsf import specFromSpectralType
 
 m_ = 1.0
 mm_ =  m_/1000.0
@@ -701,92 +702,6 @@ def get_fits_filter(fitsheader, ):
     print(filterlist)
     return filterlist
 
-
-# From webbpsf:
-def specFromSpectralType(sptype, return_list=False):
-    """Get Pysynphot Spectrum object from a spectral type string.
-
-    """
-    lookuptable = {
-    "O3V":   (50000, 0.0, 5.0),
-    "O5V":   (45000, 0.0, 5.0),
-    "O6V":   (40000, 0.0, 4.5),
-    "O8V":   (35000, 0.0, 4.0),
-    "O5I":   (40000, 0.0, 4.5),
-    "O6I":   (40000, 0.0, 4.5),
-    "O8I":   (34000, 0.0, 4.0),
-    "B0V":   (30000, 0.0, 4.0),
-    "B3V":   (19000, 0.0, 4.0),
-    "B5V":   (15000, 0.0, 4.0),
-    "B8V":   (12000, 0.0, 4.0),
-    "B0III": (29000, 0.0, 3.5),
-    "B5III": (15000, 0.0, 3.5),
-    "B0I":   (26000, 0.0, 3.0),
-    "B5I":   (14000, 0.0, 2.5),
-    "A0V":   (9500, 0.0, 4.0),
-    "A1V":   (9200, 0.0, 4.1),
-    "A3V":   (8250, 0.0, 4.2),
-    "A2V":   (8840, 0.0, 4.2),
-    "A4V":   (8270, 0.0, 4.3),
-    "A5V":   (8250, 0.0, 4.5),
-    "A6V":   (8000, 0.0, 4.6),
-    "A7V":   (7800, 0.0, 4.7),
-    "A8V":   (7500, 0.0, 4.7),
-    "A9V":   (7440, 0.0, 4.7),
-    "A0I":   (9750, 0.0, 2.0),
-    "A5I":   (8500, 0.0, 2.0),
-    "F0V":   (7250, 0.0, 4.5),
-    "F5V":   (6500, 0.0, 4.5),
-    "F6III": (6500, 0.0, 5.0),
-    "F0I":   (7750, 0.0, 2.0),
-    "F5I":   (7000, 0.0, 1.5),
-    "G0V":   (6000, 0.0, 4.5),
-    "G5V":   (5750, 0.0, 4.5),
-    "G0III": (5750, 0.0, 3.0),
-    "G5III": (5250, 0.0, 2.5),
-    "G0I":   (5500, 0.0, 1.5),
-    "G5I":   (4750, 0.0, 1.0),
-    "K0V":   (5250, 0.0, 4.5),
-    "K2V":   (4750, 0.0, 4.5),
-    "K4V":   (4500, 0.0, 4.5),
-    "K5V":   (4250, 0.0, 4.5),
-    "K7V":   (4000, 0.0, 4.5),
-    "K0III": (4750, 0.0, 2.0),
-    "K5III": (4000, 0.0, 1.5),
-    "K0I":   (4500, 0.0, 1.0),
-    "K5I":   (3750, 0.0, 0.5),
-    "M0V":   (3750, 0.0, 4.5),
-    "M1V":   (3680, 0.0, 4.5),
-    "M2V":   (3500, 0.0, 4.64),
-    "M3V":   (3500, 0.0, 4.7),
-    "M4V":   (3500, 0.0, 4.8),
-    "M5V":   (3500, 0.0, 4.94),
-    "M6V":   (3500, 0.0, 5.0),
-    "M0III": (3750, 0.0, 1.5),
-    "M0I":   (3750, 0.0, 0.0),
-    "M2I":   (3500, 0.0, 0.0)}
-
-
-    if return_list:
-        sptype_list = list(lookuptable.keys())
-        def sort_sptype(typestr):
-            letter = typestr[0]
-            lettervals = {'O':0, 'B': 10, 'A': 20,'F': 30, 'G':40, 'K': 50, 'M':60}
-            value = lettervals[letter]*1.0
-            value += int(typestr[1])
-            if "III" in typestr: value += .3
-            elif "I" in typestr: value += .1
-            elif "V" in typestr: value += .5
-            return value
-        sptype_list.sort(key=sort_sptype)
-        sptype_list.insert(0,"Flat spectrum in F_nu")
-        sptype_list.insert(0,"Flat spectrum in F_lambda")
-        return sptype_list
-
-    #try:
-    keys = lookuptable[sptype]
-    print("Spectral type exists in table ({0}):".format(sptype), keys)
-    return pysynphot.Icat('ck04models',keys[0], keys[1], keys[2])
 
 def combine_transmission(filt, SRC):
     ''' SRC is a spectral type string, e.g. A0V 
