@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 """
-    Change hard-coded amisim files you wish to convert to mirage-y (MAST) format
+    Convert hard-coded [ami]sim files to mirage-y (MAST) format
 """
 """
-    read in amisim cube of data, 2D or 3D cube
-    graft mirage-like headers on the data part
+    read in [ami]sim cube of data, 2D or 3D cube and graft mirage-like headers on the data part, 
+    Also cube the data if incoming data is 2D
 """
 
 import glob
@@ -23,10 +23,19 @@ amisimfns = ("t_dsk_100mas__F430M_81_flat_x11__00",  # Target first
              )
 
 ######## END EDIT
+
+print(""" *** WARNING *** sim2mirage.py:
+
+    The MIRAGE fits file that provides the structure to wrap your simulated
+    data to look like MAST data is for the F480M filter.  If you use it to
+    convert any  other other filter's simulated data into mirage format, change
+    this with 'mirobj[0].header["FILTER"] = "F430M"' to the filter used to
+    create the simulated data.  """)
+
 mirext = "_mir"
 mirexample = str(Path.home()) + \
              "/gitsrc/ImPlaneIA/example_data/" + \
-             "/jw00793001001_01101_00001_nis_cal.fits"
+             "/jw00793001001_01101_00001_nis_cal.fits" 
 
 
 for fname in amisimfns:

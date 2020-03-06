@@ -398,6 +398,7 @@ class NIRISS:
             self.throughput = utils.trim_webbpsf_filter(self.filt, specbin=self.lam_bin[self.filt])
         except:
             self.throughput = utils.tophatfilter(self.lam_c[self.filt], self.lam_w[self.filt], npoints=11)
+            print("*** WARNING *** InstrumentData: Top Hat filter being used")
 
         # Nominal
         self.lam_c = {"F277W": 2.77e-6,  # central wavelength (SI)
