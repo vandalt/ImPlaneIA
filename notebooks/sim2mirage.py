@@ -63,6 +63,16 @@ for fname in amisimfns:
     mirobj[1].data = fobj_sim[0].data # replace with ami_sim data
     mirobj[1].data = mirobj[1].data[:,:80,:80]
 
-    print("    TARGNAME =", mirobj[0].header["TARGNAME"], 
-             " Output cube shape", mirobj[1].data.shape)
+    print(" TARGNAME =", mirobj[0].header["TARGNAME"], 
+          " Input shape", fobj_sim[0].data.shape,
+          " Output shape", mirobj[1].data.shape)
+
+    # Transfer non-conflicting keywords from sim data to mirage file header
+    mirkeys = list(mirobj[0].header.keys())
+
+    for kwd in fobj_sim[0].header.keys():
+        if  kwd not in mirkeys and 'NAXIS' not in kwd:
+            mirobj[0].header[kwd] = fobj_sim[0].header[kwd], "copied from input  sim fits"
+
+    # write out miragized sim data
     mirobj.writeto(datadir+fname+mirext+".fits", overwrite=True)
