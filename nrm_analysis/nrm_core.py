@@ -188,16 +188,18 @@ class FringeFitter:
             print("NOT SAVING ANY FITS FILES. SET save_txt_only=False TO SAVE.")
 
         # default save to text files
-        np.savetxt(self.savedir+self.sub_dir_str+\
+        np.savetxt(self.savedir+self.sub_dir_str + \
                    "/solutions_{0:02d}.txt".format(slc), nrm.soln)
-        np.savetxt(self.savedir+self.sub_dir_str+\
+        np.savetxt(self.savedir+self.sub_dir_str + \
                    "/phases_{0:02d}.txt".format(slc), nrm.fringephase)
-        np.savetxt(self.savedir+self.sub_dir_str+\
+        np.savetxt(self.savedir+self.sub_dir_str + \
                    "/amplitudes_{0:02d}.txt".format(slc), nrm.fringeamp)
-        np.savetxt(self.savedir+self.sub_dir_str+\
+        np.savetxt(self.savedir+self.sub_dir_str + \
                    "/CPs_{0:02d}.txt".format(slc), nrm.redundant_cps)
-        np.savetxt(self.savedir+self.sub_dir_str+\
+        np.savetxt(self.savedir+self.sub_dir_str + \
                    "/CAs_{0:02d}.txt".format(slc), nrm.redundant_cas)
+        np.savetxt(self.savedir+self.sub_dir_str + \
+                  "/fringepistons_{0:02d}.txt".format(slc), nrm.fringepistons)
 
         # write info that oifits wants only when writing out first slice.
         # this will relevant to all slices... so no slice number here.

@@ -502,7 +502,7 @@ class NRM_Model():
 
         # fringephase now in radians
         self.fringeamp, self.fringephase = leastsqnrm.tan2visibilities(self.soln)
-        self.piston = utils.fringes2pistons(self.fringephase, len(self.ctrs))
+        self.fringepistons = utils.fringes2pistons(self.fringephase, len(self.ctrs))
         self.redundant_cps = leastsqnrm.redundant_cps(self.fringephase, N=self.N)
         self.redundant_cas = leastsqnrm.return_CAs(self.fringeamp, N=self.N)
 
