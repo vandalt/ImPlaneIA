@@ -363,6 +363,12 @@ class NRM_Model():
         21 cosines, 21 sines, a DC-like, and a flux slice: 44 2D slices in all.
         It can take either a single wavelength or a bandpass as a list of tuples.
         The bandpass should be of the form [(weight1, wavl1), (weight2, wavl2),...]
+
+        2020.03.13
+        Input pistons self.phi are not included (at this time) in the call to 
+                  analyticnrm2.model_array()
+        They should be included (for correctness) - but we're not sure how
+        important this effect is currently.
         """
         if fov:
             self.fov = fov
