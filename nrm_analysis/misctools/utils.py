@@ -1331,7 +1331,7 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt):
                  "jw00793001001_01101_00001_nis_cal.fits" 
 
 
-test_amisim2mirage():
+def test_amisim2mirage():
     from pathlib import Path
     amisim2mirage(
         str(Path.home())+"/Downloads/asoulain_arch2019.12.07/Simulated_data/",
