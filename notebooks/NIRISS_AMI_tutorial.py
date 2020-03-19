@@ -28,7 +28,7 @@ if debug:
 
 filt="F430M"
 
-oversample =7
+oversample = 9
 
 # ### Where the data lives:
 
@@ -79,6 +79,8 @@ ff_c.fit_fringes(test_cal)
 # measure, but some diagnostic fits files written: centered_nn
 # are the cropped/centered data, modelsolution_nn are the best fit model to the
 # data, and residual_nn is the data - model_solution
+
+print("oversample {:%d} used in modelling the data".format(oversample))
 
 showfig = False
 if showfig:
