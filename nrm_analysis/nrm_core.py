@@ -348,6 +348,7 @@ def fit_fringes_single_integration(args):
     redundant_cas   --- closure amplitudes
     residual        --- fit residuals [data - model solution]
     cond            --- matrix condition for inversion
+    fringepistons   --- zero-mean piston opd in radians on each hole (eigenphases)
     -----------------------------------------------------------------------------
     """
 
@@ -365,6 +366,7 @@ def fit_fringes_single_integration(args):
         plt.show()
     
     self.save_output(slc, nrm)
+    self.nrm = nrm # store  extracted values here
     return None
 
 class Calibrate:

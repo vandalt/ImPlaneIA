@@ -13,6 +13,7 @@ from astropy.io import fits
 import numpy as np
 
 from nrm_analysis import nrm_core, InstrumentData
+from nrm_analysis.misctools import utils
 print(InstrumentData.__file__)
 
 import matplotlib.pyplot as plt
@@ -28,7 +29,7 @@ if debug:
 
 filt="F430M"
 
-oversample = 9
+oversample = 3
 
 # ### Where the data lives:
 
@@ -53,7 +54,7 @@ if debug:
 default = None # 'bandpass' defaults to None - it's here for clarity
 bp3= np.array([(0.1, 4.2e-6),(0.8, 4.3e-6),(0.1,4.4e-6)]) # for speedy development
 bpmono = np.array([(1.0, 4.3e-6),]) # for speedy development
-niriss = InstrumentData.NIRISS(filt, bandpass=default)
+niriss = InstrumentData.NIRISS(filt, bandpass=bpmono)
 
 # ### Next: Extract fringe observables using image plane fringe-fitting
 # * Need to pass the InstrumentData object, some keywords.
@@ -73,6 +74,8 @@ ff_c = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=csavedir,
 
 ff_t.fit_fringes(test_tar)
 ff_c.fit_fringes(test_cal)
+utils.compare_pistons(ff_t.nrm.phi*2*np.pi, ff_t.nrm.fringepistons, str="ff_t")
+utils.compare_pistons(ff_c.nrm.phi*2*np.pi, ff_t.nrm.fringepistons, str="ff_c")
 
 
 # Text files contain the observables you are trying to
@@ -80,7 +83,7 @@ ff_c.fit_fringes(test_cal)
 # are the cropped/centered data, modelsolution_nn are the best fit model to the
 # data, and residual_nn is the data - model_solution
 
-print("oversample {:%d} used in modelling the data".format(oversample))
+print("oversample {:d} used in modelling the data".format(oversample))
 print("observables text files in rootdir", home+"/Downloads/asoulain_arch2019.12.07/Simulated_data/")
 print("tgt observables in subdir", tsavedir)
 print("cal observables in subdir", csavedir)

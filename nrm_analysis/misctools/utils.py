@@ -309,6 +309,37 @@ def rotate2dccw(vectors, thetarad):
                              s*vector[0] + c*vector[1]])
     return np.array(ctrs_rotated)
 
+def compare_pistons(pa, pb, prec=6, str=None):
+    """
+    pa: float 1-D array / radians  input pistons
+    pb: float 1-D array / radians  output pistons
+    prec: non-negative integer, optional to adjust precision of float printout
+    call with e.g., 
+        compare_pistons(ff_t.nrm.phi*2*np.pi, ff_t.nrm.fringepistons)
+    Also prints Strehl contribution from piston OPD, Strehl change from error
+    using Marechal approximation
+    """
+    # save current precision
+    pos = np.get_printoptions()
+    # set local precision
+    np.set_printoptions(precision=prec,linewidth=160)
+
+    p_err = pa - pb
+    strehl = (pa*pa).sum()
+    dstrehl = (p_err*p_err).sum()
+    
+    if str: print("  compare pistons:", str)
+    print("  input pistons/rad ", pa)
+    print("  output pistons/rad", pb)
+    print("          error/rad ", p_err)
+
+    print("      Strehl hit (%)", 100*strehl)
+    print("   Strehl change (%)", 100*dstrehl)
+    
+    # reset previous precision
+    np.set_printoptions(precision=pos['precision'])
+
+
 
 def centerpoint(s):
     """ 
