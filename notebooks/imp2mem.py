@@ -1076,7 +1076,7 @@ def implane2oifits2(objecttextdir_c, objecttextdir_t, saveoifdir=None):
 
 if __name__ == "__main__":
     OV_main = 7
-    textrootdir =  str(Path.home())+"/Downloads/asoulain_arch2019.12.07/"
+    textrootdir =  os.path.expanduser('~')+"/Downloads/asoulain_arch2019.12.07/"
     objecttextdir_c_main = textrootdir +\
         "Simulated_data/cal_ov{:d}/c_dsk_100mas__F430M_81_flat_x11__00_mir".format(
             OV_main)  # Calibrator result ImPlaneIA
