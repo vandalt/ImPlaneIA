@@ -81,6 +81,9 @@ ff_c.fit_fringes(test_cal)
 # data, and residual_nn is the data - model_solution
 
 print("oversample {:%d} used in modelling the data".format(oversample))
+print("observables text files in rootdir", home+"/Downloads/asoulain_arch2019.12.07/Simulated_data/")
+print("tgt observables in subdir", tsavedir)
+print("cal observables in subdir", csavedir)
 
 showfig = False
 if showfig:
