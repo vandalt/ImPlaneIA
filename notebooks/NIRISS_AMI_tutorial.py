@@ -28,7 +28,7 @@ if debug:
 
 filt="F430M"
 
-oversample = 3
+oversample =7
 
 # ### Where the data lives:
 
@@ -49,10 +49,11 @@ if debug:
     print("csavedir:", csavedir, "\ntest_cal:", test_cal)
 
 # ### First we specify the instrument & filter # (defaults: Spectral type set to A0V)
-bp3= np.array([(0.1, 4.2e-6),(0.8, 4.3e-6),(0.1,4.4e-6)])
-default = None
-bpmono = np.array([(1.0, 4.3e-6),])
-niriss = InstrumentData.NIRISS(filt, bandpass=bpmono)
+# SET BANDPASS  - or use NIRISS' default bandpass for the filter
+default = None # 'bandpass' defaults to None - it's here for clarity
+bp3= np.array([(0.1, 4.2e-6),(0.8, 4.3e-6),(0.1,4.4e-6)]) # for speedy development
+bpmono = np.array([(1.0, 4.3e-6),]) # for speedy development
+niriss = InstrumentData.NIRISS(filt, bandpass=default)
 
 # ### Next: Extract fringe observables using image plane fringe-fitting
 # * Need to pass the InstrumentData object, some keywords.
@@ -60,8 +61,10 @@ niriss = InstrumentData.NIRISS(filt, bandpass=bpmono)
 # * Initialize FringeFitter with save_txt_only=True to switch off diagnostic fits file writing
 # *files written out to these directories.
 
-ff_t = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=tsavedir, oversample=oversample, interactive=False) 
-ff_c = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=csavedir, oversample=oversample, interactive=False) 
+ff_t = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=tsavedir,
+                             oversample=oversample, interactive=False) 
+ff_c = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=csavedir,
+                             oversample=oversample, interactive=False) 
 # set interactive to False unless you don't know what you are doing
                                                         
 # This can take a little while -- there is a parallelization option, set threads=n_threads
