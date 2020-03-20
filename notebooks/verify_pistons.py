@@ -124,7 +124,7 @@ def verify_pistons(arg):
         print("output pistons/r",ff_t.nrm.fringepistons)
         print("output pistons/w",ff_t.nrm.fringepistons/(2*np.pi))
         print("output pistons/m",ff_t.nrm.fringepistons*4.3e-6/(2*np.pi))
-        print("input pistons/m ",jw.phi)   #comment this line when calling y=verify_pistons("no_fringefitter")
+        print("input pistons/m ",jw.phi)   
         
 
 if __name__ == "__main__":
