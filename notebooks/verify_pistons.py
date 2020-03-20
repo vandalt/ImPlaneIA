@@ -11,7 +11,6 @@ from nrm_analysis.misctools import utils  # AS LG++
 from nrm_analysis.misctools.utils import amisim2mirage
 from nrm_analysis import nrm_core, InstrumentData
 
-np.set_printoptions(precision=6,linewidth=160)
 
 home = os.path.expanduser('~')
 datadir = home+"/gitsrc/ImPlaneIA/notebooks/implaneia_tests/"
@@ -67,17 +66,20 @@ def verify_pistons(arg):
     jw.set_pixelscale(pixelscale_as*arcsec2rad)
 
     np.random.seed(100)
-    phi = np.random.normal(0,0.3/(2*np.pi),7)
+
+    #lambda/14 ~ 80% strehl ratio
+    phi = np.random.normal(0,1.0, 7) / 14.0 # waves
+    print("phi", phi, "varphi", phi.var(), "waves")
     phi = phi - phi.mean()
-    
-    phi = 2*phi
+
     print("phi_nb stdev/w", phi.std())
     print("phi_nb stdev/r", phi.std()*2*np.pi)
     print("phi_nb mean/r", phi.mean()*2*np.pi)
     pistons = phi *4.3e-6 #OR
+
     print("/=====input pistons/m=======/\n",pistons)
-    #pistons = np.array([8.7e-06, -2.7e-06,  2.3e-06, -4.5e-06, -2.1e-06, -2.1e-06,  4.4e-07])
     print("/=====input pistons/r=======/\n",pistons*(2*np.pi)/4.3e-6)
+
     jw.set_pistons(pistons)
     jw.simulate(fov=81, bandpass=4.3e-6, over=oversample)
     fits.PrimaryHDU(data=jw.psf).writeto("implaneia_tests/perfect_wpistons.fits",overwrite=True)
@@ -87,15 +89,19 @@ def verify_pistons(arg):
         jw.make_model(fov=81, bandpass=4.3e-6, over=oversample)
         jw.fit_image(jw.psf, modelin=jw.model)
 
-        print("Residual:")
-        print(jw.residual)
+        pos = np.get_printoptions()
+        np.set_printoptions(precision=4, formatter={'float': lambda x: '{:+.4e}'.format(x)},
+                            linewidth=80)
+        print("Residual/psfpeak array center:", jw.psf.shape)
+        print((jw.residual/jw.psf.max())[36:-36,36:-36])
+        np.set_printoptions(pos)
 
         fits.PrimaryHDU(data=jw.residual).writeto("residual_pistons_no_ff.fits",overwrite=True)
         #return jw
-        print("output pistons/r",jw.fringepistons)
-        print("output pistons/w",jw.fringepistons/(2*np.pi))
-        print("output pistons/m",jw.fringepistons*4.3e-6/(2*np.pi))
-        print("input pistons/m ",jw.phi)  
+        #print("output pistons/r",jw.fringepistons)
+        #print("output pistons/w",jw.fringepistons/(2*np.pi))
+        #print("output pistons/m",jw.fringepistons*4.3e-6/(2*np.pi))
+        #print("input pistons/m ",jw.phi)  
     
             
         
@@ -106,22 +112,29 @@ def verify_pistons(arg):
         amisim2mirage( datadir, ("perfect_wpistons",), mirexample, filt)
 
         niriss = InstrumentData.NIRISS(filt)
-        ff_t = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=datadir, oversample=oversample, interactive=False)
+        ff_t = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=datadir, 
+                                     oversample=oversample, interactive=False)
         print(test_tar)
         ff_t.fit_fringes(test_tar)
 
         print("Residual:")
-        print(ff_t.nrm.residual)
+        #print(ff_t.nrm.residual)
+        print("Residual/psfpeak array center:", ff_t.nrm.reference.shape)
+        pos = np.get_printoptions()
+        np.set_printoptions(precision=3, formatter={'float': lambda x: '{:+.3e}'.format(x)},
+                            linewidth=80)
+        print((ff_t.nrm.residual/jw.psf.max())[36:-36,36:-36])
+        np.set_printoptions(pos)
 
-        fits.PrimaryHDU(data=ff_t.nrm.residual).writeto(datadir+"/residual_pistons_with_ff.fits",overwrite=True)
+        fits.PrimaryHDU(data=ff_t.nrm.residual).writeto(datadir+\
+                        "/residual_pistons_with_ff.fits",overwrite=True)
     
         utils.compare_pistons(jw.phi*2*np.pi/4.3e-6, ff_t.nrm.fringepistons, str="ff_t")
-        #return jw, ff_t.nrm  
 
-        print("output pistons/r",ff_t.nrm.fringepistons)
-        print("output pistons/w",ff_t.nrm.fringepistons/(2*np.pi))
-        print("output pistons/m",ff_t.nrm.fringepistons*4.3e-6/(2*np.pi))
-        print("input pistons/m ",jw.phi)   
+        #print("output pistons/r",ff_t.nrm.fringepistons)
+        #print("output pistons/w",ff_t.nrm.fringepistons/(2*np.pi))
+        #print("output pistons/m",ff_t.nrm.fringepistons*4.3e-6/(2*np.pi))
+        #print("input pistons/m ",jw.phi)   
         
 
 if __name__ == "__main__":

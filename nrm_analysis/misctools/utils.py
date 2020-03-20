@@ -325,19 +325,20 @@ def compare_pistons(pa, pb, prec=6, str=None):
     np.set_printoptions(precision=prec,linewidth=160)
 
     p_err = pa - pb
-    strehl = (pa*pa).sum()
-    dstrehl = (p_err*p_err).sum()
+    strehl = (pa*pa).var()
+    dstrehl = (p_err*p_err).var()
     
-    if str: print("  compare pistons:", str)
+    if str: print("\n  compare pistons:", str, "******************")
     print("  input pistons/rad ", pa)
     print("  output pistons/rad", pb)
     print("          error/rad ", p_err)
 
-    print("      Strehl hit (%)", 100*strehl)
-    print("   Strehl change (%)", 100*dstrehl)
+    print("      Strehl hit  {:.3e}%".format(strehl*100.0))
+    print("   Strehl change  {:.3e}%".format( dstrehl*100.0))
     
     # reset previous precision
     np.set_printoptions(precision=pos['precision'])
+    if str: print("**********************")
 
 
 
