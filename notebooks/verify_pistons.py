@@ -15,12 +15,15 @@ from pathlib import Path
 np.set_printoptions(precision=6,linewidth=160)
 
 home = os.path.expanduser('~')
+
+###################   EDIT the line below  ###########################
 datadir = home+"/ImPlaneIA/notebooks/implaneia_tests/"
 tr = "perfect_wpistons_mir"
 test_tar = datadir + tr + ".fits"
 oversample=11
 filt="F430M"
 
+####################   EDIT the line below  ###############################
 mirexample = str(Path.home()) + \
              "/ImplaneIA/notebooks/simulatedpsfs/" + \
              "jw00793001001_01101_00001_nis_cal.fits" 
@@ -71,12 +74,14 @@ def verify_pistons(arg):
     print("phi_nb stdev/w", phi.std())
     print("phi_nb stdev/r", phi.std()*2*np.pi)
     print("phi_nb mean/r", phi.mean()*2*np.pi)
-    pistons = phi *4.3e-6 #OR
+    pistons = 0.0*phi *4.3e-6 #OR
     print("/=====input pistons/m=======/\n",pistons)
     #pistons = np.array([8.7e-06, -2.7e-06,  2.3e-06, -4.5e-06, -2.1e-06, -2.1e-06,  4.4e-07])
     print("/=====input pistons/r=======/\n",pistons*(2*np.pi)/4.3e-6)
     jw.set_pistons(pistons)
     jw.simulate(fov=81, bandpass=4.3e-6, over=oversample)
+
+    ###################   EDIT the line below  ###########################
     fits.PrimaryHDU(data=jw.psf).writeto("implaneia_tests/perfect_wpistons.fits",overwrite=True)
 
     if arg == ("no_fringefitter"):
@@ -86,6 +91,8 @@ def verify_pistons(arg):
 
         print("Residual:")
         print(jw.residual)
+        print("residual/peak:")
+        print(jw.residual/jw.psf.max())
 
         fits.PrimaryHDU(data=jw.residual).writeto("residual_pistons_no_ff.fits",overwrite=True)
         #return jw
@@ -113,9 +120,12 @@ def verify_pistons(arg):
         print(test_tar)
         ff_t.fit_fringes(test_tar)
 
-        print("Residual:")
-        print(ff_t.nrm.residual)
-
+        print("Residual 35x35:")
+        print(ff_t.nrm.residual[35:-35])
+        print("residual/peak:")
+        print(ff_t.nrm.residual/jw.psf.max())
+        
+        ###################   EDIT the line below  ###########################
         fits.PrimaryHDU(data=ff_t.nrm.residual).writeto("residual_pistons_with_ff.fits",overwrite=True)
     
         utils.compare_pistons(jw.phi*2*np.pi/4.3e-6, ff_t.nrm.fringepistons, str="ff_t")
