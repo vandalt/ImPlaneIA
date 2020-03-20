@@ -1357,19 +1357,18 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt):
         # write out miragized sim data
         mirobj.writeto(datadir+fname+mirext+".fits", overwrite=True)
 
-    mirexample = str(Path.home()) + \
+    mirexample = os.path.expanduser('~') + \
                  "/gitsrc/ImPlaneIA/example_data/example_niriss/" + \
                  "jw00793001001_01101_00001_nis_cal.fits" 
 
 
 def test_amisim2mirage():
-    from pathlib import Path
     amisim2mirage(
-        str(Path.home())+"/Downloads/asoulain_arch2019.12.07/Simulated_data/",
+        os.path.expanduser('~')+"/Downloads/asoulain_arch2019.12.07/Simulated_data/",
         ("t_dsk_100mas__F430M_81_flat_x11__00",
          "c_dsk_100mas__F430M_81_flat_x11__00",
         ),
-        str(Path.home()) + \
+        os.path.expanduser('~') +\
         "/gitsrc/ImPlaneIA/example_data/example_niriss/" + \
         "jw00793001001_01101_00001_nis_cal.fits" ,
         "F430M"

@@ -10,20 +10,23 @@ from nrm_analysis.fringefitting.LG_Model import NRM_Model
 from nrm_analysis.misctools import utils  # AS LG++
 from nrm_analysis.misctools.utils import amisim2mirage
 from nrm_analysis import nrm_core, InstrumentData
-from pathlib import Path
 
 np.set_printoptions(precision=6,linewidth=160)
 
 home = os.path.expanduser('~')
-datadir = home+"/ImPlaneIA/notebooks/implaneia_tests/"
+datadir = home+"/gitsrc/ImPlaneIA/notebooks/implaneia_tests/"
 tr = "perfect_wpistons_mir"
 test_tar = datadir + tr + ".fits"
-oversample=11
+oversample=3
 filt="F430M"
 
-mirexample = str(Path.home()) + \
+mirexample = os.path.expanduser('~') + \
              "/ImplaneIA/notebooks/simulatedpsfs/" + \
              "jw00793001001_01101_00001_nis_cal.fits" 
+mirexample = os.path.expanduser('~') + \
+        "/gitsrc/ImPlaneIA/example_data/example_niriss/" + \
+        "jw00793001001_01101_00001_nis_cal.fits"
+
 
 """
 F480M A0V:
@@ -93,29 +96,24 @@ def verify_pistons(arg):
         print("output pistons/w",jw.fringepistons/(2*np.pi))
         print("output pistons/m",jw.fringepistons*4.3e-6/(2*np.pi))
         print("input pistons/m ",jw.phi)  
-        utils.compare_pistons(ff_t.nrm.phi*2*np.pi, ff_t.nrm.fringepistons, str="no_fringefitter")
     
             
         
     elif arg == ("use_fringefitter"):
        
-        fits.PrimaryHDU(data=jw.psf).writeto("implaneia_tests/perfect_wpistons.fits",overwrite=True)
+        fits.PrimaryHDU(data=jw.psf).writeto(datadir+"/perfect_wpistons.fits",overwrite=True)
    
-        amisim2mirage( str(Path.home())+"/ImPlaneIA/notebooks/implaneia_tests/",
-                    ("perfect_wpistons",),
-                    mirexample,
-                    filt)
+        amisim2mirage( datadir, ("perfect_wpistons",), mirexample, filt)
 
         niriss = InstrumentData.NIRISS(filt)
-        ff_t = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=datadir, 
-                                     oversample=oversample, interactive=False)
+        ff_t = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=datadir, oversample=oversample, interactive=False)
         print(test_tar)
         ff_t.fit_fringes(test_tar)
 
         print("Residual:")
         print(ff_t.nrm.residual)
 
-        fits.PrimaryHDU(data=ff_t.nrm.residual).writeto("residual_pistons_with_ff.fits",overwrite=True)
+        fits.PrimaryHDU(data=ff_t.nrm.residual).writeto(datadir+"/residual_pistons_with_ff.fits",overwrite=True)
     
         utils.compare_pistons(jw.phi*2*np.pi/4.3e-6, ff_t.nrm.fringepistons, str="ff_t")
         #return jw, ff_t.nrm  
@@ -124,7 +122,6 @@ def verify_pistons(arg):
         print("output pistons/w",ff_t.nrm.fringepistons/(2*np.pi))
         print("output pistons/m",ff_t.nrm.fringepistons*4.3e-6/(2*np.pi))
         print("input pistons/m ",jw.phi)   
-        utils.compare_pistons(ff_t.nrm.phi*2*np.pi, ff_t.nrm.fringepistons, str="use_fringefitter")
         
 
 if __name__ == "__main__":
