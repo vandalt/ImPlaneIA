@@ -93,7 +93,6 @@ def verify_pistons(arg):
         print("output pistons/w",jw.fringepistons/(2*np.pi))
         print("output pistons/m",jw.fringepistons*4.3e-6/(2*np.pi))
         print("input pistons/m ",jw.phi)  
-        utils.compare_pistons(ff_t.nrm.phi*2*np.pi, ff_t.nrm.fringepistons, str="no_fringefitter")
     
             
         
@@ -101,14 +100,16 @@ def verify_pistons(arg):
        
         fits.PrimaryHDU(data=jw.psf).writeto("implaneia_tests/perfect_wpistons.fits",overwrite=True)
    
-        amisim2mirage( str(Path.home())+"/ImPlaneIA/notebooks/implaneia_tests/",
-                    ("perfect_wpistons",),
-                    mirexample,
-                    filt)
+        amisim2mirage(
+        str(Path.home())+"/ImPlaneIA/notebooks/implaneia_tests/",
+        ("perfect_wpistons",
+        ),
+        mirexample,
+        filt
+        )
 
         niriss = InstrumentData.NIRISS(filt)
-        ff_t = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=datadir, 
-                                     oversample=oversample, interactive=False)
+        ff_t = nrm_core.FringeFitter(niriss, datadir=datadir, savedir=datadir, oversample=oversample, interactive=False)
         print(test_tar)
         ff_t.fit_fringes(test_tar)
 
@@ -124,7 +125,6 @@ def verify_pistons(arg):
         print("output pistons/w",ff_t.nrm.fringepistons/(2*np.pi))
         print("output pistons/m",ff_t.nrm.fringepistons*4.3e-6/(2*np.pi))
         print("input pistons/m ",jw.phi)   
-        utils.compare_pistons(ff_t.nrm.phi*2*np.pi, ff_t.nrm.fringepistons, str="use_fringefitter")
         
 
 if __name__ == "__main__":
