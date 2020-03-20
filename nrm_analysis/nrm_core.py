@@ -307,6 +307,7 @@ def fit_fringes_single_integration(args):
     # use flipped centroids to update centroid of image for JWST - check parity for GPI, Vizier,...
     # pixel coordinates: - note the flip of [0] and [1] to match DS9 view
     image_center = utils.centerpoint(self.ctrd.shape) + np.array((centroid[1], centroid[0])) # info only, unused
+    print("**** image_center for information, not used",image_center)
     print(">>>> nrm_core: centroid offsets {0} from utils.centroid() <<<<".format(centroid))
     print(">>>> nrm_core: center of light in array coords (ds9) {0} <<<<".format(image_center))
     nrm.xpos = centroid[1]  # flip 0 and 1 to convert 
