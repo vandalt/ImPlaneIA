@@ -1307,8 +1307,9 @@ def t3err(viserr, N=7):
 def amisim2mirage(datadir, amisimfns, mirexample, filt):
     """
     datadir: where input amisim files (cubes or 2d) are located
-    amisimfns: list or tuple of simultaed data files
+    amisimfns: one or a list/tuple of simulated data files
     mirexample: fullpath/filename of mirage example to use for header values
+    Returns: one or list of mirage-like file names (not full path).
     *** WARNING *** sim2mirage.py:
         The MIRAGE fits file that provides the structure to wrap your simulated
         data to look like MAST data is for the F480M filter.  If you use it to
@@ -1317,6 +1318,9 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt):
         to create the simulated data.
     """
     mirext = "_mir"
+    mirfns = [] # list of mirage-like file names
+    if type(amisimfns) == str:
+            amisimfns = [amisimfns, ]
     for fname in amisimfns:
         print(fname+':', end='')
         fobj_sim = fits.open(datadir+fname+".fits")
@@ -1357,10 +1361,10 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt):
 
         # write out miragized sim data
         mirobj.writeto(datadir+fname+mirext+".fits", overwrite=True)
+        mirfns.append(fname+mirext+".fits")
 
-    mirexample = os.path.expanduser('~') + \
-                 "/gitsrc/ImPlaneIA/example_data/example_niriss/" + \
-                 "jw00793001001_01101_00001_nis_cal.fits" 
+    if len(mirfns) == 1: mirfns = mirfns[0]
+    return mirfns
 
 
 def test_amisim2mirage():
