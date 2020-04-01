@@ -1,20 +1,14 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
 import os, sys, time
 import numpy as np
 from astropy.io import fits
 from astropy import units as u
 
-
 import nrm_analysis.misctools.utils as utils
-#from nrm_analysis.misctools.utils import Affine2d
-#from nrm_analysis.misctools.utils import avoidhexsingularity
 from nrm_analysis.fringefitting.LG_Model import NRM_Model
-
 from nrm_analysis import nrm_core, InstrumentData
-print(InstrumentData.__file__)
 
 arcsec2rad = u.arcsec.to(u.rad)
 um = 1.0e-6
@@ -26,17 +20,18 @@ def image2oi(mirfile, oitxtdir, oversample=3,
          filt="F430M", bp=None, affine2d=None,
          prec=4, debug=True, verbose=False):
     """
-    function to extract text observables from list of fits data files
+    function to extract text observables from a fits data file
     in mirage format (with expected keywords, and a second HDU that is a
     datacube of slices (eg number of exposures) that come out of second
     stage STScI pipeline processing).
     input:
-        mirfile (str or list of strs): full path(s) of input image fits file to be analyzed
+        mirfile (str):   full path(s) of input image fits file to be analyzed
         oitxtdir (str) : directory where text observables are to be  written, 
                          a sub_dir_str of the object rootname is created for the 
                          output txt oi observables, one per input data slice
         oversample (int): pixel oversampling for implaneia fringe fitting
         prec (int) optional precision for float numpy printout
+        bp, affine2d args passed ImPlaneIA
     """
 
     np.set_printoptions(precision=prec)
@@ -67,6 +62,17 @@ def image2oi(mirfile, oitxtdir, oversample=3,
         print("Current working directory is ", os.getcwd())
         print("InstrumentData is file: ", InstrumentData.__file__)
 
+def locatecenter(imarray, filt):
+    # imarray:  2D np array
+    instr_data = InstrumentData.NIRISS(filt, bandpass=bp)
+    # returned values have offsets x-y flipped (see nrm_core for details):
+    centroid = utils.find_centroid(ctrd, instr_data.threshold) # offsets from array ctr
+    #image_center = utils.centerpoint(self.ctrd.shape) + np.array((centroid[1], centroid[0])) # info only, unused
+    nrm.xpos = centroid[1]  # flip 0 and 1 to convert 
+    nrm.ypos = centroid[0]  # flip 0 and 1
+    nrm.bestcenter = nrm.xpos, nrm.ypos  ################ AS try in LG++  Works!
+    del instr_data
+
 
 
 def create_data(imdir, rot, ov):
@@ -93,7 +99,7 @@ def create_data(imdir, rot, ov):
     fits.update(imdir+psffn, jw.psf, header=header)
     del jw
 
-    return psffn  # filename only
+    return psffn  # filename only, not full path
 
 
 def rotsim_mir(rotdegs=0.0, ov=1):
@@ -104,6 +110,11 @@ def rotsim_mir(rotdegs=0.0, ov=1):
         A subdirectory labelled with oversampling is created for implaneia analysis output.
         rotdegs: pupil rotation in degrees
     """
+
+    # Set up directories for :
+    #    input fits miragelike files
+    #    output optical Interferometry directory for implaneia text files & fits files
+    #    where to find the mirage example to borrow its header
     home = os.path.expanduser('~')
     import getpass
     username = getpass.getuser()
@@ -119,9 +130,10 @@ def rotsim_mir(rotdegs=0.0, ov=1):
              "/ImplaneIA/notebooks/simulatedpsfs/" + \
              "jw00793001001_01101_00001_nis_cal.fits" 
 
-    ov = 1 # oversampling for simulation of psf
 
     # create simdata and output observables directories data
+    #
+    ov = 1 # oversampling for simulation of psf
     fitsimdir = home+"/data/niriss_verification/"
     if not os.path.exists(fitsimdir):
         os.mkdir(fitsimdir)
@@ -134,6 +146,8 @@ def rotsim_mir(rotdegs=0.0, ov=1):
     else:
         print("Using existing oi text output file directory:\n\t", oidir)
 
+    # Create psf with implaneia
+    #
     simfn = create_data(fitsimdir, rotdegs, ov) 
     # get back miragefile.fits string (not full path)
     mirfn = utils.amisim2mirage(fitsimdir, simfn.replace(".fits",""), mirexample, FILT)
@@ -142,20 +156,28 @@ def rotsim_mir(rotdegs=0.0, ov=1):
     
     simdata = fits.getdata(fitsimdir+mirfn, 1)[0,:,:]
     print("simdata.shape", simdata.shape)
+    # in real data:
+    # psfoffset =  locatecenter(simdata, filt)
+    psf_offset = (0.5,0.5)
 
+    # Extract observables with implaneia
+    #
     from nrm_analysis import find_affine2d_parameters as FAP
     mx, my, sx,sy, xo,yo, = (1.0,1.0, 0.0,0.0, 0.0,0.0)
     rotsearch_d = (8.0, 9.0, 10.0, 11.0, 12.0)
     wave = 4.3e-6  # SI  - we won't know from the data what lam_c -  comes from outside?
                    # real-life - use apprpriate bandpass array
-    aff_rot_measured = FAP.find_rotation(simdata,
+    aff_rot_measured = FAP.find_rotation(simdata, psf_offset,
                       rotsearch_d, mx, my, sx,sy, xo,yo,
                       PIXELSCALE_r, 80, wave, ov, 'hex', outdir=fitsimdir+"/rotdir/")
 
     image2oi(fitsimdir+mirfn, oidir, oversample=ov, filt=FILT, bp=MONOF430M, prec=4, affine2d=aff_rot_measured)
 
+    # Helpful printout after implaneia bulk output
+    #
+    print(InstrumentData.__file__)
     aff_rot_measured.show()
 
 
 if __name__ == "__main__":
-    rotsim_mir(rotdegs=10.0, ov=1.0)
+    rotsim_mir(rotdegs=10.0, ov=1)

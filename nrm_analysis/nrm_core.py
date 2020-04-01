@@ -59,7 +59,7 @@ class FringeFitter:
         psf_offset - If you already know the subpixel centering of your data, give it here
                      (not recommended except when debugging with perfectly know image placement))
         savedir - Where do you want to save the new files to? Default is working directory.
-        datadir - Where is your data? Default is working directory.
+        #datadir - Where is your data? Default is working directory.
         npix - How many pixels of your data do you want to use? 
                Default is the shape of a data [slice or frame].  Typically odd?
         debug - will plot the FT of your data next to the FT of a reference PSF.
@@ -99,13 +99,6 @@ class FringeFitter:
             self.savedir = kwargs["savedir"]
         else:
             self.savedir = os.getcwd()
-        #if "datadir" in kwargs:
-        #    self.datadir = kwargs["datadir"]
-        #else:
-        #    sys.exit("""
-        #    FringeFitter: datadir missing.  Where is your data?  Fragile option of 
-        #    default datadir=os.getcwd() removed  - AS 12/2018 affinedev merge
-        #    """)
         if "npix" in kwargs:
             self.npix = kwargs["npix"]
         else:
@@ -155,7 +148,6 @@ class FringeFitter:
             fns = [fns, ]
 
         # Can get fringes for images in parallel
-        #tore_dict = [{"object":self, "file":self.datadir+"/"+fn,"id":jj} \ # AS remove self.datadir
         store_dict = [{"object":self, "file":                 fn,"id":jj} \
                         for jj,fn in enumerate(fns)]
 
