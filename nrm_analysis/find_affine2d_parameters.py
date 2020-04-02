@@ -121,7 +121,8 @@ def find_scale(imagedata,
 
 
 def find_rotation(imagedata,
-                  rotdegs, mx, my, sx,sy, xo,yo,              # for Affine2d
+                  psf_offset,  # in data coordinates (right or wrong?  rotated data coords?)
+                  rotdegs, mx, my, sx,sy, xo,yo,                         # for Affine2d
                   pixel, npix, bandpass, over, holeshape, outdir=None):  # for nrm_model
     """ AS AZG 2018 08 Ann Arbor Develop the rotation loop first """
 
@@ -145,7 +146,9 @@ def find_rotation(imagedata,
                        over=over,
                        affine2d=aff)
         jw.set_pixelscale(pixel)
-        jw.simulate(fov=npix, bandpass=bandpass, over=over)
+        # psf_offset in data coords & pixels.  Does it get rotated?  Second order errors poss.
+        #  Some numerical testing needed for big eg 90 degree affine2d rotations.  Later.
+        jw.simulate(fov=npix, bandpass=bandpass, over=over, psf_offset=psf_offset)
         psffn = psffmt.format(npix, holeshape, bandpass/um, rot)
         if outdir: 
             fits.PrimaryHDU(data=jw.psf).writeto(outdir+"/"+psffn, overwrite=True)

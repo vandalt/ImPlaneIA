@@ -325,19 +325,20 @@ def compare_pistons(pa, pb, prec=6, str=None):
     np.set_printoptions(precision=prec,linewidth=160)
 
     p_err = pa - pb
-    strehl = (pa*pa).sum()
-    dstrehl = (p_err*p_err).sum()
+    strehl = (pa*pa).var()
+    dstrehl = (p_err*p_err).var()
     
-    if str: print("  compare pistons:", str)
+    if str: print("\n  compare pistons:", str, "******************")
     print("  input pistons/rad ", pa)
     print("  output pistons/rad", pb)
     print("          error/rad ", p_err)
 
-    print("      Strehl hit (%)", 100*strehl)
-    print("   Strehl change (%)", 100*dstrehl)
+    print("      Strehl hit  {:.3e}%".format(strehl*100.0))
+    print("   Strehl change  {:.3e}%".format( dstrehl*100.0))
     
     # reset previous precision
     np.set_printoptions(precision=pos['precision'])
+    if str: print("**********************")
 
 
 
@@ -1306,8 +1307,9 @@ def t3err(viserr, N=7):
 def amisim2mirage(datadir, amisimfns, mirexample, filt):
     """
     datadir: where input amisim files (cubes or 2d) are located
-    amisimfns: list or tuple of simultaed data files
+    amisimfns: one or a list/tuple of simulated data files
     mirexample: fullpath/filename of mirage example to use for header values
+    Returns: one or list of mirage-like file names (not full path).
     *** WARNING *** sim2mirage.py:
         The MIRAGE fits file that provides the structure to wrap your simulated
         data to look like MAST data is for the F480M filter.  If you use it to
@@ -1316,6 +1318,9 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt):
         to create the simulated data.
     """
     mirext = "_mir"
+    mirfns = [] # list of mirage-like file names
+    if type(amisimfns) == str:
+            amisimfns = [amisimfns, ]
     for fname in amisimfns:
         print(fname+':', end='')
         fobj_sim = fits.open(datadir+fname+".fits")
@@ -1356,20 +1361,19 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt):
 
         # write out miragized sim data
         mirobj.writeto(datadir+fname+mirext+".fits", overwrite=True)
+        mirfns.append(fname+mirext+".fits")
 
-    mirexample = str(Path.home()) + \
-                 "/gitsrc/ImPlaneIA/example_data/example_niriss/" + \
-                 "jw00793001001_01101_00001_nis_cal.fits" 
+    if len(mirfns) == 1: mirfns = mirfns[0]
+    return mirfns
 
 
 def test_amisim2mirage():
-    from pathlib import Path
     amisim2mirage(
-        str(Path.home())+"/Downloads/asoulain_arch2019.12.07/Simulated_data/",
+        os.path.expanduser('~')+"/Downloads/asoulain_arch2019.12.07/Simulated_data/",
         ("t_dsk_100mas__F430M_81_flat_x11__00",
          "c_dsk_100mas__F430M_81_flat_x11__00",
         ),
-        str(Path.home()) + \
+        os.path.expanduser('~') +\
         "/gitsrc/ImPlaneIA/example_data/example_niriss/" + \
         "jw00793001001_01101_00001_nis_cal.fits" ,
         "F430M"
