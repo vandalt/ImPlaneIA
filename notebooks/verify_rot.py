@@ -133,10 +133,10 @@ def rotsim_mir(rotdegs=0.0, ov=1):
 
     # create simdata and output observables directories data
     #
-    ov = 1 # oversampling for simulation of psf
-    fitsimdir = home+"/data/niriss_verification/"
-    if not os.path.exists(fitsimdir):
-        os.mkdir(fitsimdir)
+    ov = 11 # oversampling for simulation of psf
+    fitsimdir = home+"/data/implaneia/niriss_verification/"
+    if not os.path.exists(fitsimdir):  
+        os.makedirs(fitsimdir) 
         print("Created image simulation data directory:\n\t", fitsimdir)
 
     oidir = fitsimdir + "ov{:d}".format(ov)
@@ -145,6 +145,9 @@ def rotsim_mir(rotdegs=0.0, ov=1):
         print("Created oi text output file directory:\n\t", oidir)
     else:
         print("Using existing oi text output file directory:\n\t", oidir)
+
+    if not os.path.exists(fitsimdir+'/rotdir/'):  
+        os.mkdir(fitsimdir+'/rotdir/') 
 
     # Create psf with implaneia
     #
