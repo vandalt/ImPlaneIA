@@ -38,7 +38,7 @@ class FringeFittingTestCase(unittest.TestCase):
         verbose = 1
         overwrite = 1
 
-        monochromatic_wavelength_m = 4.3e-6 
+        monochromatic_wavelength_m = np.array([(1.0, 4.3e-6),])
         mask = 'MASK_NRM'
         filter = 'F430M'
         pixelscale_arcsec = 0.0656 
