@@ -39,7 +39,7 @@ class Affine2dRotTestCase(unittest.TestCase):
 
         pixel = 0.0656 *  u.arcsec.to(u.rad)
         npix = 87
-        wave = 4.3e-6 # m
+        wave = np.array([(1.0, 4.3e-6),]) # m
         over = 3
         holeshape='hex'
         
@@ -60,10 +60,10 @@ class Affine2dRotTestCase(unittest.TestCase):
         imagedata = jw.psf.copy()
         del jw
         fits.getdata(imagefn)
-
+        psf_offset = (0.0,0.0)
         print("driver:", rotdegs)
         mx, my, sx,sy, xo,yo, = (1.0,1.0, 0.0,0.0, 0.0,0.0)
-        aff_best_rot =FAP.find_rotation(imagedata,
+        aff_best_rot =FAP.find_rotation(imagedata,psf_offset,
                                         rotdegs, mx, my, sx,sy, xo,yo,
                                         pixel, npix, wave, over, holeshape, outdir=data_dir)
 
