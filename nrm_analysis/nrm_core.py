@@ -162,10 +162,16 @@ class FringeFitter:
 
     def save_output(self, slc, nrm):
         # cropped & centered PSF
+        datapeak = self.ctrd.max()
+        #TBD: Keep only n_*.fits files after testing is done and before doing ImPlaneIA delivery
         if self.save_txt_only==False:
             fits.PrimaryHDU(data=self.ctrd, \
                     header=self.scihdr).writeto(self.savedir+\
                     self.sub_dir_str+"/centered_{0}.fits".format(slc), \
+                    overwrite=True)
+            fits.PrimaryHDU(data=self.ctrd/datapeak, \
+                    header=self.scihdr).writeto(self.savedir+\
+                    self.sub_dir_str+"/n_centered_{0}.fits".format(slc), \
                     overwrite=True)
 
             model, modelhdu = nrm.plot_model(fits_true=1)
@@ -173,9 +179,16 @@ class FringeFitter:
             fits.PrimaryHDU(data=nrm.residual).writeto(self.savedir+\
                         self.sub_dir_str+"/residual_{0:02d}.fits".format(slc), \
                         overwrite=True)
+            fits.PrimaryHDU(data=nrm.residual/datapeak).writeto(self.savedir+\
+                        self.sub_dir_str+"/n_residual_{0:02d}.fits".format(slc), \
+                        overwrite=True)
             modelhdu.writeto(self.savedir+\
                         self.sub_dir_str+"/modelsolution_{0:02d}.fits".format(slc),\
                         overwrite=True)
+            fits.PrimaryHDU(data=model/datapeak, \
+                    header=modelhdu.header).writeto(self.savedir+\
+                    self.sub_dir_str+"/n_modelsolution_{0:02d}.fits".format(slc), \
+                    overwrite=True)
         else:
             print("NOT SAVING ANY FITS FILES. SET save_txt_only=False TO SAVE.")
 
@@ -238,7 +251,6 @@ def fit_fringes_parallel(args, threads):
     filename = args['file']
     id_tag = args['id']
     self.prihdr, self.scihdr, self.scidata = self.instrument_data.read_data(filename)
-
     self.sub_dir_str = self.instrument_data.sub_dir_str
     try:
         os.mkdir(self.savedir+self.sub_dir_str)
