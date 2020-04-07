@@ -46,7 +46,7 @@ class Affine2dTestCase(unittest.TestCase):
 
         self.pixel = 0.0656 *  u.arcsec.to(u.rad)
         self.npix = 87
-        self.wave = 4.3e-6 # m
+        self.wave = np.array([(1.0, 4.3e-6),])# m
         self.over = 1
 
         ################
@@ -78,7 +78,7 @@ class Affine2dTestCase(unittest.TestCase):
             self.jw = NRM_Model(mask='jwst', holeshape="circ", affine2d=aff)
             self.jw.set_pixelscale(self.pixel)
             self.jw.simulate(fov=self.npix, bandpass=self.wave, over=self.over)
-            psffn = self.fnfmt.format(self.npix, 'circ', self.wave/um, aff.name)
+            psffn = self.fnfmt.format(self.npix, 'circ', self.wave[:,1][0]/um, aff.name)
             fits.writeto(psffn, self.jw.psf, overwrite=True)
             header = fits.getheader(psffn)
             header = affinepars2header(header, aff)
@@ -89,7 +89,7 @@ class Affine2dTestCase(unittest.TestCase):
             self.jw = NRM_Model(mask='jwst', holeshape="circonly", affine2d=aff)
             self.jw.set_pixelscale(self.pixel)
             self.jw.simulate(fov=self.npix, bandpass=self.wave, over=self.over)
-            psffn = self.fnfmt.format(self.npix, 'circonly', self.wave/um, aff.name)
+            psffn = self.fnfmt.format(self.npix, 'circonly', self.wave[:,1][0]/um, aff.name)
             fits.writeto(psffn, self.jw.psf, overwrite=True)
             header = fits.getheader(psffn)
             header = affinepars2header(header, aff)
@@ -100,7 +100,7 @@ class Affine2dTestCase(unittest.TestCase):
             self.jw = NRM_Model(mask='jwst', holeshape="hex", affine2d=aff)
             self.jw.set_pixelscale(self.pixel)
             self.jw.simulate(fov=self.npix, bandpass=self.wave, over=self.over)
-            psffn = self.fnfmt.format(self.npix, 'hex', self.wave/um, aff.name)
+            psffn = self.fnfmt.format(self.npix, 'hex', self.wave[:,1][0]/um, aff.name)
             fits.writeto(psffn, self.jw.psf, overwrite=True)
             header = fits.getheader(psffn)
             header = affinepars2header(header, aff)
@@ -111,7 +111,7 @@ class Affine2dTestCase(unittest.TestCase):
             self.jw = NRM_Model(mask='jwst', holeshape="hexonly", affine2d=aff)
             self.jw.set_pixelscale(self.pixel)
             self.jw.simulate(fov=self.npix, bandpass=self.wave, over=self.over)
-            psffn = self.fnfmt.format(self.npix, 'hexonly', self.wave/um, aff.name)
+            psffn = self.fnfmt.format(self.npix, 'hexonly', self.wave[:,1][0]/um, aff.name)
             fits.writeto(psffn, self.jw.psf, overwrite=True)
             header = fits.getheader(psffn)
             header = affinepars2header(header, aff)
@@ -122,7 +122,7 @@ class Affine2dTestCase(unittest.TestCase):
             self.jw = NRM_Model(mask='jwst', holeshape="fringeonly", affine2d=aff)
             self.jw.set_pixelscale(self.pixel)
             self.jw.simulate(fov=self.npix, bandpass=self.wave, over=self.over)
-            psffn = self.fnfmt.format(self.npix, 'fringeonly', self.wave/um, aff.name)
+            psffn = self.fnfmt.format(self.npix, 'fringeonly', self.wave[:,1][0]/um, aff.name)
             fits.writeto(psffn, self.jw.psf, overwrite=True)
             header = fits.getheader(psffn)
             header = affinepars2header(header, aff)
@@ -140,8 +140,8 @@ class Affine2dTestCase(unittest.TestCase):
 
     """  Ideal and Xreverse_xflipped should be machine zero or close """
     def eval_psf_hex(self):
-        psfIdeal  = fits.getdata(self.fnfmt.format(self.npix, 'hex', self.wave/um, "Ideal"))
-        psfXrev  = fits.getdata(self.fnfmt.format(self.npix, 'hex', self.wave/um, "Xreverse"))
+        psfIdeal  = fits.getdata(self.fnfmt.format(self.npix, 'hex', self.wave[:,1][0]/um, "Ideal"))
+        psfXrev  = fits.getdata(self.fnfmt.format(self.npix, 'hex', self.wave[:,1][0]/um, "Xreverse"))
         psfdiff = psfIdeal - psfXrev[::-1,:]
         print("    Numerical Summary:         hex  psf: " +\
               self.numtestfmt.format(psfIdeal.min(), psfIdeal.max(), psfIdeal.mean(), psfIdeal.std()))
@@ -151,8 +151,8 @@ class Affine2dTestCase(unittest.TestCase):
         return psfdiff.std()
 
     def eval_psf_fringeonly(self):
-        psfIdeal  = fits.getdata(self.fnfmt.format(self.npix, 'fringeonly', self.wave/um, "Ideal"))
-        psfXrev  = fits.getdata(self.fnfmt.format(self.npix, 'fringeonly', self.wave/um, "Xreverse"))
+        psfIdeal  = fits.getdata(self.fnfmt.format(self.npix, 'fringeonly', self.wave[:,1][0]/um, "Ideal"))
+        psfXrev  = fits.getdata(self.fnfmt.format(self.npix, 'fringeonly', self.wave[:,1][0]/um, "Xreverse"))
         psfdiff = psfIdeal - psfXrev[::-1,:]
         print("    Numerical Summary:  fringeonly  psf: " +\
               self.numtestfmt.format(psfIdeal.min(), psfIdeal.max(), psfIdeal.mean(), psfIdeal.std()))
@@ -162,8 +162,8 @@ class Affine2dTestCase(unittest.TestCase):
         return psfdiff.std()
 
     def eval_psf_hexonly(self):
-        psfIdeal  = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave/um, "Ideal"))
-        psfXrev  = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave/um, "Xreverse"))
+        psfIdeal  = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave[:,1][0]/um, "Ideal"))
+        psfXrev  = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave[:,1][0]/um, "Xreverse"))
         psfdiff = psfIdeal - psfXrev[::-1,:]
         print("    Numerical Summary:     hexonly  psf: " +\
               self.numtestfmt.format(psfIdeal.min(), psfIdeal.max(), psfIdeal.mean(), psfIdeal.std()))
