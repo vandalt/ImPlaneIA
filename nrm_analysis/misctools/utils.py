@@ -1085,6 +1085,7 @@ def quadratic_extremum(p):  # used to take an x vector and return y,x for smoot 
     print("Max y value %.5f"%(-p[1]*p[1] /(4.0*p[0]) + p[2]))
     print("occurs at x = %.5f"%(-p[1]/(2.0*p[0])))
     #return -p[1]/(2.0*p[0]), -p[1]*p[1] /(4.0*p[0]) + p[2], p[0]*x*x + p[1]*x + p[2]
+    print("x and y from utils.quadratic_extremum",-p[1]/(2.0*p[0]), -p[1]*p[1] /(4.0*p[0]) + p[2])
     return -p[1]/(2.0*p[0]), -p[1]*p[1] /(4.0*p[0]) + p[2]
 
 
