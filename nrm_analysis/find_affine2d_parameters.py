@@ -93,7 +93,7 @@ def find_scale(imagedata,
                        affine2d=aff)
         jw.set_pixelscale(pixel)
         jw.simulate(fov=npix, bandpass=bandpass, over=over)
-        psffn = psffmt.format(npix, holeshape, bandpass/um, scl)
+        psffn = psffmt.format(npix, holeshape, bandpass[:,1][0]/um, scl)
         if outdir: 
             fits.PrimaryHDU(data=jw.psf).writeto(outdir+"/"+psffn, overwrite=True)
             fits.writeto(psffn, jw.psf, overwrite=True)
@@ -149,7 +149,7 @@ def find_rotation(imagedata,
         # psf_offset in data coords & pixels.  Does it get rotated?  Second order errors poss.
         #  Some numerical testing needed for big eg 90 degree affine2d rotations.  Later.
         jw.simulate(fov=npix, bandpass=bandpass, over=over, psf_offset=psf_offset)
-        psffn = psffmt.format(npix, holeshape, bandpass/um, rot)
+        psffn = psffmt.format(npix, holeshape, bandpass[:,1][0]/um, rot)
         if outdir: 
             fits.PrimaryHDU(data=jw.psf).writeto(outdir+"/"+psffn, overwrite=True)
             fits.writeto(psffn, jw.psf, overwrite=True)
@@ -163,6 +163,12 @@ def find_rotation(imagedata,
 
     vprint("Debug: ", crosscorr_rots, rotdegs)
     rot_measured_d, max_cor = utils.findpeak_1d(crosscorr_rots, rotdegs)
+    #Machine noise residuals are obtained when rot_measured is forced to the exact value of simulated rotation (e.g. rot_measured=10.00 and max_cor is forced to 1.0)
+    #When rot_measured=10.000000000958407 and max_cor=0.9999999999999998 instead of 10.00 and 1.00 the model is created at a different visible rotation.
+    #A very small difference between simulated and measured rotation and between max_cor of 1 and calculated value creates the model at a different rotation compared to the data.
+    #For 10 degree pupil rotation, model residuals in the fit are ~1e-5 contrast or the peak at bright snowflake points, but much smaller within few resolution elements of the PSF center.
+    #This may be improved by treating possibly non-commuting psf_offsets and rotation (after delivery to the pipeline in April 2020).
+
     vprint("Rotation measured: max correlation {1:.3e}", rot_measured_d, max_cor)
 
     # return convenient affine2d
