@@ -133,7 +133,7 @@ def rotsim_mir(rotdegs=0.0, ov=1):
 
     # create simdata and output observables directories data
     #
-    ov = 11 # oversampling for simulation of psf
+    ov = 1 # oversampling for simulation of psf
     fitsimdir = home+"/data/implaneia/niriss_verification/"
     if not os.path.exists(fitsimdir):  
         os.makedirs(fitsimdir) 
@@ -168,7 +168,7 @@ def rotsim_mir(rotdegs=0.0, ov=1):
     from nrm_analysis import find_affine2d_parameters as FAP
     mx, my, sx,sy, xo,yo, = (1.0,1.0, 0.0,0.0, 0.0,0.0)
     rotsearch_d = (8.0, 9.0, 10.0, 11.0, 12.0)
-    wave = 4.3e-6  # SI  - we won't know from the data what lam_c -  comes from outside?
+    wave = np.array([(1.0, 4.3e-6),])  # SI  - we won't know from the data what lam_c -  comes from outside?
                    # real-life - use apprpriate bandpass array
     aff_rot_measured = FAP.find_rotation(simdata, psf_offset,
                       rotsearch_d, mx, my, sx,sy, xo,yo,
