@@ -48,7 +48,7 @@ class Affine2dTestCase(unittest.TestCase):
         self.fmt = "    ({0:+.3f}, {1:+.3f}) -> ({2:+.3f}, {3:+.3f})"
         self.pixel = 0.0656 *  u.arcsec.to(u.rad)
         self.npix = 87
-        self.wave = 4.3e-6 # m
+        self.wave = np.array([(1.0, 4.3e-6),]) # m
         self.over = 1
 
         mx, my = 1.0, 1.0
@@ -74,7 +74,7 @@ class Affine2dTestCase(unittest.TestCase):
             self.jw = NRM_Model(mask='jwst', holeshape="hexonly", affine2d=aff)
             self.jw.set_pixelscale(self.pixel*arcsec2rad)
             self.jw.simulate(fov=self.npix, bandpass=self.wave, over=self.over)
-            psffn = self.fnfmt.format(self.npix, 'hexonly', self.wave/um, rot)
+            psffn = self.fnfmt.format(self.npix, 'hexonly', self.wave[:,1][0]/um, rot)
             fits.writeto(psffn, self.jw.psf, overwrite=True)
             header = fits.getheader(psffn)
             header = affinepars2header(header, aff)
@@ -94,13 +94,13 @@ class Affine2dTestCase(unittest.TestCase):
             The file names are hand-edited to reflect the oversampling and rotations,
             so this is more a sanity check and code development tool than a routine test.
         """
-        psf0  = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave/um, 0))
-        psf90 = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave/um, 90))
+        psf0  = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave[:,1][0]/um, 0))
+        psf90 = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave[:,1][0]/um, 90))
         psf90r0 = np.rot90(psf90)
         psfdiff = psf0 - psf90r0
         fits.PrimaryHDU(data=psfdiff).writeto(self.data_dir+"/diff_90_0_off08_ov1.fits", overwrite=True)
-        psf0  = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave/um, 5))
-        psf90 = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave/um, 95))
+        psf0  = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave[:,1][0]/um, 5))
+        psf90 = fits.getdata(self.fnfmt.format(self.npix, 'hexonly', self.wave[:,1][0]/um, 95))
         psf90r0 = np.rot90(psf90)
         psfdiff = psf0 - psf90r0
         fits.PrimaryHDU(data=psfdiff).writeto(self.data_dir+"/diff_95_5_off08_ov1.fits", overwrite=True)
