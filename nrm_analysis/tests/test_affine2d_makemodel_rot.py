@@ -67,7 +67,7 @@ class Affine2dMakeModelRotTestCase(unittest.TestCase):
         self.fmt = "    ({0:+.3f}, {1:+.3f}) -> ({2:+.3f}, {3:+.3f})"
         self.pixel = 0.0656 
         self.npix = 87
-        self.wave = 4.3e-6 # m
+        self.wave = np.array([(1.0, 4.3e-6),]) # m
         self.over = 11
 
 
@@ -101,7 +101,7 @@ class Affine2dMakeModelRotTestCase(unittest.TestCase):
                              over=self.over)
             # write psf
             psffn = self.fnfmt.format(self.npix, self.holeshape,
-                                      self.wave/um, rot, self.hstr)
+                                      self.wave[:,1][0]/um, rot, self.hstr)
             fits.writeto(psffn, self.jw.psf, overwrite=True)
             header = fits.getheader(psffn)
             header = affinepars2header(header, aff)
