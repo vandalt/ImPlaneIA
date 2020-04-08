@@ -64,16 +64,16 @@ def get_webbpsffilters(mono=False):
     m = 1.0
     um = 1.0e-6 * m
 
-
-
     filters = ("F480M", "F430M", "F380M", "F277W")
     pupil = "MASK_NRM"
     sptype = "A0V" # just to match file name of webbpsf psf files
 
     # number of points used by webbpsf to calc the psf
     # /Users/_moi_/anaconda3/envs/astroconda/share/webbpsf-data/NIRISS/filters.tsv
-    filt_n = {"F480M":19, "F430M":19, "F380M":19, "F277W":41}
+    # number of wavelength across filters in dictionary form
+    filt_n = {"F480M":19, "F430M":19, "F380M":19, "F277W":41}  
 
+    # filter bandpass dictionary
     filt_bpd = {"F480M":np.zeros((filt_n["F480M"],2)), 
                 "F430M":np.zeros((filt_n["F430M"],2)), 
                 "F380M":np.zeros((filt_n["F380M"],2)), 
@@ -111,11 +111,15 @@ def get_webbpsffilters(mono=False):
     return filt_bpd, filt_cw, filt_ew, filt_beta
 
 def monochromatize(ffs, bpd, cwd, ewd, betad):
-    """create monochromatic filter info from full band data """
+    """ If we need to use the bandpass-weighted monochromatic psf we'll add a different flag, and code 
+        It seems better to calculate at a user-specific wavelength """
+    # Define nominal wavelengths of each filter in dictionary form
+    nominal_cwd = {"F480M":4.8e-6, "F430M":4.3e-6, "F380M":3.8e-6, "F277W":2.77e-6}  
     for ff in ffs:
         bpdm = np.zeros((1,2)) # filter's bandpass dictionary value for one wavelength
         bpdm[0,0] = 1.0        # weight for the wavelength
-        bpdm[0,1] = cwd[ff]    # wavelength / m
+        bpdm[0,1] = nominal_cwd[ff]    # wavelength / m, used to be weighted central wavelenngth earlire
+        cwd[ff] = nominal_cwd[ff]      # this is put in the fits header - keep it consistent!
         bpd[ff] = bpdm         # replace polychromatioc bandpass dictionary value with entries for monochromatic 
         ewd[ff] = 0.0          # equivalent width dictionary value for one wavelength
         betad[ff] = 0.0        # fractional bandwidth dictionary value for one wavelength
@@ -247,19 +251,18 @@ def psf(filt, fbp, cw, ew, beta, data_dir,
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Creates JWST AMI psfs in its allowed filters")
+    parser = argparse.ArgumentParser(description="Creates JWST AMI psfs in supported filters")
+    parser.add_argument('-o','--over',  type=int, default='3', help='oversampling before binning to detector pixels (>=1)')
     parser.add_argument("-m", "--monochromatic", help = "monochromatic psf at transmission-weighted band center", action="store_true")
     args = parser.parse_args(sys.argv[1:])
 
-    monochromatic = False
-    if args.monochromatic:
-        monochromatic = True
-    print("monochromatic", monochromatic)
+    print("monochromatic", args.monochromatic)
+    print("oversampling", args.over)
     
-    bpd, cwd, ewd, betad = get_webbpsffilters(mono=monochromatic)
+    bpd, cwd, ewd, betad = get_webbpsffilters(mono=args.monochromatic)
     filters = ("F480M", "F430M", "F380M", "F277W")
 
-
     for ff in filters:
+        psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/', n_image=81, saveover=True, oversample=args.over)
 
-        psf(ff, bpd[ff], cwd[ff], ewd[ff], betad[ff],  './simulatedpsfs/', n_image=81, saveover=False)
+    print("monochromatic", args.monochromatic)
