@@ -317,19 +317,11 @@ class NRM_Model():
         self.simhdr["psfoff0"] = (psf_offset[0], "psf ctr at arrayctr + off[0], detpix") # user-specified
         self.simhdr["psfoff1"] = (psf_offset[1], "psf ctr at arrayctr + off[1], detpix") # user-specified
 
-        # Monochromatic and polychromatic cases done with same loop:
-        if hasattr(self.bandpass, '__iter__') == False:
-            vprint("Got one wavelength. Simulating monochromatic ... ")
-            simbandpass = [(1.0, bandpass)]
-        else:
-            self.logger.debug("------Simulating Polychromatic------")
-            simbandpass = bandpass
-
         self.psf_over = np.zeros((over*fov, over*fov))
         nspec = 0
         # accumulate polychromatic oversampled psf in the object
         vprint("**** simulate():  psf_offset {0}".format(psf_offset))
-        for w,l in simbandpass: # w: wavelength's weight, l: lambda (wavelength)
+        for w,l in bandpass: # w: wavelength's weight, l: lambda (wavelength)
             vprint("weight:", w, "wavelength:", l)
             vprint("fov/detector pixels:", fov)
             vprint("over:", over)
@@ -384,14 +376,6 @@ class NRM_Model():
 
         self.modelctrs = self.ctrs
 
-        # Monochromatic and polychromatic cases done with same loop:
-        if hasattr(self.bandpass, '__iter__') == False:
-            vprint("Got one wavelength. Simulating monochromatic ... ")
-            simbandpass = [(1.0, bandpass)]
-        else:
-            self.logger.debug("------Simulating Polychromatic------")
-            simbandpass = bandpass
-
         # The model shape is (fov) x (fov) x (# solution coefficients)
         # the coefficient refers to the terms in the analytic equation
         # There are N(N-1) independent pistons, double-counted by cosine
@@ -400,7 +384,7 @@ class NRM_Model():
         self.model = np.zeros((self.fov, self.fov, self.N*(self.N-1)+2))
         self.model_beam = np.zeros((self.over*self.fov, self.over*self.fov))
         self.fringes = np.zeros((self.N*(self.N-1)+1, self.over*self.fov, self.over*self.fov))
-        for w,l in simbandpass: # w: weight, l: lambda (wavelength)
+        for w,l in bandpass: # w: weight, l: lambda (wavelength)
             vprint("weight: {0}, lambda: {1}".format(w,l))
             # model_array returns the envelope and fringe model (a list of oversampled fov x fov slices)
             pb, ff = analyticnrm2.model_array(self.modelctrs, l, self.over,

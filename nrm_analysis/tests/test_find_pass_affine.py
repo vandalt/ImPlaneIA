@@ -45,7 +45,7 @@ class FindPassAffine2dTestCase(unittest.TestCase):
         verbose = 1
         overwrite = 1
 
-        monochromatic_wavelength_m = 4.3e-6 
+        monochromatic_wavelength_m = np.array([(1.0, 4.3e-6),]) 
         mask = 'MASK_NRM'
         filter = 'F430M'
         pixel = 0.0656  # arcsec
@@ -120,9 +120,10 @@ class FindPassAffine2dTestCase(unittest.TestCase):
         print("driver rotd_search:", rotd_search)
         print("driver rotd_true:", rotd_true)
         mx, my, sx,sy, xo,yo, = (1.0,1.0, 0.0,0.0, 0.0,0.0)
+        psf_offset = (0.0,0.0)
 
         # FIND ROTATION FROM IMAGE DATA CREATED USING KNOWN ROTATION AND SCALE
-        aff_best_rot = FAP.find_rotation(self.simulated_image,
+        aff_best_rot = FAP.find_rotation(self.simulated_image,psf_offset,
                                          rotd_search, mx, my, sx,sy, xo,yo,
                                          header['PIXELSCL']*arcsec2rad, 
                                          n_image, self.monochromatic_wavelength_m, oversample, holeshape, 

@@ -35,7 +35,7 @@ class PSFoffsetTestCase(unittest.TestCase):
 
         self.pixel = 0.0656 *  u.arcsec.to(u.rad)
         self.npix = 87
-        self.wave = 4.3e-6 # m
+        self.wave = np.array([(1.0, 4.3e-6),])  # m
         self.over = 1
 
         """
@@ -53,7 +53,7 @@ class PSFoffsetTestCase(unittest.TestCase):
         print("\n\t*** Watch out *** if comparing to real data: slightly finer-than-actual-detector sampling used for clearer images\n")
         fov = 101 # 'detpix' but at finer sampling than actual
         over=1
-        wav_m = 4.3e-6 
+        wav_m = np.array([(1.0, 4.3e-6),]) 
         filt = 'F430M'
         band = 'Monochromatic '+np.str(wav_m)
 
@@ -85,7 +85,7 @@ class PSFoffsetTestCase(unittest.TestCase):
             header['SEGNAMES'] = "asbuilt"
             header['PIXELSCL'] = pixel_as
             header['over'] = over
-            header['FILTER'] = wav_m
+            header['FILTER'] = wav_m[0][1]
             header['hole'] = holeshape 
             header['PUPIL'] =  'asbuilt'
             header['psfoff0'] =  (psfo[0], "ds9X / detector pixels")
