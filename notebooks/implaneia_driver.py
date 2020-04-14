@@ -35,7 +35,7 @@ mirexample = os.path.expanduser('~') + \
              "jw00793001001_01101_00001_nis_cal.fits"
 
 filt="F430M"
-oversample=1
+oversample=11
 bandpass = np.array([(1.0, 4.3e-6),])
 
 #datafiles = ("""fitsimdir+'all_effects_data_mir.fits' fitsimdir+'all_effects_data_mir_copy.fits """).split( )
@@ -43,12 +43,9 @@ bandpass = np.array([(1.0, 4.3e-6),])
 
 
 #datafiles = ("""all_effects_data_mir.fits all_effects_data_mir_copy.fits""").split()
-#datafiles = ('all_effects_data_mir.fits',)# all_effects_data_mir_copy.fits""").split()
-#for df in datafiles:
-    #file = fitsimdir+df
-    #print(file)
+datafiles = (fitsimdir+'all_effects_data_mir.fits',)# all_effects_data_mir_copy.fits""").split()
 
-datafiles=['all_effects_data_mir.fits','all_effects_data_mir_copy.fits']
+#datafiles=['all_effects_data_mir.fits','all_effects_data_mir_copy.fits']
 
 
 def simulate_data(rot_deg=0.0,psf_offsets_det = (0.0,0.0),phi_waves = None):
@@ -83,7 +80,7 @@ def simulate_data(rot_deg=0.0,psf_offsets_det = (0.0,0.0),phi_waves = None):
     print("phi_nb stdev/r", phi.std()*2*np.pi)
     print("phi_nb mean/r", phi.mean()*2*np.pi)
     pistons = 0.0*phi *4.3e-6 #zero or non-zero pistons
-    pistons = phi *4.3e-6   #meters
+    #pistons = phi *4.3e-6   #meters
 
     print("/=====input pistons/m=======/\n",pistons)
     print("/=====input pistons/r=======/\n",pistons*(2*np.pi)/4.3e-6)
@@ -101,7 +98,7 @@ def simulate_data(rot_deg=0.0,psf_offsets_det = (0.0,0.0),phi_waves = None):
 
     amisim2mirage( fitsimdir, ("all_effects_data",), mirexample, filt)
 
-
+    
 def analyze_data(test_tar, affine2d = None, set_center=(0.0,0.0), rotsearch_d = None, set_pistons = None):
     
     pixelscale_as=0.0656
@@ -110,8 +107,6 @@ def analyze_data(test_tar, affine2d = None, set_center=(0.0,0.0), rotsearch_d = 
     holeshape='hex'
     print(test_tar)
     
-    #f = fits.open(test_tar)
-    #data = f[1].data
     data = fits.getdata(test_tar)
     print(data.shape)
     
@@ -122,7 +117,6 @@ def analyze_data(test_tar, affine2d = None, set_center=(0.0,0.0), rotsearch_d = 
     #rotsearch_d = (-1.0, 0.0,1.0,2.0,3.0,4.0, 5.0)
     #rotsearch_d = (-3.0, -2.0,-1.0,0.0,1.0,2.0, 3.0)
     
-    #import pdb; pdb.set_trace()
     psf_offset = set_center
 
     if rotsearch_d: 
@@ -156,23 +150,26 @@ def analyze_data(test_tar, affine2d = None, set_center=(0.0,0.0), rotsearch_d = 
     
 
 if __name__ == "__main__":
-    
-    
-    rot = 2.0
+
+    rot = 0.0
     rot = avoidhexsingularity(rot) # in utils
     aff = Affine2d(rotradccw=np.pi*rot/180.0, name="{0:.0f}".format(rot)) # in utils
     _rotsearch_d = (-3.0, -2.0,-1.0,0.0,1.0,2.0, 3.0)
-
+   
     
     for df in datafiles:
-        file = fitsimdir+df
-        print("analyzing", file)
-        
-        #analyze_data(df,affine2d = None, set_center=(0.0,0.0), rotsearch_d = _rotsearch_d, set_pistons = None)
-        #analyze_data(df,affine2d = aff, set_center=(0.0,0.0), rotsearch_d = None, set_pistons = None)
+        print("analyzing", df)
 
-        #_aff, _psf_offset, _pistons = analyze_data(file,affine2d = None, set_center=(0.0,0.0), rotsearch_d = rotsearch_d, set_pistons = None)
-        _aff, _psf_offset, _pistons = analyze_data(file,affine2d = aff, set_center=(0.48,0.0), rotsearch_d = None, set_pistons = None)
+        """
+        Find rotation and use for analysis
+        analyze_data(df,affine2d = None, set_center=(0.0,0.0), rotsearch_d = _rotsearch_d, set_pistons = None)
+        OR
+        affine object (aff) created using user supplied rotation
+        analyze_data(df,affine2d = aff, set_center=(0.0,0.0), rotsearch_d = None, set_pistons = None)
+        """
+
+        _aff, _psf_offset, _pistons = analyze_data(df,affine2d = None, set_center=(0.0,0.0), rotsearch_d = _rotsearch_d, set_pistons = None)
+        #_aff, _psf_offset, _pistons = analyze_data(file,affine2d = aff, set_center=(0.48,0.0), rotsearch_d = None, set_pistons = None)
         
         print("/====measured affine=========/")
         _aff.show()
@@ -180,21 +177,22 @@ if __name__ == "__main__":
         print("/=====output pistons/r=======/\n",_pistons)
         
         
-
         """
+        Work in progress
+        aff_list =[ ]
         i=0
         while(i<= 4):
            
            _aff, _psf_offset, _pistons = analyze_data(file,affine2d = aff, set_center=(0.48,0.0), rotsearch_d = None, set_pistons = None)
-           affine2d = _aff, set_center = _psf_offset
-           print(_psf_offset,_pistons), 
+           aff_list.append(_aff)
+           print(type(_aff))
+           affine2d = _aff
+           set_center = _psf_offset
+           print(_psf_offset, _pistons), 
            _aff.show()  #ERROR  AttributeError: 'tuple' object has no attribute 'show'
            i = i+1 
-        """ 
-        
-    print('*****Simulated input pistons used to create data using simulate_data*****',
-          "/=====input pistons/r=======/",
-          "[ 0.151691 -0.480968 -0.138275  0.316973  0.511391 -0.112074 -0.248738]",sep="\n")
+        """
+         
     print("Examine the residuals in", fitsimdir, "\n")
         
-    #simulate_data(rot_deg=2.0,psf_offsets_det= (0.48,0.0), phi_waves=np.random.normal(0,1.0, 7)/14.0)   
+       
