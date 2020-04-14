@@ -253,7 +253,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Creates JWST AMI psfs in supported filters")
     parser.add_argument('-o','--over',  type=int, default='3', help='oversampling before binning to detector pixels (>=1)')
-    parser.add_argument("-m", "--monochromatic", help = "monochromatic psf at transmission-weighted band center", action="store_true")
+    parser.add_argument("-m", "--monochromatic", help = "monochromatic psf at nominal band centers", action="store_true")
     args = parser.parse_args(sys.argv[1:])
 
     print("monochromatic", args.monochromatic)
