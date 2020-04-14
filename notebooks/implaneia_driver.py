@@ -38,10 +38,6 @@ filt="F430M"
 oversample=11
 bandpass = np.array([(1.0, 4.3e-6),])
 
-#datafiles = ("""fitsimdir+'all_effects_data_mir.fits' fitsimdir+'all_effects_data_mir_copy.fits """).split( )
-#print(datafiles)
-
-
 #datafiles = ("""all_effects_data_mir.fits all_effects_data_mir_copy.fits""").split()
 datafiles = (fitsimdir+'all_effects_data_mir.fits',)# all_effects_data_mir_copy.fits""").split()
 
