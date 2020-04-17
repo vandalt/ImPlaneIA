@@ -313,7 +313,7 @@ def compare_pistons(pa, pb, prec=6, str=None):
     """
     pa: float 1-D array / radians  input pistons
     pb: float 1-D array / radians  output pistons
-    prec: non-negative integer, optional to adjust precision of float printout
+    prec: unused now... left in for older code
     call with e.g., 
         compare_pistons(ff_t.nrm.phi*2*np.pi, ff_t.nrm.fringepistons)
     Also prints Strehl contribution from piston OPD, Strehl change from error
@@ -322,25 +322,23 @@ def compare_pistons(pa, pb, prec=6, str=None):
     # save current precision
     pos = np.get_printoptions()
     # set local precision
-    np.set_printoptions(precision=prec,linewidth=160)
-
+    np.set_printoptions(precision=prec,linewidth=160,formatter={'float': lambda x: "%10.4f," % x})
+    #
     p_err = pa - pb
-    strehl = (pa*pa).var()
-    dstrehl = (p_err*p_err).var()
-    
+    strehl = (pa).var()
+    dstrehl = (p_err).var()
+    #
     if str: print("\n  compare pistons:", str, "******************")
     print("  input pistons/rad ", pa)
     print("  output pistons/rad", pb)
     print("          error/rad ", p_err)
-
+    #
     print("      Strehl hit  {:.3e}%".format(strehl*100.0))
     print("   Strehl change  {:.3e}%".format( dstrehl*100.0))
-    
+    # 
     # reset previous precision
     np.set_printoptions(precision=pos['precision'])
     if str: print("**********************")
-
-
 
 def centerpoint(s):
     """ 
