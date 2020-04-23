@@ -88,13 +88,10 @@ class FringeFitter:
             self.find_rotation = kwargs["find_rotation"]
         else:
             self.find_rotation = False
-        if "centering" in kwargs or "psf_offset" in kwargs: # if so do not find center of image in data
-            self.hold_centering = kwargs["psf_offset"] # already-known psf offset from array ctr
-            if "centering" in kwargs:
-                print("**** FringeFitter class: hold_centering deprecated.  Use psf_offset ***")
+        if "psf_offset_ff" in kwargs: # if so do not find center of image in data
+            self.psf_offset_ff = kwargs["psf_offset_ff"]         
         else:
-            # default is auto centering, governed by hold_centering == False:
-            self.hold_centering = False
+            self.psf_offset_ff = None #find center of image in data
         if "savedir" in kwargs:
             self.savedir = kwargs["savedir"]
         else:
@@ -154,7 +151,7 @@ class FringeFitter:
         t2 = time.time()
         for jj, fn in enumerate(fns):
             fit_fringes_parallel({"object":self, "file":                  fn,\
-                                  "id":jj}, threads)
+                                  "id":jj},threads)
         t3 = time.time()
         print("Parallel with {0} threads took {1}s to fit all fringes".format(\
                threads, t3-t2))
@@ -304,21 +301,10 @@ def fit_fringes_single_integration(args):
                         r = (self.npix -1)//2 - 2, cntrimg=True)  
     else:
         self.ctrd = utils.center_imagepeak(self.scidata[slc, :,:])  
-
-    # returned values have offsets x-y flipped:
-    # Finding centroids the Fourier way assumes no bad pixels case - Fourier domain mean slope
-    centroid = utils.find_centroid(self.ctrd, self.instrument_data.threshold) # offsets from array ctr
-    # use flipped centroids to update centroid of image for JWST - check parity for GPI, Vizier,...
-    # pixel coordinates: - note the flip of [0] and [1] to match DS9 view
-    image_center = utils.centerpoint(self.ctrd.shape) + np.array((centroid[1], centroid[0])) # info only, unused
-    print("**** image_center for information, not used",image_center)
-    print(">>>> nrm_core: centroid offsets {0} from utils.centroid() <<<<".format(centroid))
-    print(">>>> nrm_core: center of light in array coords (ds9) {0} <<<<".format(image_center))
-    nrm.xpos = centroid[1]  # flip 0 and 1 to convert 
-    nrm.ypos = centroid[0]  # flip 0 and 1
-
+    
+    """
     print(">>>> nrm_core.fit_image(): refslice 6 lines commented out cf LG+ <<<<")
-    """ LG++ this fails to run - not sure of what's needed - anand@stsci.edu 2018.02.11
+       LG++ this fails to run - not sure of what's needed - anand@stsci.edu 2018.02.11
     refslice = self.ctrd.copy()
     if True in np.isnan(refslice):
         print(">>>> nrm_core.fit_image(): refslice UNTESTED w/ new utils.centroid() <<<<")
@@ -329,19 +315,32 @@ def fit_fringes_single_integration(args):
 
 
     nrm.reference = self.ctrd  # rename bestcenter to bestpsfoffset or similar sometime in the future
-    if self.hold_centering == False:
-        print("\n**** nrm.core.fit_fringes_single_integration:    <<HOLD_CENTERING>> False")
+    if self.psf_offset_ff is None:
+        # returned values have offsets x-y flipped:
+        # Finding centroids the Fourier way assumes no bad pixels case - Fourier domain mean slope
+        centroid = utils.find_centroid(self.ctrd, self.instrument_data.threshold) # offsets from array ctr (OR offsets from bright pixel center??)
+        # use flipped centroids to update centroid of image for JWST - check parity for GPI, Vizier,...
+        # pixel coordinates: - note the flip of [0] and [1] to match DS9 view
+        image_center = utils.centerpoint(self.ctrd.shape) + np.array((centroid[1], centroid[0])) # info only, unused
+        print("**** image_center for information, not used",image_center)
+        print(">>>> nrm_core: centroid offsets {0} from utils.centroid() <<<<".format(centroid))
+        print(">>>> nrm_core: center of light in array coords (ds9) {0} <<<<".format(image_center))
+        nrm.xpos = centroid[1]  # flip 0 and 1 to convert 
+        nrm.ypos = centroid[0]  # flip 0 and 1
+        print(">>>> nrm_core.fit_image(): refslice 6 lines commented out cf LG+ <<<<")
+        print("\n**** nrm.core.fit_fringes_single_integration: FINDING PSF OFFSET...    previous <<HOLD_CENTERING>> False")
         nrm.bestcenter = nrm.xpos, nrm.ypos  ################ AS try in LG++  Works!
         print("**** nrm.bestcenter {0}  nrm.xpos {1}  nrm.ypos {2}".format(nrm.bestcenter, nrm.xpos, nrm.ypos))
         print("**** nrm.core.fit_fringes_single_integration: object.best_center updated with 'centroid' output\n")
     else:
-        print(">>>> nrm_core.fit_image(): hold_centering UNTESTED w/ new utils.centroid().  psf_offset from user... <<<<")
-        nrm.bestcenter = self.psf_offset # if center already known, python-style offsets from array center are here.
+        print(">>>> nrm_core.fit_image(): hold_centering UNTESTED w/ new utils.centroid().  psf_offset_ff from user... <<<<")
+        nrm.bestcenter = self.psf_offset_ff # if center already known, python-style offsets from array center are here.
     nrm.make_model(fov = self.ctrd.shape[0], bandpass=nrm.bandpass, 
                    over=self.oversample,
                    psf_offset=nrm.bestcenter,  
                    pixscale=nrm.pixel)
     nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.bestcenter)
+
     """
     Attributes now stored in nrm object:
 
