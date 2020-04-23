@@ -34,7 +34,7 @@ mirexample = os.path.expanduser('~') + \
          "/ImplaneIA/notebooks/simulatedpsfs/" + \
          "jw00793001001_01101_00001_nis_cal.fits"
 
-fov = 79
+fov = 80
 filt="F430M"
 oversample=11
 bandpass = np.array([(1.0, 4.3e-6),])
@@ -181,17 +181,19 @@ if __name__ == "__main__":
         ********** when affine2d is created with user suppiled rotation, psf_offset_find_rotation and rotsearch_d are not used to find rotation  ************
         ********** Put pistons back? TBD. set_pistons is a placeholder **************************************
 
-        Use forced psf_offset_ff with caution. If you introduced an offset of 0.48, no rotation and no pistons in the simulation the center of the PSF stays inside the same pixel at 0.48 pixels
-        from the center of the pixel. Fringefitter uses offset from the center of the brightest pixel. Introducing a rotation (e.g 2 degrees) and pistons moves the brightest pixel to the neoghboring pixel
-        on the right while keeping the PSF center at 0.48 in the original pixel. The correct offset for fringefitter is then the one measured from the center of the brightest pixel on the right. This is
-        -0.52.
+        Use forced psf_offset_ff with caution. Think whether the FOV is even or odd, where the brightest pixel is. If in the simulation you introduced no rotation,
+        no pistons, and an offset of 0.48 for odd FOV the center of the PSF stays inside the same pixel at 0.48 pixels from the center of the pixel. Fringefitter
+        uses offset from the center of the brightest pixel. Introducing a rotation (e.g 2 degrees) and some pistons moves the brightest pixel to the neoghboring pixel
+        on the right while keeping the PSF center at 0.48 in the original pixel. The correct offset for fringefitter is then the one measured from the center of
+        the brightest pixel on the right. This is -0.52.
         """
 
         # ***** THESE ARE DIFFERENT (NOT ALL) WAYS TO ANALYZE DATA THAT IS ROTATED BY SOME ANGLE (defined by rot for simulation in main), HAS PISTONS AND PSF_OFFSET OF (0.48, 0.0) *****
-        # ***** Use [1], [3], [4], [5], [6], [7] to analyze data simulated by 'c'.
+        # ***** Use [1], [3], [4], [5], [6], [7] to analyze data odd fov data simulated by 'c'.
+        #If FOV is even and you introduced an offset of (0.48,0.0) in the simulation psf_offset_ff=(-0.5199,0.0) will not work. Update if you use even fov."
 
         #[1]
-        _aff, _psf_offset_ff, _psf_offset_r,_pistons = analyze_data(df, affine2d = None, psf_offset_find_rotation=(0.0,0.0), psf_offset_ff=None, rotsearch_d = _rotsearch_d, set_pistons = None)
+        #_aff, _psf_offset_ff, _psf_offset_r,_pistons = analyze_data(df, affine2d = None, psf_offset_find_rotation=(0.0,0.0), psf_offset_ff=None, rotsearch_d = _rotsearch_d, set_pistons = None)
 
         #[2]
         #_aff, _psf_offset_ff, _psf_offset_r, _pistons = analyze_data(df, affine2d = None, psf_offset_find_rotation=(0.0,0.0), psf_offset_ff=(0.48,0.0), rotsearch_d = _rotsearch_d, set_pistons = None)
@@ -200,7 +202,7 @@ if __name__ == "__main__":
         #_aff, _psf_offset_ff, _psf_offset_r, _pistons = analyze_data(df, affine2d = None, psf_offset_find_rotation=(0.0,0.0), psf_offset_ff=(-0.5199,0.0), rotsearch_d = _rotsearch_d, set_pistons = None)
 
         #[4]
-        #_aff, _psf_offset_ff, _psf_offset_r, _pistons = analyze_data(df, affine2d = None, psf_offset_find_rotation=(0.48,0.0), psf_offset_ff=None, rotsearch_d = _rotsearch_d, set_pistons = None)
+        _aff, _psf_offset_ff, _psf_offset_r, _pistons = analyze_data(df, affine2d = None, psf_offset_find_rotation=(0.48,0.0), psf_offset_ff=None, rotsearch_d = _rotsearch_d, set_pistons = None)
 
         #[5]
         #_aff, _psf_offset_ff, _psf_offset_r, _pistons = analyze_data(df, affine2d = aff, psf_offset_find_rotation=(0.0,0.0), psf_offset_ff=None, rotsearch_d = None, set_pistons = None)
