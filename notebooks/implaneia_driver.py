@@ -75,28 +75,12 @@ def examine_residuals(ff, trim=36):
     default_printoptions()
 
 
-    
-def analyze_data(fitsfn, test, affine2d=None, psf_offset_find_rotation = (0.0,0.0), psf_offset_ff = None, rotsearch_d=None, set_pistons=None):
+def analyze_data(fitsfn, subdirout="", affine2d=None, psf_offset_find_rotation = (0.0,0.0), psf_offset_ff = None, rotsearch_d=None, set_pistons=None):
     """ returns: affine2d (measured or input), psf_offset_find_rotation (input), psf_offset_ff (input or found), fringe pistons/r (found)
-        Test data analysis using different sets of parameters
-
-        If using only one set of parameters define the function as:
-        def analyze_data(fitsfn, affine2d=None, psf_offset_find_rotation = (0.0,0.0), psf_offset_ff = None, rotsearch_d=None, set_pistons=None):
-
-        and call as:
-    
-        for df in datafiles:
-        print("__main__: ")
-        np.set_printoptions(formatter={'float': lambda x: '{:+.2e}'.format(x)}, linewidth=80)
-        print("           analyzing", df)
-        datafile = fits.getdata(df)
-        _aff, _psf_offset_r, _psf_offset_ff, fringepistons = analyze_data(df, affine2d=None,
-                                                      psf_offset_find_rotation = (0.0,0.0), psf_offset_ff = None,
-                                                      rotsearch_d=_rotsearch_d)
     """
 
     print("analyze_data: input file", fitsfn, end="")
-    
+
     data = fits.getdata(fitsfn)
     dim = data.shape[1]
 
@@ -112,7 +96,7 @@ def analyze_data(fitsfn, test, affine2d=None, psf_offset_find_rotation = (0.0,0.
         print("analyze_data:  Using incoming affine2d ", affine2d.name)
 
     niriss = InstrumentData.NIRISS(filt, bandpass=bandpass, affine2d=affine2d)
-    ff_t = nrm_core.FringeFitter(niriss, psf_offset_ff=psf_offset_ff, datadir=fitsimdir, savedir=fitsimdir+"test%d/" % (test),
+    ff_t = nrm_core.FringeFitter(niriss, psf_offset_ff=psf_offset_ff, datadir=fitsimdir, savedir=fitsimdir+subdirout,
                                  oversample=oversample, interactive=False)
 
     ff_t.fit_fringes(fitsfn)
@@ -123,7 +107,7 @@ def analyze_data(fitsfn, test, affine2d=None, psf_offset_find_rotation = (0.0,0.
     default_printoptions()
     return affine2d, psf_offset_find_rotation, ff_t.nrm.bestcenter, ff_t.nrm.fringepistons
 
-    
+
 def simulate_data(affine2d=None, psf_offset_det=None, pistons_w=None):
 
     print(" simulate_data: ", affine2d.name)
@@ -149,7 +133,7 @@ def simulate_data(affine2d=None, psf_offset_det=None, pistons_w=None):
     jw.set_pixelscale(pixelscale_as*arcsec2rad)
     jw.set_pistons(pistons_m)
     print(" simulate: ", psf_offset_det, type(psf_offset_det))
-    jw.simulate(fov=fov, bandpass=bandpass, over=oversample, psf_offset=psf_offset_det )
+    jw.simulate(fov=fov, bandpass=bandpass, over=oversample, psf_offset=psf_offset_det)
     fits.PrimaryHDU(data=jw.psf).writeto(fitsimdir+"all_effects_data.fits",overwrite=True)
 
     #**********Convert simulated data to mirage format.*******
@@ -165,8 +149,8 @@ if __name__ == "__main__":
     no_psf_offset = (0.0, 0.0)
 
     rot = 2.0
-    rot = utils.avoidhexsingularity(rot) # in utils
-    aff = utils.Affine2d(rotradccw=np.pi*rot/180.0, name="{0:.0f}".format(rot)) # in utils
+    rot = utils.avoidhexsingularity(rot)
+    aff = utils.Affine2d(rotradccw=np.pi*rot/180.0, name="{0:.0f}".format(rot))
     _rotsearch_d = (-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0)
     _rotsearch_d = np.arange(-3, 3.1, 1)
 
@@ -175,7 +159,14 @@ if __name__ == "__main__":
 
     simulate_data(affine2d=aff, psf_offset_det=_psf_offset_det, pistons_w=_pistons_w)
 
-    #Tests specific to analyzing data simulated with rot=2.0 deg, psf offsets (0.48, 0.0) and pistons in waves = pistons_w - pistons_w.mean() where pistons_w = 0.5 * np.random.normal(0,1.0, 7) / 14.0
+    """
+    Implaneia uses the center of the brightest pixel as the coordinate system to calculate psf offsets for fringefitting.
+    With non-zero pistons and slight rotation, the offsets used to generate the verificaton data have “true center” that is not inside the brightest pixel.
+    Hence a psf_offset (-0.52, 0.0) in implaneia’s local centroid-finding algorithm places the center in the pixel to the left of the brightest pixel.
+    which is the correct result.
+    Tests below are specific to analyzing data simulated with rot=2.0 deg, psf offsets (0.48, 0.0) and pistons in waves = pistons_w - pistons_w.mean() where pistons_w = 0.5 * np.random.normal(0,1.0, 7) / 14.0
+    """
+
 
     args_odd_fov = [[None, (0.0,0.0), None, _rotsearch_d],
             [None, (0.0,0.0), (-0.5199,0.0), _rotsearch_d],
@@ -206,9 +197,18 @@ if __name__ == "__main__":
         else:
             args = args_odd_fov
 
+        #Simple case with one set of parameters.
+
+        _aff, _psf_offset_r, _psf_offset_ff, fringepistons = analyze_data(df, affine2d=None,
+                                                      psf_offset_find_rotation = (0.0,0.0), psf_offset_ff = None,
+                                                      rotsearch_d=_rotsearch_d)
+
+        #Analyze data with multiple sets of parameters
+
         for i,j in enumerate(args):
+
             print("Analysis parameters set:",i, "Affine2d", j[0], "psf_offset_find_rotation", j[1],"psf_offset_ff", j[2], "rotsearch_d",j[3])
-            _aff, _psf_offset_r, _psf_offset_ff, fringepistons = analyze_data(df,i, affine2d=j[0],
+            _aff, _psf_offset_r, _psf_offset_ff, fringepistons = analyze_data(df,"observables%d/"%i, affine2d=j[0],
                                                       psf_offset_find_rotation = j[1], psf_offset_ff = j[2],
                                                       rotsearch_d=j[3])
             print("  rotation search deg             ",_rotsearch_d)
@@ -220,4 +220,4 @@ if __name__ == "__main__":
             print("  psf offset used by fringefitter ", np.array(_psf_offset_ff))
             utils.compare_pistons(2*np.pi*(_pistons_w- _pistons_w.mean()), fringepistons)
             print("implaneia output in: ", fitsimdir, "\n")
- 
+
