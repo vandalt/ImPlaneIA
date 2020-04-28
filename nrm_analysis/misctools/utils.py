@@ -309,6 +309,23 @@ def rotate2dccw(vectors, thetarad):
                              s*vector[0] + c*vector[1]])
     return np.array(ctrs_rotated)
 
+def default_printoptions():
+    np.set_printoptions(edgeitems=3, infstr='inf', linewidth=75, nanstr='nan', precision=8,
+    suppress=False, threshold=1000, formatter=None)
+
+def show_pistons_w(p_wav, prec=6, str=None):
+    """
+    p_wav: float 1-D array / m  input pistons
+    """
+    if str: print("\t"+str)
+    np.set_printoptions(precision=prec,linewidth=160,formatter={'float': lambda x: "%10.4f," % x})
+    print("\tp_wav stdev/w", round(p_wav.std(),prec))
+    print("\tp_wav stdev/r", round(p_wav.std()*2*np.pi,prec))
+    print("\tp_wav mean/r", round(p_wav.mean()*2*np.pi,prec))
+    print("\tp_wav var/r^2", round((p_wav*2*np.pi).var(),prec))
+    print("")
+    default_printoptions()
+
 def compare_pistons(pa, pb, prec=6, str=None):
     """
     pa: float 1-D array / radians  input pistons
@@ -319,16 +336,14 @@ def compare_pistons(pa, pb, prec=6, str=None):
     Also prints Strehl contribution from piston OPD, Strehl change from error
     using Marechal approximation
     """
-    # save current precision
-    pos = np.get_printoptions()
-    # set local precision
+    if str: print(str)
+
     np.set_printoptions(precision=prec,linewidth=160,formatter={'float': lambda x: "%10.4f," % x})
     #
     p_err = pa - pb
     strehl = (pa).var()
     dstrehl = (p_err).var()
     #
-    if str: print("\n  compare pistons:", str, "******************")
     print("  input pistons/rad ", pa)
     print("  output pistons/rad", pb)
     print("          error/rad ", p_err)
@@ -336,12 +351,12 @@ def compare_pistons(pa, pb, prec=6, str=None):
     print("      Strehl hit  {:.3e}%".format(strehl*100.0))
     print("   Strehl change  {:.3e}%".format( dstrehl*100.0))
     # 
-    # reset previous precision
-    np.set_printoptions(precision=pos['precision'])
-    if str: print("**********************")
+    default_printoptions()
 
 def centerpoint(s):
     """ 
+        s is 2-d integer-valued (float or int) array shape
+        return is a (2-tuple floats)
         correct for Jinc, hex transform, 'ff' fringes to place peak in
             central pixel (odd array) 
             pixel corner (even array)
@@ -458,7 +473,7 @@ def crosscorrelatePSFs(a, A, ov, verbose=False):
             apad[:p,:q] = a         #shape (10,10) ,data is in the bottom left 5x5 corner 
             binApad[:p,:q] = binA   #shape (10,10) ,35x35 slice of perfect PSF 
                                       #binned down to 5x5 is in the bottom left corner
-            cormat[x,y] = np.max(rcrosscorrelate(apad, binApad, verbose=False))
+            cormat[x,y] = np.max(rcrosscorrelate(apad, binApad, verbose=verbose))
                        #shape of utils.rcrosscorrelate(apad, binApad, verbose=False is 10x10
             if verbose: print("%.3f" % cormat[x,y], end=' ')
         if verbose: print("\n")
@@ -469,7 +484,7 @@ def crosscorrelatePSFs(a, A, ov, verbose=False):
 #    print("deprecated - switch to using  'center_imagepeak'")
 #    return center_imagepeak(img, r='default')
        
-def center_imagepeak(img, r='default', cntrimg = True):
+def center_imagepeak(img, r='default', cntrimg = True, verbose=False):
 
     """Return a cropped version of the input image centered on the peak pixel.
 
@@ -490,13 +505,14 @@ def center_imagepeak(img, r='default', cntrimg = True):
         pass
 
     cropped = img[int(peakx-r):int(peakx+r+1), int(peaky-r):int(peaky+r+1)]
-    print('Cropped image shape:',cropped.shape)
-    print('value at center:', cropped[r,r])
-    print(np.where(cropped == cropped.max()))
+    if verbose:
+        print('Cropped image shape:',cropped.shape)
+        print('value at center:', cropped[r,r])
+        print(np.where(cropped == cropped.max()))
     return cropped
 
 
-def min_distance_to_edge(img, cntrimg = True):
+def min_distance_to_edge(img, cntrimg = True, verbose=False):
     """Return pixel distance to closest detector edge.
 
     Parameters
@@ -509,7 +525,7 @@ def min_distance_to_edge(img, cntrimg = True):
     h: integer distance of the brightest pixel from the nearest edge of the input array
         
     """
-    print('Before cropping:', img.shape)
+    if verbose: print('Before cropping:', img.shape)
 
     if cntrimg==True:
         # Only look for the peak pixel at the center of the image
@@ -521,8 +537,8 @@ def min_distance_to_edge(img, cntrimg = True):
     peakmask = np.where(img==np.nanmax(np.ma.masked_invalid(img[ann==1])))
     # following line takes care of peaks at two or more identical-value max pixel locations:
     peakx, peaky = peakmask[0][0], peakmask[1][0]
-    print('utils.min_distance_from_edge: peaking on: ',np.nanmax(np.ma.masked_invalid(img[ann==1])))
-    print('putils.min_distance_from_edge: peak x,y:', peakx, peaky)
+    if verbose: print('utils.min_distance_from_edge: peaking on: ',np.nanmax(np.ma.masked_invalid(img[ann==1])))
+    if verbose: print('putils.min_distance_from_edge: peak x,y:', peakx, peaky)
 
     dhigh = (img.shape[0] - peakx - 1, img.shape[1] - peaky - 1)
     dlow = (peakx, peaky)
@@ -531,7 +547,7 @@ def min_distance_to_edge(img, cntrimg = True):
     h = min(h0, h1)
     return peakx, peaky, h # the 'half side' each way from the peak pixel
 
-def find_centroid(a, thresh, verbose=True):
+def find_centroid(a, thresh, verbose=False):
     """Return centroid of input image
  
     Parameters
@@ -584,20 +600,20 @@ def find_centroid(a, thresh, verbose=True):
     htilt, vtilt = findslope(cvpha, cvmask_edgetrim, verbose)
 
     M = np.zeros(a.shape)
-    print(">>> utils.find_centroid(): M.shape {0}, a.shape {1}".format(M.shape, a.shape))
+    if verbose: print(">>> utils.find_centroid(): M.shape {0}, a.shape {1}".format(M.shape, a.shape))
     M[cvmask_edgetrim] = 1
-    print(">>> utils.find_centroid(): M.shape {0}, cvpha.shape {1}".format(M.shape, cvpha.shape))
+    if verbose: print(">>> utils.find_centroid(): M.shape {0}, cvpha.shape {1}".format(M.shape, cvpha.shape))
     if 0:
         fits.PrimaryHDU(data=a).writeto("~/gitsrc/nrm_analysis/rundir/3_test_LGmethods_data/img.fits", overwrite=True)
         fits.PrimaryHDU(data=cvmod).writeto("~/gitsrc/nrm_analysis/rundir/3_test_LGmethods_data/cvmod.fits", overwrite=True)
         fits.PrimaryHDU(data=M*cvpha*180.0/np.pi).writeto("~/gitsrc/nrm_analysis/rundir/3_test_LGmethods_data/cvpha.fits", overwrite=True)
-        print("CV abs max = {}".format(cvmod.max()))
-        print("utils.find_centroid: {0} locations of CV array in CV mask for this data".format(len(cvmask[0])))
+        if verbose: print("CV abs max = {}".format(cvmod.max()))
+        if verbose: print("utils.find_centroid: {0} locations of CV array in CV mask for this data".format(len(cvmask[0])))
 
     return htilt, vtilt
 
 
-def findslope(a, m, verbose):
+def findslope(a, m, verbose=False):
     from astropy.stats import SigmaClip
     """ Find slopes of an array, over pixels not bordering the edge of the array
         You should have valid data either side of every pixel selected by the mask m.
@@ -703,7 +719,7 @@ def deNaN(s, datain):
     ## Get rid of NaN values with nearest neighbor median
     fov=datain.shape[0]
     a2 = np.zeros((2*fov, 2*fov))
-    print("FOV:", fov, "selection shape:", (fov//2,3*fov//2,fov//2,3*fov/2))
+    print("deNaN: fov:", fov, "selection shape:", (fov//2,3*fov//2,fov//2,3*fov/2))
     a2[fov//2:fov+fov//2, fov//2 : fov+fov//2 ] = datain
     xnan, ynan = np.where(np.isnan(a2))
     for qq in range(len(a2[np.where(np.isnan(a2))])):
@@ -715,22 +731,22 @@ def neighbor_median(ctr, s, a2):
     # take the median of nearest neighbors within box side s
     atmp = a2[ctr[0]-s:ctr[0]+s+1, ctr[1]-s:ctr[1]+s+1]
     med = np.median(atmp[np.isnan(atmp)==False])
-    #print med
 
 
-def get_fits_filter(fitsheader, ):
+def get_fits_filter(fitsheader, verbose=False):
     wavestring = "WAVE"
     weightstring = "WGHT"
     filterlist = []
-    print(fitsheader[:])
+    if verbose: print(fitsheader[:])
     j =0
     for j in range(len(fitsheader)):
         if wavestring+str(j) in fitsheader:
             wght = fitsheader[weightstring+str(j)]
             wavl = fitsheader[wavestring+str(j)]  
-            print("wave", wavl)
+            if verbose: print("wave", wavl)
             filterlist.append(np.array([wght,wavl]))
-    print(filterlist)
+    if verbose: print(filterlist)
+        #print "specbin - spec.shape", spec.shape
     return filterlist
 
 
@@ -792,7 +808,7 @@ def makeA(nh, verbose=False):
     anand@stsci.edu  29 Aug 2014
         """
 
-    print("\nmakeA(): ")
+    if verbose: print("\nmakeA(): ")
     #                   rows         cols
     ncols = (nh*(nh-1))//2
     nrows = nh
@@ -870,7 +886,7 @@ def makeK(nh, verbose=False):
     agreenba@pha.jhu.edu  22 Aug 2015
         """
 
-    print("\nmakeK(): ")
+    if verbose: print("\nmakeK(): ")
     nrow = comb(nh, 3)
     ncol = nh*(nh-1)/2
 
@@ -904,6 +920,7 @@ def create_ifneed(dir_):
     """ http://stackoverflow.com/questions/273192/check-if-a-directory-exists-and-create-it-if-necessary
     kanja
     """
+    print("utils.create_ifneed: delete me???")
     if not os.path.exists(dir_):
         os.mkdir(dir_)
 
@@ -923,12 +940,12 @@ def nb_pistons(multiplier=1.0, debug=False):
                                           -0.04779984719154552] ) # phi in waves
         phi_nb_ = phi_nb_ - phi_nb_.mean() # phi in waves, zero mean
         wl = 4.3 * um_
-        print("std dev  of piston OPD: %.1e um" % (phi_nb_.std() * wl/um_))
-        print("variance of piston OPD: %.1e rad" % (phi_nb_.var() * (4.0*np.pi*np.pi)))
+        if debug: print("std dev  of piston OPD: %.1e um" % (phi_nb_.std() * wl/um_))
+        if debug: print("variance of piston OPD: %.1e rad" % (phi_nb_.var() * (4.0*np.pi*np.pi)))
         return phi_nb_ * 4.3*um_ # phi_nb in m
 
 
-def get_webbpsf_filter(filtfile, specbin=None, trim=False):
+def get_webbpsf_filter(filtfile, specbin=None, trim=False, verbose=False):
     """
     Returns array of [weight, wavelength_in_meters] empirically tested... 2014 Nov
     specbin: integer, bin spectrum down by this factor
@@ -946,9 +963,9 @@ def get_webbpsf_filter(filtfile, specbin=None, trim=False):
         tmp_array[i,T] = thru[i][1]             # weights (peak unity, unnormalized sum)
         if 0:
             if i == len(thru)//2:
-                print("input line: %d " % i)
-                print("raw input spectral wavelength: %.3e " % thru[i][0]) 
-                print("cvt input spectral wavelength: %.3e " % tmp_array[i,W]) 
+                if verbose: print("input line: %d " % i)
+                if verbose: print("raw input spectral wavelength: %.3e " % thru[i][0]) 
+                if verbose: print("cvt input spectral wavelength: %.3e " % tmp_array[i,W]) 
 
     # remove leading and trailing throughput lines with 'flag' array of indices
     flag = np.where(tmp_array[:,T]!=0)[0]
@@ -958,17 +975,14 @@ def get_webbpsf_filter(filtfile, specbin=None, trim=False):
     # rebin as desired - fewer wavelengths for debugginng quickly
     if specbin:
         smallshape = spec.shape[0]//specbin
-        print("bin by",  specbin, "  from ", spec.shape[0], " to",  smallshape)
+        if verbose: print("bin by",  specbin, "  from ", spec.shape[0], " to",  smallshape)
         spec = spec[:smallshape*specbin, :]  # clip trailing 
         spec = krebin(spec, (smallshape,2))
-        #print "          wl/um", spec[:,W]
         spec[:,W] = spec[:,W] / float(specbin) # krebin added up waves
         spec[:,T] = spec[:,T] / float(specbin) # krebin added up trans too
-        #print "wl/um / specbin",spec[:,W]
-        #print "specbin - spec.shape", spec.shape
 
     if trim:
-        print("TRIMming")
+        if verbose: print("TRIMming")
         wl = spec[:,W].copy()
         tr = spec[:,T].copy()
         idx = np.where((wl > (1.0 - 0.5*trim[1])*trim[0]) & (wl < (1.0 + 0.5*trim[1])*trim[0]))
@@ -977,23 +991,25 @@ def get_webbpsf_filter(filtfile, specbin=None, trim=False):
         spec = np.zeros((len(idx[0]),2))
         spec[:,1] = wl
         spec[:,0] = tr
-        print("post trim - spec.shape", spec.shape)
+        if verbose: print("post trim - spec.shape", spec.shape)
 
-    print("post specbin - spec.shape", spec.shape)
-    print("%d spectral samples " % len(spec[:,0]) + \
+    if verbose: print("post specbin - spec.shape", spec.shape)
+    if verbose: print("%d spectral samples " % len(spec[:,0]) + \
           "between %.3f and %.3f um" % (spec[0,W]/um_,spec[-1,W]/um_))
  
     return spec
 
-def trim_webbpsf_filter(filt, specbin=None, plot=False):
-    print("================== " + filt + " ===================")
+def trim_webbpsf_filter(filt, specbin=None, plot=False, verbose=False):
+    if verbose: print("================== " + filt + " ===================")
     beta = {"F277W":0.6, "F380M":0.15, "F430M":0.17, "F480M":0.2}
     lamc = {"F277W":2.70e-6, "F380M":3.8e-6, "F430M":4.24e-6, "F480M":4.8e-6}
     filterdirectory = os.getenv('WEBBPSF_PATH')+"/NIRISS/filters/" 
     band = get_webbpsf_filter(filterdirectory+filt+"_throughput.fits", 
                               specbin=specbin, 
                               trim=(lamc[filt], beta[filt]))
-    print("filter", filt, "band.shape", band.shape,  "\n", band)
+    np.set_printoptions(edgeitems=3, infstr='inf', linewidth=75, nanstr='nan', precision=8, 
+        suppress=False, threshold=1000, formatter=None)
+    if verbose: print("filter", filt, "band.shape", band.shape, band)
     wl = band[:,1]
     tr = band[:,0]
     if plot: plt.plot(wl/um_, np.log10(tr), label=filt)
@@ -1037,7 +1053,7 @@ def  rebin(a = None, rc=(2,2), verbose=None):  # Thinly-wrapped krebin
 
 
 # used in NRM_Model.py
-def rcrosscorrelate(a=None, b=None, verbose=True):
+def rcrosscorrelate(a=None, b=None, verbose=False):
 
     """ Calculate cross correlation of two identically-shaped real arrays,
         returning a new array  that is the correlation of the two input 
@@ -1048,7 +1064,7 @@ def rcrosscorrelate(a=None, b=None, verbose=True):
     return  c.real.copy()
 
 
-def crosscorrelate(a=None, b=None, verbose=True):
+def crosscorrelate(a=None, b=None, verbose=False):
 
     """ Calculate cross correlation of two identically-shaped real or complex arrays,
         returning a new complex array  that is the correl of the two input 
@@ -1080,17 +1096,14 @@ def crosscorrelate(a=None, b=None, verbose=True):
 # used in NRM_Model.py
 def quadratic_extremum(p):  # used to take an x vector and return y,x for smoot plotting
     "  max y = -b^2/4a + c occurs at x = -b/2a, returns xmax, ymax"
-    print("Max y value %.5f"%(-p[1]*p[1] /(4.0*p[0]) + p[2]))
-    print("occurs at x = %.5f"%(-p[1]/(2.0*p[0])))
-    #return -p[1]/(2.0*p[0]), -p[1]*p[1] /(4.0*p[0]) + p[2], p[0]*x*x + p[1]*x + p[2]
-    print("x and y from utils.quadratic_extremum",-p[1]/(2.0*p[0]), -p[1]*p[1] /(4.0*p[0]) + p[2])
+    #print("Max y value %.5f"%(-p[1]*p[1] /(4.0*p[0]) + p[2]))
+    #print("occurs at x = %.5f"%(-p[1]/(2.0*p[0])))
     return -p[1]/(2.0*p[0]), -p[1]*p[1] /(4.0*p[0]) + p[2]
 
 
 # used in NRM_Model.py
 def findpeak_1d(yvec, xvec):
     p = np.polyfit(np.array(xvec), np.array(yvec), 2)
-    print("poly", p)
     return quadratic_extremum(p)
 
 
