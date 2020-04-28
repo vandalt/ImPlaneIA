@@ -159,14 +159,14 @@ class FringeFitter:
 
     def save_output(self, slc, nrm):
         # cropped & centered PSF
-        datapeak = self.ctrd.max()
+        self.datapeak = self.ctrd.max()
         #TBD: Keep only n_*.fits files after testing is done and before doing ImPlaneIA delivery
         if self.save_txt_only==False:
             fits.PrimaryHDU(data=self.ctrd, \
                     header=self.scihdr).writeto(self.savedir+\
                     self.sub_dir_str+"/centered_{0}.fits".format(slc), \
                     overwrite=True)
-            fits.PrimaryHDU(data=self.ctrd/datapeak, \
+            fits.PrimaryHDU(data=self.ctrd/self.datapeak, \
                     header=self.scihdr).writeto(self.savedir+\
                     self.sub_dir_str+"/n_centered_{0}.fits".format(slc), \
                     overwrite=True)
@@ -176,13 +176,13 @@ class FringeFitter:
             fits.PrimaryHDU(data=nrm.residual).writeto(self.savedir+\
                         self.sub_dir_str+"/residual_{0:02d}.fits".format(slc), \
                         overwrite=True)
-            fits.PrimaryHDU(data=nrm.residual/datapeak).writeto(self.savedir+\
+            fits.PrimaryHDU(data=nrm.residual/self.datapeak).writeto(self.savedir+\
                         self.sub_dir_str+"/n_residual_{0:02d}.fits".format(slc), \
                         overwrite=True)
             modelhdu.writeto(self.savedir+\
                         self.sub_dir_str+"/modelsolution_{0:02d}.fits".format(slc),\
                         overwrite=True)
-            fits.PrimaryHDU(data=model/datapeak, \
+            fits.PrimaryHDU(data=model/self.datapeak, \
                     header=modelhdu.header).writeto(self.savedir+\
                     self.sub_dir_str+"/n_modelsolution_{0:02d}.fits".format(slc), \
                     overwrite=True)
@@ -325,7 +325,7 @@ def fit_fringes_single_integration(args):
         print("**** image_center for information, not used",image_center)
         print(">>>> nrm_core: centroid offsets {0} from utils.centroid() <<<<".format(centroid))
         print(">>>> nrm_core: center of light in array coords (ds9) {0} <<<<".format(image_center))
-        nrm.xpos = centroid[1]  # flip 0 and 1 to convert 
+        nrm.xpos = centroid[1]  # flip 0 and 1 to convert
         nrm.ypos = centroid[0]  # flip 0 and 1
         print(">>>> nrm_core.fit_image(): refslice 6 lines commented out cf LG+ <<<<")
         print("\n**** nrm.core.fit_fringes_single_integration: FINDING PSF OFFSET...    previous <<HOLD_CENTERING>> False")
