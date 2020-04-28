@@ -23,12 +23,9 @@ fitsimdir = home+"/data/implaneia/niriss_verification/test_all_residuals/"
 if not os.path.exists(fitsimdir):  
     os.makedirs(fitsimdir)
 
-#mirexample = os.path.expanduser('~') + \
-#        "/gitsrc/ImPlaneIA/example_data/example_niriss/" + \
-#        "jw00793001001_01101_00001_nis_cal.fits"
 mirexample = os.path.expanduser('~') + \
-         "/ImplaneIA/notebooks/simulatedpsfs/" + \
-         "jw00793001001_01101_00001_nis_cal.fits"
+        "/gitsrc/ImPlaneIA/example_data/example_niriss/" + \
+        "jw00793001001_01101_00001_nis_cal.fits"
 
 fov = 79
 filt="F430M"
@@ -105,7 +102,7 @@ def analyze_data(fitsfn, subdirout="", affine2d=None, psf_offset_find_rotation =
     np.set_printoptions(formatter={'float': lambda x: '{:+.2e}'.format(x)}, linewidth=80)
     print("analyze_data: fringepistons/rad", ff_t.nrm.fringepistons)
     default_printoptions()
-    return affine2d, psf_offset_find_rotation, ff_t.nrm.bestcenter, ff_t.nrm.fringepistons
+    return affine2d, psf_offset_find_rotation, ff_t.nrm.psf_offset, ff_t.nrm.fringepistons
 
 
 def simulate_data(affine2d=None, psf_offset_det=None, pistons_w=None):
@@ -199,15 +196,21 @@ if __name__ == "__main__":
 
         #Simple case with one set of parameters.
 
-        _aff, _psf_offset_r, _psf_offset_ff, fringepistons = analyze_data(df, affine2d=None,
-                                                      psf_offset_find_rotation = (0.0,0.0), psf_offset_ff = None,
-                                                      rotsearch_d=_rotsearch_d)
+        _aff, _psf_offset_r, _psf_offset_ff, fringepistons = \
+                                         analyze_data(df, affine2d=None,
+                                                          psf_offset_find_rotation = (0.0,0.0), 
+                                                          psf_offset_ff = None,
+                                                          rotsearch_d=_rotsearch_d)
 
         #Analyze data with multiple sets of parameters
 
         for i,j in enumerate(args):
 
-            print("Analysis parameters set:",i, "Affine2d", j[0], "psf_offset_find_rotation", j[1],"psf_offset_ff", j[2], "rotsearch_d",j[3])
+            print("Analysis parameters set:",i,
+                  "Affine2d", j[0], 
+                  "psf_offset_find_rotation", j[1],
+                  "psf_offset_ff", j[2],
+                  "rotsearch_d",j[3])
             _aff, _psf_offset_r, _psf_offset_ff, fringepistons = analyze_data(df,"observables%d/"%i, affine2d=j[0],
                                                       psf_offset_find_rotation = j[1], psf_offset_ff = j[2],
                                                       rotsearch_d=j[3])
