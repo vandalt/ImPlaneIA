@@ -209,8 +209,6 @@ class FringeFitter:
             pfn = self.savedir+self.sub_dir_str + "/info4oif_dict.pkl"
             pfd = open(pfn, 'wb')
             pickle.dump(self.instrument_data.info4oif_dict, pfd)
-            #rint("--nrm_core.save_output self.instrument_data.info4oif_dict['objname']", 
-            #     self.instrument_data.info4oif_dict['objname'])
             pfd.close()
 
 
@@ -302,44 +300,31 @@ def fit_fringes_single_integration(args):
     else:
         self.ctrd = utils.center_imagepeak(self.scidata[slc, :,:])  
     
-    """
-    print(">>>> nrm_core.fit_image(): refslice 6 lines commented out cf LG+ <<<<")
-       LG++ this fails to run - not sure of what's needed - anand@stsci.edu 2018.02.11
-    refslice = self.ctrd.copy()
-    if True in np.isnan(refslice):
-        print(">>>> nrm_core.fit_image(): refslice UNTESTED w/ new utils.centroid() <<<<")
-        refslice=utils.deNaN(5, self.ctrd)
-        if True in np.isnan(refslice):
-            refslice = utils.deNaN(20,refslice)
-    """
 
-
-    nrm.reference = self.ctrd  # rename bestcenter to bestpsfoffset or similar sometime in the future
+    nrm.reference = self.ctrd  # self. is the cropped image centered on the brightest pixel
     if self.psf_offset_ff is None:
         # returned values have offsets x-y flipped:
         # Finding centroids the Fourier way assumes no bad pixels case - Fourier domain mean slope
-        centroid = utils.find_centroid(self.ctrd, self.instrument_data.threshold) # offsets from array ctr (OR offsets from bright pixel center??)
+        centroid = utils.find_centroid(self.ctrd, self.instrument_data.threshold) # offsets from brightest pixel ctr
         # use flipped centroids to update centroid of image for JWST - check parity for GPI, Vizier,...
         # pixel coordinates: - note the flip of [0] and [1] to match DS9 view
         image_center = utils.centerpoint(self.ctrd.shape) + np.array((centroid[1], centroid[0])) # info only, unused
-        print("**** image_center for information, not used",image_center)
-        print(">>>> nrm_core: centroid offsets {0} from utils.centroid() <<<<".format(centroid))
-        print(">>>> nrm_core: center of light in array coords (ds9) {0} <<<<".format(image_center))
+        if self.debug: print("nrm_core:  image_center in py xy coords, information only. Flipped into ds9 xy", image_center)
+        if self.debug: print("nrm_core:  centroid offsets {0} from utils.centroid() ".format(centroid))
+        if self.debug: print("nrm_core:  center of light in array coords (ds9) {0} ".format(image_center))
         nrm.xpos = centroid[1]  # flip 0 and 1 to convert
         nrm.ypos = centroid[0]  # flip 0 and 1
-        print(">>>> nrm_core.fit_image(): refslice 6 lines commented out cf LG+ <<<<")
-        print("\n**** nrm.core.fit_fringes_single_integration: FINDING PSF OFFSET...    previous <<HOLD_CENTERING>> False")
-        nrm.bestcenter = nrm.xpos, nrm.ypos  ################ AS try in LG++  Works!
-        print("**** nrm.bestcenter {0}  nrm.xpos {1}  nrm.ypos {2}".format(nrm.bestcenter, nrm.xpos, nrm.ypos))
-        print("**** nrm.core.fit_fringes_single_integration: object.best_center updated with 'centroid' output\n")
+        nrm.psf_offset = nrm.xpos, nrm.ypos  # renamed .bestcenter to .psf_offset
+        if self.debug: print("nrm.core.fit_fringes_single_integration: nrm.psf_offset updated with found 'centroid'\n")
     else:
-        print(">>>> nrm_core.fit_image(): hold_centering UNTESTED w/ new utils.centroid().  psf_offset_ff from user... <<<<")
-        nrm.bestcenter = self.psf_offset_ff # if center already known, python-style offsets from array center are here.
+        nrm.psf_offset = self.psf_offset_ff # user-provided psf_offset python-style offsets from array center are here.
+
+
     nrm.make_model(fov = self.ctrd.shape[0], bandpass=nrm.bandpass, 
                    over=self.oversample,
-                   psf_offset=nrm.bestcenter,  
+                   psf_offset=nrm.psf_offset,  
                    pixscale=nrm.pixel)
-    nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.bestcenter)
+    nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.psf_offset)
 
     """
     Attributes now stored in nrm object:
@@ -482,7 +467,7 @@ class Calibrate:
         # Additional axis (e.g., wavelength axis)
         # Can be size one. Defined by instrument_data wavelength array
         self.naxis2 = instrument_data.nwav
-        print("nrm_core.Calibrate: self.naxis2 = instrument_data.nwav = ", instrument_data.nwav)
+        if self.debug: print("nrm_core.Calibrate: self.naxis2 = instrument_data.nwav = ", instrument_data.nwav)
 
 
         if extra_dimension == None: 
