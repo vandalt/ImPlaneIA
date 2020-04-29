@@ -131,8 +131,6 @@ def hextransform(s=None, c=None, d=None, lam=None, pitch=None, affine2d=None,
         """
         c = (float(s[0])/2.0  - 0.5,  float(s[1])/2.0  - 0.5)
 
-    print(("Center:",c, "Shape:", s))
-
     # deal with central pixel singularity:
     c_adjust = c
     cpsingularityflag = False
@@ -168,7 +166,8 @@ def hextransform(s=None, c=None, d=None, lam=None, pitch=None, affine2d=None,
                   np.fromfunction(gfunction, s, d=d, c=c_adjust, lam=lam, pixel=pitch, affine2d=affine2d, minus=True)
 
     if cpsingularityflag:
-        print("**** info:  central pixel singularity - nudge center by epsilon_offset {0:.1e}, c0,c1=({1:f},{2:f}), determinant={3:.4e} ".format(epsilon_offset, int(c[0]), int(c[1]), affine2d.determinant))
+        #print("**** info:  central pixel singularity - nudge center by epsilon_offset {0:.1e}, c0,c1=({1:f},{2:f}), determinant={3:.4e} ".format(epsilon_offset, int(c[0]), int(c[1]), affine2d.determinant))
+        pass
 
     FUDGE = np.sqrt(4.0)  # this gives the analyticcentral PSF correctly.  Figure it out later if needed.
     # At center of psf distortion phasor is unity, so just use determinant...
@@ -210,7 +209,6 @@ def recttransform(s=None, c=None, d=None, lam=None, pitch=None, affine2d=None,
     """
     if c is None:
         c = (float(s[0])/2.0  - 0.5,  float(s[1])/2.0  - 0.5)
-    print(("Center:",c, "Shape:", s))
 
     rat = 0.5 # y dimension of rectangle / x dimension of rectangle
     rect_complex = np.fromfunction(sincxy, s, a=d, b=rat*d, c=c, lam=lam, pitch=pitch, affine2d=affine2d)
