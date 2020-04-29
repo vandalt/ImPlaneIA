@@ -3,7 +3,6 @@
 # Python by Alex Greenbaum & Anand Sivaramakrishnan Jan 2013
 # updated May 2013 to include hexagonal envelope
 
-from __future__ import print_function
 import numpy as np
 import scipy.special
 import sys
@@ -20,11 +19,8 @@ cds.enable()
 
 VERBOSE = False
 def vprint(*args):  # VERBOSE mode printing
-    if VERBOSE: print("-----------------------------------------", *args)
+    if VERBOSE: print("analyticnrm2: ",  *args)
     pass
-
-
-vprint("CWD: "+os.getcwd())
 
 # in a module...
 from  .. import misctools  # why can't I import misctools.utils this way too????
@@ -38,10 +34,9 @@ def image_center(fov, oversample, psf_offset):
     psf_offset: 2d numpy array, offset from image center in detecor pixels
     returns 2d numpy array of the offset of the psf center from the array center.
     """
-
-    ImCtr = np.array( misctools.utils.centerpoint((oversample*fov,oversample*fov)) ) + \
-            np.array((psf_offset[1], psf_offset[0]))*oversample # NOTE flip 1 and 0
-    return ImCtr
+    # NOTE flip 1 and 0 positions for ds9 convenience
+    return np.asarray( misctools.utils.centerpoint((oversample*fov,oversample*fov)) ) + \
+           np.asarray((psf_offset[1], psf_offset[0]))*oversample
 
 
 def Jinc(x, y, **kwargs): # LG++
@@ -178,10 +173,7 @@ def ASF(detpixel, fov, oversample, ctrs, d, lam, phi, psf_offset, affine2d, verb
         kinds of fromfunction feeders...
     """
     pitch = detpixel/float(oversample)
-    ImCtr = np.array( misctools.utils.centerpoint((oversample*fov,oversample*fov)) ) + \
-            np.array((psf_offset[1],psf_offset[0]))*oversample # note flip 1 and 0
     ImCtr =  image_center(fov, oversample, psf_offset)
-    vprint("ASF ImCtr {0}".format(ImCtr))
     return np.fromfunction(Jinc, (oversample*fov,oversample*fov),
                            c=ImCtr, 
                            D=d, 
@@ -194,10 +186,7 @@ def ASFfringe(detpixel, fov, oversample, ctrs, lam, phi, psf_offset, affine2d,
               verbose=False):
     " returns real +/- array "
     pitch = detpixel/float(oversample)
-    ImCtr = np.array( misctools.utils.centerpoint((oversample*fov,oversample*fov)) ) + \
-            np.array(psf_offset)*oversample 
     ImCtr =  image_center(fov, oversample, psf_offset)
-    vprint("ASFfringe ImCtr {0}".format(ImCtr))
     return np.fromfunction(interf, (oversample*fov,oversample*fov), 
                            c=ImCtr,
                            ctrs=ctrs, 
@@ -292,14 +281,13 @@ def PSF(detpixel, fov, oversample, ctrs, d, lam, phi, psf_offset, affine2d,
             "pupil shape %s not supported - choices: 'circonly', 'circ', 'hexonly', 'hex', 'fringeonly'"\
             % shape)
 
-    if verbose:
-        vprint("-----------------")
-        vprint(" PSF Parameters:")
-        vprint("-----------------")
-        vprint(("pitch: {0}, fov: {1}, oversampling: {2}, centers: {3}".format(detpixel,
-            fov, oversample, ctrs) + 
-            "d: {0}, wavelength: {1}, pistons: {2}, shape: {3}".format(d, lam, 
-            phi, shape)))
+    vprint("-----------------")
+    vprint(" PSF Parameters:")
+    vprint("-----------------")
+    vprint(("pitch: {0}, fov: {1}, oversampling: {2}, centers: {3}".format(detpixel,
+        fov, oversample, ctrs) + 
+        "d: {0}, wavelength: {1}, pistons: {2}, shape: {3}".format(d, lam, 
+        phi, shape)))
 
     return  (asf*asf.conj()).real
 
@@ -321,18 +309,15 @@ def harmonicfringes(**kwargs):
     affine2d = kwargs['affine2d']
 
     cpitch = pitch/oversample
-    ImCtr = np.array( misctools.utils.centerpoint((oversample*fov,oversample*fov)) ) + \
-            np.array(psf_offset)*oversample # first  no flip of 1 and 0, no transpose
     ImCtr =  image_center(fov, oversample, psf_offset)
 
-    if 0:
-        vprint(" harmonicfringes: ", end='')
-        vprint(" ImCtr {}".format( ImCtr), end="" )
-        vprint(" lam {}".format( lam) )
-        vprint(" detpix pitch {}".format( pitch) )
-        vprint(" pitch for calculation {}".format( pitch/oversample) )
-        vprint(" over  {}".format( oversample), end="" )
-        vprint(" fov/detpix  {}".format( fov), end="" )
+    vprint(" harmonicfringes: ")
+    vprint(" ImCtr {}".format( ImCtr))
+    vprint(" lam {}".format( lam) )
+    vprint(" detpix pitch {}".format( pitch) )
+    vprint(" pitch for calculation {}".format( pitch/oversample) )
+    vprint(" over  {}".format( oversample))
+    vprint(" fov/detpix  {}".format( fov))
 
     return (np.fromfunction(ffc, (fov*oversample, fov*oversample), c=ImCtr,
                                                                    baseline=baseline,
@@ -365,25 +350,26 @@ def ffs(kx, ky, **kwargs):
 
 
 def model_array(ctrs, lam, oversample, pitch, fov, d, psf_offset=(0,0),
+                phi = None,
                 shape ='circ', affine2d=None, verbose=False):
     # pitch is detpixel
     # psf_offset in detpix
+    # units of phi?
     # returns real 2d array of primary beam, list of fringe arays
 
     #misctools.utils.printout(ctrs, "                                   analyticnrm2:model_array"+affine2d.name)
 
     nholes = ctrs.shape[0]
-    phi = np.zeros((nholes,)) # no phase errors in the model slices...
+    if phi is None:  np.zeros((nholes,)) # no phase errors in the model slices...
     modelshape = (fov*oversample, fov*oversample)  # spatial extent of image model - the oversampled array
     
-    if verbose:
-        print("------------------")
-        print(" Model Parameters:")
-        print("------------------")
-        print("pitch: {0}, fov: {1}, oversampling: {2}, centers: {3}".format(pitch,
-            fov, oversample, ctrs) + \
-            " d: {0}, wavelength: {1}, shape: {2}".format(d, lam, shape) +\
-            "\ncentering:{0}\n {1}".format(centering, off))
+    vprint("------------------")
+    vprint(" Model Parameters:")
+    vprint("------------------")
+    vprint("pitch: {0}, fov: {1}, oversampling: {2}, centers: {3}".format(pitch,
+        fov, oversample, ctrs) + \
+        " d: {0}, wavelength: {1}, shape: {2}".format(d, lam, shape) + \
+        "\npsf_offset:{0}".format(psf_offset))
 
     # calculate primary beam envelope (non-negative real)
     # ASF(detpixel, fov, oversample, ctrs, d, lam, phi, psf_offset) * asf_fringe
