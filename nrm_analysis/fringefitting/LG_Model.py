@@ -747,7 +747,6 @@ def image_plane_correlate(data,model):
         raise ValueError("data*model produced NaNs,"\
                     " please check your work!")
     self.vprint(self, "masked data*model:", multiply, "model sum:", model.sum())
-    vprint("masked data*model:", multiply, "model sum:", model.sum())
     return multiply.sum()/((np.ma.masked_invalid(data)**2).sum())
     #return (multiply/(np.ma.masked_invalid(data)**2))
     #multiply = np.nan_to_num(model*data)

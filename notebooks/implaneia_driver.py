@@ -30,7 +30,7 @@ mirexample = os.path.expanduser('~') + \
 fov = 79
 filt="F430M"
 lamc = 4.3e-6
-oversample=3
+oversample=11
 bandpass = np.array([(1.0, lamc),])
 
 pixelscale_as=0.0656
@@ -84,7 +84,7 @@ def analyze_data(fitsfn, subdirout="", affine2d=None,
         fringe pistons/r (found)
     """
 
-    print("analyze_data: input file", fitsfn, end="")
+    print("analyze_data: input file", fitsfn)
 
     data = fits.getdata(fitsfn)
     dim = data.shape[1]
@@ -103,7 +103,6 @@ def analyze_data(fitsfn, subdirout="", affine2d=None,
     niriss = InstrumentData.NIRISS(filt, bandpass=bandpass, affine2d=affine2d)
     ff_t = nrm_core.FringeFitter(niriss, psf_offset_ff=psf_offset_ff, datadir=fitsimdir, savedir=fitsimdir+subdirout,
                                  oversample=oversample, interactive=False)
-
     ff_t.fit_fringes(fitsfn)
     examine_residuals(ff_t)
 
@@ -155,8 +154,7 @@ if __name__ == "__main__":
 
     rot = 2.0
     rot = utils.avoidhexsingularity(rot)
-    aff = utils.Affine2d(rotradccw=np.pi*rot/180.0, name="{0:.0f}".format(rot))
-    _rotsearch_d = (-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0)
+    aff = utils.Affine2d(rotradccw=np.pi*rot/180.0, name="affrot_{0:+.3f}d".format(rot))
     _rotsearch_d = np.arange(-3, 3.1, 1)
 
     #std dev 1, 7 holes, diffraction-limited @ 2um we're at 4um
@@ -169,9 +167,9 @@ if __name__ == "__main__":
     With non-zero pistons and slight rotation, the offsets used to generate the verificaton data have “true center” that is not inside the brightest pixel.
     Hence a psf_offset (-0.52, 0.0) in implaneia’s local centroid-finding algorithm places the center in the pixel to the left of the brightest pixel.
     which is the correct result.
-    Tests below are specific to analyzing data simulated with rot=2.0 deg, psf offsets (0.48, 0.0) and pistons in waves = pistons_w - pistons_w.mean() where pistons_w = 0.5 * np.random.normal(0,1.0, 7) / 14.0
+    Tests below are specific to analyzing data simulated with rot=2.0 deg, psf offsets (0.48, 0.0) and 
+    pistons in waves = pistons_w - pistons_w.mean() where pistons_w = 0.5 * np.random.normal(0,1.0, 7) / 14.0
     """
-
 
     args_odd_fov = [[None, (0.0,0.0), None, _rotsearch_d],
             [None, (0.0,0.0), (-0.5199,0.0), _rotsearch_d],
@@ -213,11 +211,10 @@ if __name__ == "__main__":
         #Analyze data with multiple sets of parameters
         for iarg,arg in enumerate(args):
 
-            print("Analysis parameters set:",iarg,
-                  "Affine2d", arg[0], 
-                  "psf_offset_find_rotation", arg[1],
-                  "psf_offset_ff", arg[2],
-                  "rotsearch_d",arg[3])
+            print("\nanalyze_data arguments:", "set", iarg, ":",  end=' ')
+            if arg[0] is not None: print("Affine2d", arg[0].name, end=' ')
+            else: print("Affine2d", None, end=' ')
+            print("psf_offset_find_rotation", arg[1], "psf_offset_ff", arg[2], "rotsearch_d",arg[3])
 
             _aff, _psf_offset_r, _psf_offset_ff, fringepistons = \
                                         analyze_data(df, "observables%d/"%iarg, affine2d=arg[0],
