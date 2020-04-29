@@ -30,7 +30,7 @@ mirexample = os.path.expanduser('~') + \
 fov = 79
 filt="F430M"
 lamc = 4.3e-6
-oversample=11
+oversample=3
 bandpass = np.array([(1.0, lamc),])
 
 pixelscale_as=0.0656
@@ -72,8 +72,16 @@ def examine_residuals(ff, trim=36):
     default_printoptions()
 
 
-def analyze_data(fitsfn, subdirout="", affine2d=None, psf_offset_find_rotation = (0.0,0.0), psf_offset_ff = None, rotsearch_d=None, set_pistons=None):
-    """ returns: affine2d (measured or input), psf_offset_find_rotation (input), psf_offset_ff (input or found), fringe pistons/r (found)
+def analyze_data(fitsfn, subdirout="", affine2d=None,
+                         psf_offset_find_rotation = (0.0,0.0),
+                         psf_offset_ff = None, 
+                         rotsearch_d=None,
+                         set_pistons=None):
+    """ 
+        returns: affine2d (measured or input), 
+        psf_offset_find_rotation (input),
+        psf_offset_ff (input or found),
+        fringe pistons/r (found)
     """
 
     print("analyze_data: input file", fitsfn, end="")
@@ -195,25 +203,28 @@ if __name__ == "__main__":
             args = args_odd_fov
 
         #Simple case with one set of parameters.
-
-        _aff, _psf_offset_r, _psf_offset_ff, fringepistons = \
-                                         analyze_data(df, affine2d=None,
-                                                          psf_offset_find_rotation = (0.0,0.0), 
-                                                          psf_offset_ff = None,
-                                                          rotsearch_d=_rotsearch_d)
+        #
+        #_aff, _psf_offset_r, _psf_offset_ff, fringepistons = \
+        #                                analyze_data(df, affine2d=None,
+        #                                                 psf_offset_find_rotation = (0.0,0.0), 
+        #                                                 psf_offset_ff = None,
+        #                                                 rotsearch_d=_rotsearch_d)
 
         #Analyze data with multiple sets of parameters
+        for iarg,arg in enumerate(args):
 
-        for i,j in enumerate(args):
+            print("Analysis parameters set:",iarg,
+                  "Affine2d", arg[0], 
+                  "psf_offset_find_rotation", arg[1],
+                  "psf_offset_ff", arg[2],
+                  "rotsearch_d",arg[3])
 
-            print("Analysis parameters set:",i,
-                  "Affine2d", j[0], 
-                  "psf_offset_find_rotation", j[1],
-                  "psf_offset_ff", j[2],
-                  "rotsearch_d",j[3])
-            _aff, _psf_offset_r, _psf_offset_ff, fringepistons = analyze_data(df,"observables%d/"%i, affine2d=j[0],
-                                                      psf_offset_find_rotation = j[1], psf_offset_ff = j[2],
-                                                      rotsearch_d=j[3])
+            _aff, _psf_offset_r, _psf_offset_ff, fringepistons = \
+                                        analyze_data(df, "observables%d/"%iarg, affine2d=arg[0],
+                                                         psf_offset_find_rotation = arg[1], 
+                                                         psf_offset_ff = arg[2],
+                                                         rotsearch_d=arg[3])
+
             print("  rotation search deg             ",_rotsearch_d)
             np.set_printoptions(formatter={'float': lambda x: '{:+.2e}'.format(x)}, linewidth=80)
             print("  affine rot used                 ", _aff.name, )
