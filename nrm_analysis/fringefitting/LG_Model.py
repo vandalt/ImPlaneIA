@@ -11,7 +11,6 @@
 """
 Imports:
 """
-from __future__ import print_function
 import numpy as np
 import scipy.special
 #import math
@@ -29,14 +28,7 @@ _default_log = logging.getLogger('NRM_Model')
 #_default_log.setLevel(logging.INFO)
 _default_log.setLevel(logging.ERROR)
 
-
-VERBOSE = True
-def vprint(*args):  # VERBOSE mode printing
-    if VERBOSE: print("-----------------------------------------", *args)
-    pass
-
 """
-
 ====================
 NRM_Model
 ====================
@@ -101,6 +93,11 @@ class NRM_Model():
         phi (rad) default changedfrom "perfect" to None (with bkwd compat.)
         """ 
 
+        if "debug" in kwargs:
+            self.debug=kwargs["debug"]
+        else:
+            self.debug=False
+
         # define a handler to write log messages to stdout
         sh = logging.StreamHandler(stream=sys.stdout)
 
@@ -155,6 +152,7 @@ class NRM_Model():
                         [ 1.1431500 ,  1.9800000]    ] ) #C1 -> C6
             #self.d = 0.80 * m
             self.d = 0.82 * m
+            self.vprint(self, "hex hole flat_to_dflat distance in LG_Model() is {:0.2f}".format(self.d))
             print("hex hole flat_to_dflat distance in LG_Model() is {:0.2f}".format(self.d))
             self.D = 6.5 * m
 
@@ -199,7 +197,7 @@ class NRM_Model():
         if phi: # meters of OPD at central wavelength
             if phi == "perfect": 
                 self.phi = np.zeros(self.N) # backwards compatibility
-                vprint('LG_Model.__init__(): phi="perfect" deprecated in LG++.  Omit phi or use phi=None')
+                print('LG_Model.__init__(): phi="perfect" deprecated in LG++.  Omit phi or use phi=None')
             else:
                 self.phi = phi
         else:
@@ -218,6 +216,9 @@ class NRM_Model():
         else:
             self.affine2d = affine2d
 
+    def vprint(self, *args):  # debug mode printing
+        if self.debug: print("LG_Model: ",  *args)
+        else: pass
 
     def set_ctrs_rot(self, rotation_ccw_deg):
         """ 
@@ -226,19 +227,17 @@ class NRM_Model():
         Otherwise overwrites self.ctrs, the "live" centers of mask holes.
         In the interests of code clarity do not use for coordinate flips
         In data reduction piupelines DO NOT USE THIS ROUTINE - use the
-        BEING REMOVED - DON'T USE - use Affine2d resampling of the image plane instead.
+        BEING REMOVED - DO NOT USE - use Affine2d resampling of the image plane instead.
         """
-        vprint("""
+        self.vprint(self, """
         LG_Model.NRM_Model.set_ctrs_rot(): BEING REMOVED - DON'T USE - use Affine2d instead""")
 
         if rotation_ccw_deg:
             self.ctrs = utils.rotate2dccw(self.ctrs_asbuilt, rotation_ccw_deg * np.pi / 180.0)
             self.rotation_ccw_deg = rotation_ccw_deg # record-keeping
-            vprint("\tLG_Model.NRM_Model.set_ctrs_rot: ctrs in V2V3, meters after rot %.2f deg:"%rotation_ccw_deg)
+            self.vprint(self, "\tLG_Model.NRM_Model.set_ctrs_rot: ctrs in V2V3, meters after rot %.2f deg:"%rotation_ccw_deg)
         else:
-            vprint("\tLG_Model.NRM_ModelLG_Model.set_ctrs_rot: ctrs in V2V3, meters:")
-
-        vprint(self.ctrs, "****************")
+            self.vprint(self, "\tLG_Model.NRM_ModelLG_Model.set_ctrs_rot: ctrs in V2V3, meters:")
 
 
     def set_pistons(self, phi_m):
@@ -247,7 +246,7 @@ class NRM_Model():
 
     def set_pixelscale(self, pixel_rad):
         """Detector pixel scale (isotropic) """
-        vprint("""
+        self.vprint(self, """
         LG_Model.NRM_Model.set_pixel_scale({0:.6e} radians = {1:.2f} mas""".format(pixel_rad, pixel_rad/mas)) 
         self.pixel = pixel_rad
         
@@ -308,7 +307,7 @@ class NRM_Model():
 
         if over == None: 
             over = 1  # ?  Always comes in as integer.
-            vprint("defaulting to oversample=1, i.e. detector pixel scale pitch used.")
+            self.vprint(self, "defaulting to oversample=1, i.e. detector pixel scale pitch used.")
         #elf.pixel_sim = self.pixel/float(over)  #??? need?  
         # Deepashri prefers detector pixel scale & oversamp only in the object
 
@@ -320,12 +319,12 @@ class NRM_Model():
         self.psf_over = np.zeros((over*fov, over*fov))
         nspec = 0
         # accumulate polychromatic oversampled psf in the object
-        vprint("**** simulate():  psf_offset {0}".format(psf_offset))
+        self.vprint(self, "**** simulate():  psf_offset {0}".format(psf_offset))
         for w,l in bandpass: # w: wavelength's weight, l: lambda (wavelength)
-            vprint("weight:", w, "wavelength:", l)
-            vprint("fov/detector pixels:", fov)
-            vprint("over:", over)
-            vprint("pixel:", self.pixel)
+            self.vprint(self, "weight:", w, "wavelength:", l)
+            self.vprint(self, "fov/detector pixels:", fov)
+            self.vprint(self, "over:", over)
+            self.vprint(self, "pixel:", self.pixel)
             self.psf_over += w * analyticnrm2.PSF(self.pixel, # det pixel scale, rad
                                                   fov,   # in detpix number
                                                   over,
@@ -385,7 +384,7 @@ class NRM_Model():
         self.model_beam = np.zeros((self.over*self.fov, self.over*self.fov))
         self.fringes = np.zeros((self.N*(self.N-1)+1, self.over*self.fov, self.over*self.fov))
         for w,l in bandpass: # w: weight, l: lambda (wavelength)
-            vprint("weight: {0}, lambda: {1}".format(w,l))
+            self.vprint(self, "weight: {0}, lambda: {1}".format(w,l))
             # model_array returns the envelope and fringe model (a list of oversampled fov x fov slices)
             pb, ff = analyticnrm2.model_array(self.modelctrs, l, self.over,
                               self.modelpix,
@@ -418,12 +417,11 @@ class NRM_Model():
     def fit_image(self, image, reference=None, pixguess=None, rotguess=0, psf_offset=(0,0),
                   modelin=None, savepsfs=False):
 
-        vprint("\n    **** LG_Model.NRM_Model.fit_image: psf_offset {}".format(psf_offset))
+        self.vprint(self, "\n    **** LG_Model.NRM_Model.fit_image: psf_offset {}".format(psf_offset))
         if hasattr(modelin, 'shape'):
-            vprint("    **** LG_Model.NRM_Model.fit_image modelin passed in")
+            self.vprint(self, "    **** LG_Model.NRM_Model.fit_image modelin passed in")
         else:
-            vprint("    **** LG_Model.NRM_Model.fit_image: modelin is None\n")
-        #time.sleep(3)
+            self.vprint(self, "    **** LG_Model.NRM_Model.fit_image: modelin is None\n")
 
         """
         fit_image will run a least-squares fit on an input image.
@@ -442,7 +440,7 @@ class NRM_Model():
         self.saveval = savepsfs
 
         if modelin is None:
-            vprint("    **** LG_Model.NRM_Model.fit_image: fittingmodel   no modelin")
+            self.vprint(self, "     LG_Model.NRM_Model.fit_image: fittingmodel   no modelin")
             # No model provided - now perform a set of automatic routines
 
             # A Cleaned up version of your image to enable Fourier fitting for 
@@ -469,22 +467,22 @@ class NRM_Model():
                     centering=self.bestcenter, fitswrite=self.saveval)
 
             self.pixscale_measured=self.pixel
-            vprint("pixel scale (mas):", utils.rad2mas(self.pixel))
+            self.vprint(self, "pixel scale (mas):", utils.rad2mas(self.pixel))
             self.fov=image.shape[0]
             self.fittingmodel=self.make_model(self.fov, bandpass=self.bandpass, 
                             over=self.over, rotate=True,
                             psf_offset=self.bestcenter, 
                             pixscale=self.pixel)
         else:
-            vprint("    **** LG_Model.NRM_Model.fit_image: fittingmodel=modelin")
+            self.vprint(self, "    **** LG_Model.NRM_Model.fit_image: fittingmodel=modelin")
             self.fittingmodel = modelin
             
         self.soln, self.residual, self.cond,self.linfit_result = \
                 leastsqnrm.matrix_operations(image, self.fittingmodel, \
                 verbose=False)
 
-        print("NRM_Model Raw Soln:")
-        print(self.soln)
+        self.vprint(self, "NRM_Model Raw Soln:")
+        self.vprint(self, self.soln)
 
         self.rawDC = self.soln[-1]
         self.flux = self.soln[0]
@@ -499,9 +497,8 @@ class NRM_Model():
 
     # LG++ with sim data - don't use this cos you already found center in nrm_core
     def determine_center(self, centering): # mostly for internal use from fit_image...
-            vprint("\n    **** LG_Model.NRM_Model.determine_center: centering {}".format(centering))
+            self.vprint(self, "\n    **** LG_Model.NRM_Model.determine_center: centering {}".format(centering))
             sys.exit("    **** LG_Model.NRM_Model.determine_center")
-
             # First find the fractional-pixel centering
             if centering== "auto":
                 if hasattr(self.bandpass, "__iter__"):
@@ -640,16 +637,14 @@ class NRM_Model():
         self.x_offset =  self.over - x_peak
         self.y_offset =  self.over - y_peak
         self.xpos, self.ypos = self.x_offset/float(self.over), self.y_offset/float(self.over)
-        verbose=False
-        if verbose:
-            vprint("x_peak_python,y_peak_python", x_peak,y_peak)
-            vprint("x_peak_ds9,y_peak_ds9", x_peak_ds9,y_peak_ds9)
-            vprint("first value is x, second value is y")
-            vprint("printing offsets from the center of perfect PSF in oversampled pixels...")
-            vprint("x_offset, y_offset", self.x_offset, self.y_offset)
-            vprint("printing offsets from the center of perfect PSF in detector pixels...")
-            vprint("x_offset, y_offset", self.xpos,self.ypos)         
 
+        self.vprint(self, "x_peak_python,y_peak_python", x_peak,y_peak)
+        self.vprint(self, "x_peak_ds9,y_peak_ds9", x_peak_ds9,y_peak_ds9)
+        self.vprint(self, "first value is x, second value is y")
+        self.vprint(self, "printing offsets from the center of perfect PSF in oversampled pixels...")
+        self.vprint(self, "x_offset, y_offset", self.x_offset, self.y_offset)
+        self.vprint(self, "printing offsets from the center of perfect PSF in detector pixels...")
+        self.vprint(self, "x_offset, y_offset", self.xpos,self.ypos)         
 
 
 def save(nrmobj, outputname, savdir = ""):
@@ -664,7 +659,7 @@ def save(nrmobj, outputname, savdir = ""):
     savobj.test = 1
     with open(r"{0}.ffo".format(savdir, outputname), "wb") as output_file:
         json.dump(savobj, output_file)
-    vprint("success!")
+    self.vprint(self, "success!")
 
     # init stuff
     savobj.pscale_rad, savobj.pscale_mas = nrmobj.pixel, utils.rad2mas(nrmobj.pixel)
@@ -752,6 +747,7 @@ def image_plane_correlate(data,model):
     if True in np.isnan(multiply):
         raise ValueError("data*model produced NaNs,"\
                     " please check your work!")
+    self.vprint(self, "masked data*model:", multiply, "model sum:", model.sum())
     vprint("masked data*model:", multiply, "model sum:", model.sum())
     return multiply.sum()/((np.ma.masked_invalid(data)**2).sum())
     #return (multiply/(np.ma.masked_invalid(data)**2))
@@ -760,6 +756,6 @@ def image_plane_correlate(data,model):
 
 def run_data_correlate(data, model):
     sci = data
-    vprint("shape sci",np.shape(sci))
-    vprint("shape model", np.shape(model))
+    self.vprint(self, "shape sci",np.shape(sci))
+    self.vprint(self, "shape model", np.shape(model))
     return utils.rcrosscorrelate(sci, model)
