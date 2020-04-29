@@ -13,7 +13,6 @@ VISIR SAM
 """
 
 # Standard Imports
-from __future__ import print_function
 import numpy as np
 from astropy.io import fits
 import os, sys, time
@@ -29,8 +28,8 @@ um = 1.0e-6
 
 def show_cvsupport_threshold(instr):
     """ Show threshold for where 'splodge' data in CV space contains signal """
-    print("cvsupport_threshold is: ", instr.cvsupport_threshold)
-    print(instr.cvsupport_threshold)
+    print("InstrumentData: ", "cvsupport_threshold is: ", instr.cvsupport_threshold)
+    print("InstrumentData: ", instr.cvsupport_threshold)
 
 def set_cvsupport_threshold(instr, k, v):
     """ Set threshold for where 'splodge' data in CV space contains signal
@@ -44,7 +43,7 @@ def set_cvsupport_threshold(instr, k, v):
     """
     
     instr.cvsupport_threshold[k] = v
-    print("New cvsupport_threshold is: ", instr.cvsupport_threshold)
+    print("InstrumentData: ", "New cvsupport_threshold is: ", instr.cvsupport_threshold)
 
 
 class GPI:
@@ -115,8 +114,8 @@ class GPI:
         if self.hdr1[0]["NAXIS3"]==1:
             # This is just a way handle data that is manually collapsed.
             # Not a standard data format for GPI.
-            print("No NAXIS3 keyword. This is probably collapsed data.")
-            print("Going to fake some stuff now")
+            if self.verbose: print("InstrumentData: ", "No NAXIS3 keyword. This is probably collapsed data.")
+            if self.verbose: print("InstrumentData: ", "Going to fake some stuff now")
             self.mode = "WOLLASTON_FAKEOUT"
 
         # wavelength info: spect mode or pol more
@@ -146,27 +145,27 @@ class GPI:
                                 band_ctrs[self.band]+band_wdth[self.band]/2.0, num=15)
 
             if 'gpifilterpath' in kwargs:
-                print("Using GPI filter file ", end='')
+                if self.verbose: print("InstrumentData: ", "Using GPI filter file ", end='')
                 if self.band=="Y":
                     filterfile = kwargs["gpifilterpath"]+"GPI-filter-Y.fits"
-                    print(kwargs["gpifilterpath"]+"GPI-filter-Y.fits")
+                    if self.verbose: print("InstrumentData: ", kwargs["gpifilterpath"]+"GPI-filter-Y.fits")
                     cutoff=0.7
                 if self.band=="J":
                     filterfile = kwargs["gpifilterpath"]+"GPI-filter-J.fits"
-                    print(kwargs["gpifilterpath"]+"GPI-filter-J.fits")
+                    if self.verbose: print("InstrumentData: ", kwargs["gpifilterpath"]+"GPI-filter-J.fits")
                     cutoff=0.7
                 if self.band=="H":
                     filterfile = kwargs["gpifilterpath"]+"GPI-filter-H.fits"
-                    print(kwargs["gpifilterpath"]+"GPI-filter-H.fits")
+                    if self.verbose: print("InstrumentData: ", kwargs["gpifilterpath"]+"GPI-filter-H.fits")
                     cutoff=0.7
                 if self.band=="1":
                     filterfile = kwargs["gpifilterpath"]+"GPI-filter-K1.fits"
-                    print(kwargs["gpifilterpath"]+"GPI-filter-K1.fits")
+                    if self.verbose: print("InstrumentData: ", kwargs["gpifilterpath"]+"GPI-filter-K1.fits")
                     cutoff=0.94
                 if self.band=="2":
                     filterfile = kwargs["gpifilterpath"]+"GPI-filter-K2.fits"
-                    print(kwargs["gpifilterpath"]+"GPI-filter-K2.fits")
-                    cutoff=0.94               
+                    if self.verbose: print("InstrumentData: ", kwargs["gpifilterpath"]+"GPI-filter-K2.fits")
+                    cutoff=0.94 
                 # Read in gpi filter file
                 fitsfilter = fits.open(filterfile)[1].data
                 wavls = []
@@ -383,6 +382,11 @@ class NIRISS:
                   the given bandpass, so you can simulate 21cm psfs through something called "F430M"!
         """
         
+        if "verbose" in kwargs:
+            self.verbose=kwargs["verbose"]
+        else:
+            self.verbose=False
+
         if chooseholes:
             print("    **** InstrumentData.NIRISS: ", chooseholes)
         self.chooseholes = chooseholes
@@ -394,18 +398,24 @@ class NIRISS:
         #############################
         self.lam_bin = {"F277W": 50, "F380M": 20, "F430M":40,  "F480M":30} # 12 waves in f430 - data analysis
                                                                            # use 150 for 3 waves ax f430m 
-        try:
-            self.throughput = utils.trim_webbpsf_filter(self.filt, specbin=self.lam_bin[self.filt])
-        except:
-            self.throughput = utils.tophatfilter(self.lam_c[self.filt], self.lam_w[self.filt], npoints=11)
-            print("*** WARNING *** InstrumentData: Top Hat filter being used")
-
-        # Nominal
         self.lam_c = {"F277W": 2.77e-6,  # central wavelength (SI)
                       "F380M": 3.8e-6, 
                       "F430M": 4.28521033106325E-06,
                       "F480M": 4.8e-6}
         self.lam_w = {"F277W":0.2, "F380M": 0.1, "F430M": 0.0436, "F480M": 0.08} # fractional filter width 
+        
+        try:
+            self.throughput = utils.trim_webbpsf_filter(self.filt, specbin=self.lam_bin[self.filt])
+        except:
+            self.throughput = utils.tophatfilter(self.lam_c[self.filt], self.lam_w[self.filt], npoints=11)
+            print("InstrumentData: ", "*** WARNING *** InstrumentData: Top Hat filter being used")
+
+        # Nominal
+        """self.lam_c = {"F277W": 2.77e-6,  # central wavelength (SI)
+                      "F380M": 3.8e-6, 
+                      "F430M": 4.28521033106325E-06,
+                      "F480M": 4.8e-6}
+        self.lam_w = {"F277W":0.2, "F380M": 0.1, "F430M": 0.0436, "F480M": 0.08} # fractional filter width """
 
         # update nominal filter parameters with those of the filter read in and used in the analysis...
         # Weighted mean wavelength in meters, etc, etc "central wavelength" for the filter:
@@ -428,9 +438,9 @@ class NIRISS:
             self.lam_c = {"F277W":cw, "F380M": cw, "F430M": cw, "F480M": cw,}
             self.lam_w = {"F277W": beta, "F380M": beta, "F430M": beta, "F480M": beta} 
             self.throughput = bandpass
-        print(self.filt, 
+        if self.verbose: print("InstrumentData: ", self.filt, 
               ": central wavelength {:.4e} microns, ".format(self.lam_c[self.filt]/um), end="")
-        print("fractional bandpass {:.3f}".format(self.lam_w[self.filt]))
+        if self.verbose: print("InstrumentData: ", "fractional bandpass {:.3f}".format(self.lam_w[self.filt]))
 
         try:
             self.wls = [utils.combine_transmission(self.throughput, src), ]
@@ -472,7 +482,7 @@ class NIRISS:
         # Data reduction gurus: tweak the threshold value with experience...
         # Gurus: tweak cvsupport with use...
         self.cvsupport_threshold = {"F277W":0.02, "F380M": 0.02, "F430M": 0.02, "F480M": 0.02}
-        show_cvsupport_threshold(self)
+        if self.verbose: show_cvsupport_threshold(self)
         self.threshold = self.cvsupport_threshold[filt]
 
         self.ref_imgs_dir = os.path.join(out_dir,"refimgs_"+self.filt+"/")
@@ -579,7 +589,7 @@ class NIRISS:
 
     # rather than calling InstrumentData in the niriss example just to reset just call this routine
     def reset_nwav(self, nwav):
-        print("Resetting InstrumentData instantiation's nwave to", nwav)
+        print("InstrumentData: ", "Resetting InstrumentData instantiation's nwave to", nwav)
         self.nwav = nwav
 
     def _generate_filter_files():
