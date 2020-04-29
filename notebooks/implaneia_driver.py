@@ -72,7 +72,7 @@ def examine_residuals(ff, trim=36):
     default_printoptions()
 
 
-def analyze_data(fitsfn, subdirout="", affine2d=None,
+def analyze_data(fitsfn, observables_dir="", affine2d=None,
                          psf_offset_find_rotation = (0.0,0.0),
                          psf_offset_ff = None, 
                          rotsearch_d=None,
@@ -101,7 +101,7 @@ def analyze_data(fitsfn, subdirout="", affine2d=None,
         print("analyze_data:  Using incoming affine2d ", affine2d.name)
 
     niriss = InstrumentData.NIRISS(filt, bandpass=bandpass, affine2d=affine2d)
-    ff_t = nrm_core.FringeFitter(niriss, psf_offset_ff=psf_offset_ff, datadir=fitsimdir, savedir=fitsimdir+subdirout,
+    ff_t = nrm_core.FringeFitter(niriss, psf_offset_ff=psf_offset_ff, datadir=fitsimdir, savedir=fitsimdir+observables_dir,
                                  oversample=oversample, interactive=False)
     ff_t.fit_fringes(fitsfn)
     examine_residuals(ff_t)
@@ -208,9 +208,11 @@ if __name__ == "__main__":
         #                                                 psf_offset_ff = None,
         #                                                 rotsearch_d=_rotsearch_d)
 
+
         #Analyze data with multiple sets of parameters
         for iarg,arg in enumerate(args):
 
+            sys.stdout = open("driv_implane_out%d.txt"%iarg,'w')
             print("\nanalyze_data arguments:", "set", iarg, ":",  end=' ')
             if arg[0] is not None: print("Affine2d", arg[0].name, end=' ')
             else: print("Affine2d", None, end=' ')
@@ -232,3 +234,4 @@ if __name__ == "__main__":
             utils.compare_pistons(2*np.pi*(_pistons_w- _pistons_w.mean()), fringepistons)
             print("implaneia output in: ", fitsimdir, "\n")
 
+    sys.stdout.close()
