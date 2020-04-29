@@ -5,18 +5,26 @@ by A. Greenbaum & A. Sivaramakrishnan
 2018 08 15 initial code
 
 """
+"""
+    Machine noise residuals are obtained when rot_measured is forced to the exact value 
+    of simulated rotation (e.g. rot_measured=10.00 and max_cor is forced to 1.0).
+    When rot_measured=10.000000000958407 and max_cor=0.9999999999999998 instead of 10.00 and 1.00
+    the model is created at a different visible rotation.
+    A very small difference between simulated and measured rotation and between max_cor of 1 and
+    calculated value creates the model at a different rotation compared to the data.
+    For 10 degree pupil rotation, model residuals in the fit are ~1e-5 contrast or the peak at bright
+    snowflake points, but much smaller within few resolution elements of the PSF center.
+    This may be improved by treating possibly non-commuting psf_offsets and rotation (after
+    delivery to the pipeline in April 2020).
+"""
 
-
-from __future__ import print_function
 # Standard imports
 import os, sys, time
 import numpy as np
 from astropy.io import fits
 from astropy import units as u
 
-
 rad2mas = 1000.0/u.arcsec.to(u.rad)
-
 
 # Module imports
 from nrm_analysis.fringefitting.LG_Model import NRM_Model
@@ -26,7 +34,7 @@ um = 1.0e-6
 
 VERBOSE = False
 def vprint(*args):  # VERBOSE mode printing
-    if VERBOSE: print("-----------------------------------------", *args)
+    if VERBOSE: print("find_affine_parameters:" *args)
     pass
 
 def create_afflist_rot(rotdegs, mx, my, sx,sy, xo,yo):
@@ -35,7 +43,7 @@ def create_afflist_rot(rotdegs, mx, my, sx,sy, xo,yo):
     alist = []
     for nrot, rotd in enumerate(rotdegs):
         rotd_ = utils.avoidhexsingularity(rotd)
-        alist.append(utils.Affine2d(rotradccw=np.pi*rotd_/180.0, name="{0:.3f}".format(rotd_)))
+        alist.append(utils.Affine2d(rotradccw=np.pi*rotd_/180.0, name="affrot_{0:+.3f}".format(rotd_)))
     return alist
 
 
@@ -64,7 +72,6 @@ def find_scale(imagedata,
          Note - placing isotropic scale change into Affine2d is equivalent to changing
          the effective image distance in the optical train while insisting that the
          mask physical geometry does not change, and the wavelength is perfectly knowm
-
 
          AS 2018 10  """
 
@@ -104,14 +111,12 @@ def find_scale(imagedata,
         crosscorrs.append(utils.rcrosscorrelate(imagedata, jw.psf).max())
         del jw
 
-
-    vprint("\t*******************")
-    vprint("\tDebug: crosscorrelations", crosscorrs)
-    vprint("\tDebug:            scales", scales)
+    vprint("\tfind_affine2d_parameters: crosscorrelations", crosscorrs)
+    vprint("\tfind_affine2d_parameters:            scales", scales)
     scl_measured, max_cor = utils.findpeak_1d(crosscorrs, scales)
-    vprint("\tScale factor measured {0:.5f}  Max correlation {1:.3e}".format(scl_measured, max_cor))
-    vprint("\tpixel pitch from header  {0:.3f} mas".format(pixel*rad2mas))
-    vprint("\tpixel pitch  {0:.3f} mas (implemented using affine2d)".format(scl_measured*pixel*rad2mas))
+    vprint("\tfind_affine2d_parameters factor measured {0:.5f}  Max correlation {1:.3e}".format(scl_measured, max_cor))
+    vprint("\tfind_affine2d_parameters pitch from header  {0:.3f} mas".format(pixel*rad2mas))
+    vprint("\tfind_affine2d_parameters pitch  {0:.3f} mas (implemented using affine2d)".format(scl_measured*pixel*rad2mas))
 
     # return convenient affine2d
     return utils.Affine2d( affine_best.mx*scl_measured, affine_best.my*scl_measured, 
@@ -161,13 +166,10 @@ def find_rotation(imagedata,
         del jw
 
 
-    vprint("Debug: ", crosscorr_rots, rotdegs)
+    vprint("find_affine2d_parameters: ", crosscorr_rots, rotdegs)
     rot_measured_d, max_cor = utils.findpeak_1d(crosscorr_rots, rotdegs)
-    #Machine noise residuals are obtained when rot_measured is forced to the exact value of simulated rotation (e.g. rot_measured=10.00 and max_cor is forced to 1.0)
-    #When rot_measured=10.000000000958407 and max_cor=0.9999999999999998 instead of 10.00 and 1.00 the model is created at a different visible rotation.
-    #A very small difference between simulated and measured rotation and between max_cor of 1 and calculated value creates the model at a different rotation compared to the data.
-    #For 10 degree pupil rotation, model residuals in the fit are ~1e-5 contrast or the peak at bright snowflake points, but much smaller within few resolution elements of the PSF center.
-    #This may be improved by treating possibly non-commuting psf_offsets and rotation (after delivery to the pipeline in April 2020).
+    vprint("find_affine2d_parameters measured: max correlation {1:.3e}", rot_measured_d, max_cor)
+
 
     vprint("Rotation measured: max correlation {1:.3e}", rot_measured_d, max_cor)
 
