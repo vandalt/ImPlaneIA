@@ -44,13 +44,13 @@ class NRM_mask_definitions():
     def __init__(self, maskname=None, rotdeg=None, holeshape="circ", rescale=False,\
                  verbose=False, chooseholes=None):
 
-        print("NRM_mask_definitions(maskname,...:" + maskname)
+        if verbose: print("NRM_mask_definitions(maskname,...:" + maskname)
         if maskname not in ["gpi_g10s40",  "jwst_g7s6", "jwst_g7s6c", "visir_sam", \
                             "p1640", "keck_nirc2", "pharo", "NIRC2_9NRM"]:
             raise ValueError("mask not supported")
         if holeshape == None:
             holeshape = 'circ'
-        print(holeshape)
+        if verbose: print(holeshape)
        
         if holeshape not in ["circ", "hex",]:
             raise ValueError("Unsupported mask holeshape" + maskname)
@@ -77,7 +77,7 @@ class NRM_mask_definitions():
 
         elif self.maskname == "jwst_g7s6c":
             """ activeD and D taken from webbpsf-data/NIRISS/coronagraph/MASK_NRM.fits"""
-            print('self.maskname = "jwst_g7s6c"')
+            if verbose: print('self.maskname = "jwst_g7s6c"')
             self.hdia, self.ctrs = jwst_g7s6c(chooseholes=chooseholes) # 
             self.activeD =  6.559*m # webbpsf kwd DIAM  - not a 'circle including all holes'
             self.OD = 6.610645669291339*m # Full pupil file size, incl padding, webbpsf kwd PUPLDIAM
@@ -120,7 +120,7 @@ class NRM_mask_definitions():
             self.ID = 1.0    # Don't know this, but this number shouldn't matter
 
         else:
-            print("\tcheck back later")
+            print("\tmask_definitions: Unknown maskname: check back later")
 
     # make image at angular pixel scale, at given wavelength/bandpass
     # choose pupil pixel scale 
@@ -542,7 +542,6 @@ def jwst_g7s6c(chooseholes=None):
     # WARNING! JWST CHOOSEHOLES CODE NOW DUPLICATED IN LG_Model.py WARNING! ###
     #return 0.80*m, jwst_g7s6_centers_asbuilt(chooseholes=chooseholes) #comment out 2019 Aug w/Joel to match webbpsf 0.8.something
     f2f = 0.82 * m # m flat to flat
-    print("f2f in mask_definitions.py is {:0.2f}".format(f2f))
     return f2f, jwst_g7s6_centers_asbuilt(chooseholes=chooseholes)
 
 

@@ -153,7 +153,6 @@ class NRM_Model():
             #self.d = 0.80 * m
             self.d = 0.82 * m
             self.vprint(self, "hex hole flat_to_dflat distance in LG_Model() is {:0.2f}".format(self.d))
-            print("hex hole flat_to_dflat distance in LG_Model() is {:0.2f}".format(self.d))
             self.D = 6.5 * m
 
         else:
