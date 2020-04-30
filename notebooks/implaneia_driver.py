@@ -24,7 +24,7 @@ if not os.path.exists(fitsimdir):
     os.makedirs(fitsimdir)
 
 mirexample = os.path.expanduser('~') + \
-        "/gitsrc/ImPlaneIA/example_data/example_niriss/" + \
+        "/ImPlaneIA/example_data/example_niriss/" + \
         "jw00793001001_01101_00001_nis_cal.fits"
 
 fov = 79

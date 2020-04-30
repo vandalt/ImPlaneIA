@@ -309,13 +309,13 @@ def fit_fringes_single_integration(args):
         # use flipped centroids to update centroid of image for JWST - check parity for GPI, Vizier,...
         # pixel coordinates: - note the flip of [0] and [1] to match DS9 view
         image_center = utils.centerpoint(self.ctrd.shape) + np.array((centroid[1], centroid[0])) # info only, unused
-        if self.debug: print("nrm_core:  image_center in py xy coords, information only. Flipped into ds9 xy", image_center)
-        if self.debug: print("nrm_core:  centroid offsets {0} from utils.centroid() ".format(centroid))
-        if self.debug: print("nrm_core:  center of light in array coords (ds9) {0} ".format(image_center))
+        print("nrm_core:  image_center in py xy coords, information only. Flipped into ds9 xy", image_center)
+        print("nrm_core:  centroid offsets {0} from utils.centroid() ".format(centroid))
+        print("nrm_core:  center of light in array coords (ds9) {0} ".format(image_center))
         nrm.xpos = centroid[1]  # flip 0 and 1 to convert
         nrm.ypos = centroid[0]  # flip 0 and 1
         nrm.psf_offset = nrm.xpos, nrm.ypos  # renamed .bestcenter to .psf_offset
-        if self.debug: print("nrm.core.fit_fringes_single_integration: nrm.psf_offset updated with found 'centroid'\n")
+        print("nrm.core.fit_fringes_single_integration: nrm.psf_offset updated with found 'centroid'\n")
     else:
         nrm.psf_offset = self.psf_offset_ff # user-provided psf_offset python-style offsets from array center are here.
 

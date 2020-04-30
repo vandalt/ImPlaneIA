@@ -430,7 +430,7 @@ class NIRISS:
             bandpass = np.array(bandpass)  # type simplification
             wt = bandpass[:,0]
             wl = bandpass[:,1]
-            if self.verbose: print(" which is now  overwritten with user-specified bandpass:\n", bandpass)
+            print(" which is now  overwritten with user-specified bandpass:\n", bandpass)
             cw = (wl*wt).sum()/wt.sum() # Weighted mean wavelength in meters "central wavelength"
             area = simps(wt, wl)
             ew = area / wt.max() # equivalent width
@@ -446,7 +446,7 @@ class NIRISS:
             self.wls = [utils.combine_transmission(self.throughput, src), ]
         except:
             self.wls = [self.throughput, ]
-        if self.verbose: print("self.throughput:\n", self.throughput)
+        print("self.throughput:\n", self.throughput)
 
         # Wavelength info for NIRISS bands F277W, F380M, F430M, or F480M
         self.wavextension = ([self.lam_c[self.filt],], [self.lam_w[self.filt],])
