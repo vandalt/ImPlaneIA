@@ -5,9 +5,9 @@ Reduces aperture masking images to fringe observables, calibrates, does basic mo
 
 Delivery branch dedicated for the moment to JWST NIRISS AMI
 
-To get the source files:
+To get the source files for the delivery branch:
 
-	git clone https://github.com/anand0xff/ImPlaneIA.git
+	git clone --single-branch --branch delivery git@github.com:anand0xff/ImPlaneIA.git
 
 
 ### The rest of this README needs updating.  Please see NOTES.md
