@@ -3,11 +3,14 @@
 Reduces aperture masking images to fringe observables, calibrates, does basic model fitting. Package development led by Alexandra Greenbaum following legacy code by Greenbaum, Anand Sivaramakrishnan, and Laurent Pueyo. Contributions from Sivaramakrishnan, Deepashri Thatte, Johannes Sahlmann, Anthony Soulain.
 
 
-Devmasthdr branch  dedicated for the moment to JWST NIRISS AMI
+Delivery branch dedicated for the moment to JWST NIRISS AMI
 
 To get the source files:
 
-	git clone https://github.com/agreenbaum/nrm_analysis.git
+	git clone https://github.com/anand0xff/ImPlaneIA.git
+
+
+### The rest of this README needs updating.  Please see NOTES.md
 
 Necessary Python packages:
 
