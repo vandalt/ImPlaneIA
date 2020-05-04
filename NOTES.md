@@ -1,6 +1,4 @@
-# nrm_analysis 
-
-#### Delivery Notes 2020/05
+### Delivery Notes 2020/05
 
 Reduces aperture masking images to fringe observables, calibrates, does basic model fitting. Package development led by Alexandra Greenbaum following legacy code by Greenbaum, Anand Sivaramakrishnan, and Laurent Pueyo. Contributions from Sivaramakrishnan, Deepashri Thatte, Johannes Sahlmann, Anthony Soulain.
 
