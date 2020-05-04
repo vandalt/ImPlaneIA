@@ -1,78 +1,69 @@
+# nrm_analysis 
 
-BETA- ACHIEVED FOR anand0xff affine
+#### Delivery Notes 2020/05
 
-AZG-AS skype 2018.08.24:
+Reduces aperture masking images to fringe observables, calibrates, does basic model fitting. Package development led by Alexandra Greenbaum following legacy code by Greenbaum, Anand Sivaramakrishnan, and Laurent Pueyo. Contributions from Sivaramakrishnan, Deepashri Thatte, Johannes Sahlmann, Anthony Soulain.
 
-Move to beta (by Sep 7) involves:
+## ImPlaneIA
+AMI data is affected by three parameters, in addition to the usual noise sources.  The parameters are pistons (7 optical path delays between mask holes, usually with zero mean), psf offsets, and pupil rotation (which is reflected in rotation of the image).  ImPlaneIA finds these values and creates an analytical model using the psf offsets and rotation.  Pistons are not yet used when creating a model, though the parameter is passed to the routine. ImPlaneIA can also accept user supplied values of psf offsets and rotation or it utilizes a combination of user supplied values and parameters it measures itself. 
 
-	Alex to make afine_dev branch on github/agreenbaum
-	
-	Anand to pull affine_dev to local
-	
-	Anand to unify affine_dev & affine into affine_dev
-	
-	Anand to run first five boxes notebooks/NIRISS_AMI_tutorial.ipynb
+The coefficients obtained from the least-squares fit (between the model and data) are used to calculate fringe phases, fringe amplitudes, closure phases and closure amplitudes 
 
-2018.09.11 regrouping:
+**scripts/implaneia_driver.py** is used to simulate and analyze data. Calling **simulate_data()** in this driver is optional-simulate new data, or use the file **all\_effects\_data\_mir.fits** in the analysis.
 
-	who is going to integrate my current code with your post-OIfits-creation code?  
-	I might suggest deleting the affine_dev branch, re-cloning it. and replacing your
-	fringe determining files with mine.  
-	
-	What would be good is to have some short quick-to-run test code to check that
-	things still work downstream of OIfits creation. 
+Observables are extracted with a call to **analyze_data()**:
 
-	There are 'small' technical things to finish also - I've only done rotation-finding,
-	and still need to implement finding something else (pixel scale?).
-	Find the change from nominal pixel scale.
+		_aff, _psf_offset_r, _psf_offset_ff, fringepistons = analyze_data(df,             
+                      affine2d=None, psf_offset_find_rotation = (0.0,0.0),  
+                      psf_offset_ff = None, rotsearch_d=_rotsearch_d, 
+                      fringepistons_ff=None)
 
-	So direction from you would help me. 
-
-	One not-so-small thing to do is to write test code to check all the psf_offset
-	implementations (I see lines like ImCtr = np.array((psf_offset[1], psf_offset[0]))
-	here and there.  It should be unified across the calcPSF and make_model sections,
-	and documented clearly.  This is probably best done when we look at the code
-	simultaneously, skyping at the same time.
+* **df** data file name
+* **affine2d** is user supplied or measured Affine2d object. A user supplied affine2d is created with a rotation value (**rot** in **implaneia_driver.py**).
+* **psf\_offset\_find\_rotation** are the psf offsets used to find rotation of data. Finding rotation involves simulating data at rotation values specified by rotsearch_d and then cross-corelating with data to create an affine object that is used for fringefitting. Use an initial guess of (0,0) or a known psf offset for this parameter.
+* **psf\_offset\_ff** is the psf offset used in fringefitting to create the model array. ImPlaneIA uses the center of the brightest pixel as the coordinate system to calculate psf offsets for fringefitting. When doing the fringefitting the data is trimmed such that the brightest pixel is at the center of the trimmed image. **psf\_offset\_ff** is the measured or user supplied value from the center of this trimmed image that has odd dimensions.
+* **rotsearch\_d** is the set of values used for rotation search. This is used in conjunction with **psf\_offset\_find\_rotation** to create an affine object that is used for fringefitting; they not used when affine2d is user supplied.
 
 
-Note: Anand to just do JWST NIRISS integration, 
-(Alex to follow up on other instruments later)
 
-New_and_better_scaling and auto_find_center [to be] removed 
+**ami_analyze.cfg file/parameters file**
 
-AMI paper writing focus ~mid September?
+		Oversample = 3
+		set_affine_rotation = None (default) or e.g. 2.0
+		set_psf_offset_find_rotation = (0.0,0.0)  (default ) or e.g. (0.48,0.0)
+		set_rotsearch_d = np.arange(-3, 3.1, 1)  (default)  
+							  or e.g. (-4.0, -3.0, -2.0, -1.0, 0.0, 1.0, 2.0)
+							  (Minimum of three values: finds quadratic maximum)
+		set_psf_offset_ff = None (default) or e.g. (-0.52, 0.0)
+		set_fringepistons_ff = None (default) or an array of seven numbers 
+		
+**Documentation for the parameter file** (draft):
 
-Deepashri involved in test exercising/writing whenever (month or two?)
+If set\_affine\_rotation is a number, it is used for the rotation of analytical model in degrees.
 
-Dec 13 2018 AZG AS skype.  Next meeting ~1 week
-  
-	Calib initializing - try abs path names
-	Cut down targ & cal to a few (eg 3) slices each for faster  debugging
-	Examine residual fits w/screen share w/AZG
-	
-Dec 14 2018 AS
+If set\_affine\_rotation is None, the user provides rosearch\_d in degrees and set\_psf\_offset\_find\_rotation in detector pixel units.  These two values are used to find rotation and use it to create the analytical model. The latter two parameters are not used when 
+set\_affine\_rotation is a number.
 
-	Fixed path fragility of datadir - no defaulting to "."  (could have repercussions for other instruments?)
-	Created two-slice cubes in example_data/niriss_niriss
-	Adjusted file names and datadir value in ami notebook
-	Notebook now runs through to ascii fringe info output, 
-	residuals look ~antisymmetric (flip and invert a second residuals*.fits in ds9, then blink)
-	
-	Notebook fails in 
-	In [8]  calib.save_to_oifits("exampleoifitsfiles.oifits") 
-	~/gitsrc/agreenbaum/ImPlaneIA/nrm_analysis/misctools/write_oifits.py in oi_data(self, read_from_txt, **kwargs)
-    332         #print "cps given to oifits writer, again:"
-    333         #print self.t3phi
-	--> 334         self.t3flag[abs(self.t3phi)>self.phaseceil]=1
-    335         for i in range(int(self.ncps)):
-    336             """self, timeobs, int_time, t3amp, t3amperr, t3phi, t3phierr, flag, u1coord,
+Implaneia uses the center of the brightest pixel as the coordinate system to calculate psf offsets (set\_psf\_offset\_ff) for fringefitting. **_This coordinate system may or may not match the coordinate system of set\_psf\_offset\_find\_rotation_**.
 
-	IndexError: boolean index did not match indexed array along dimension 0; dimension is 1 but corresponding boolean dimension is 2
+**analyze\_data** function definition
 
-Jan 11 2019 AS AZG
+	def analyze_data(df, affine2d=None, 
+				       psf_offset_find_rotation = (0.0,0.0), psf_offset_ff = None, 
+				       rotsearch_d=None, set_pistons=None)
 
-	Fixed py3 issues with nrm_core.get_data(), replaced oifits py2 with py3.
-	NIRISS test notebook runs to completion, incl mcmc binary model fit.
-	Had to re-initialize with an InstrumentData("NIRISS") to reset nwav to unity before running nrm_core.calibrate().  Puzzling why this was needed.
-	TBD: output cleanup for faster running
-	
+Example of values for parameters (these are used in implaneia_driver.py for odd-sized fields of view):
+
+    args_odd_fov = [[None, (0.0,0.0), None, _rotsearch_d ,np.zeros((7,))],
+                              [None, (0.0,0.0), (-0.5199,0.0),_rotsearch_d, np.zeros((7,))],
+                              [None, (0.48,0.0), None, _rotsearch_d, np.zeros((7,))],
+                              [aff,(0.0,0.0),None, None, np.zeros((7,))],
+                              [None, (0.48,0.0), (-0.5199,0.0),_rotsearch_d, np.zeros((7,))],
+                              [aff, (0.48,0.0), (-0.5199,0.0), _rotsearch_d, np.zeros((7,)),],
+                              ]
+
+    
+Note: 
+1. aff in the above is an Affine2d object instantiated as a pure rotation of **rot**.  
+2. analyze\_data() does not use rotsearch\_d and psf\_offset\_find\_rotation when its **affine2d** parameter is assigned an Affine2d instance (instead of None).  If **affine2d=None**, rotsearch\_d and psf\_offset\_find\_rotation are used to find the pupil rotation using the data.  
+3. Use of **fringepistons\_ff** is not yet implemented.  When it is, the set of fringe pistons (one for each hole in the mask) can be used to create the **model** array of fringes, total flux, and the DC level (bias) of the image. Currently only **psf\_offset\_ff** and **affine2d** are used to make the model.
