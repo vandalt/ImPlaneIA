@@ -26,6 +26,10 @@ from astroquery.simbad import Simbad
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
+def default_printoptions():
+    np.set_printoptions(edgeitems=3, infstr='inf', linewidth=75, nanstr='nan', precision=8,
+    suppress=False, threshold=1000, formatter=None)
+
 
 class ObservablesFromText():
     """
@@ -99,7 +103,7 @@ class ObservablesFromText():
         else: self.degree = 1
 
         self._readtxtdata()
-        if self.verbose: self._showdata()
+        if self.verbose: self.showdata()
     
 
     def _makequads_all(self):
@@ -177,7 +181,7 @@ class ObservablesFromText():
         return barray, np.array(bllist)
 
 
-    def _showdata(self, prec=4):
+    def showdata(self, prec=4):
         """ set precision of your choice in calling this"""
         print('nh {0:d}  nslices {1:d}  nbl {2:d}  ncp {3:d}  nca {4:d}  '.format(
                           self.nh, self.nslices, self.nbl, self.ncp, self.nca), end="")
@@ -187,13 +191,13 @@ class ObservablesFromText():
         else: print()
         np.set_printoptions(precision=prec)
 
-        print(self.fp.shape, "fp (degrees, but stored internally in radians):\n", self.fp*self.degree, "\n")
-        print(self.fa.shape, "fa:\n", self.fa, "\n")
+        print(self.fp.shape, "fringephases fp (degrees, but stored internally in radians):\n", self.fp*self.degree, "\n")
+        print(self.fa.shape, "fringeamplitudes fa:\n", self.fa, "\n")
 
-        print(self.cp.shape, "cp (degrees, but stored internally in radians):\n", self.cp*self.degree, "\n")
+        print(self.cp.shape, "closurephases cp (degrees, but stored internally in radians):\n", self.cp*self.degree, "\n")
         if len(self.observables)==4:
-            print(self.ca.shape, "ca:\n", self.ca, "\n")
-        #print("implane2oifits._showdata: self.info4oif_dict['objname']", self.info4oif_dict)
+            print(self.ca.shape, "closureamplitudes ca:\n", self.ca, "\n")
+        #print("implane2oifits.showdata: self.info4oif_dict['objname']", self.info4oif_dict)
 
         print("hole centers array shape:", self.ctrs.shape)
 
@@ -205,6 +209,9 @@ class ObservablesFromText():
 
         print(self.qholes.shape, "quad hole indices:\n", self.qholes)
         print(self.quvw.shape, "quad uvw vectors:\n", self.quvw)
+
+        default_printoptions()
+
 
     
 
