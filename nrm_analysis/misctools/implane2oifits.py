@@ -45,22 +45,23 @@ class ObservablesFromText():
 
         Input: 
             nh: number of holes in mask (int)
-            textpaxt: directory where fringe observables' .txt files are stored (str)
+            textpath: directory where fringe observables' .txt files are stored (str)
             oifpath: directory (str).  If omitted, oifits goes to same directory as textpath
-            nslices: 1 for eg unpolarized single filter observation, 
-                     2 or more for polarized observations, 
+            nslices: This in nothing to do with how many image slices in origininal input image datacube 
+                     1 for eg unpolarized single filter observation (even e.g. multi-image cube), 
+                     2 or more for polarized observations,
                      many for IFU or repeated integration observations (int)
             observables: If ("phases", "amplitudes", "CPs", "CAs") for example - ImPlaneIA nomenclature
-                       then the files need to be named: "/phases_{0:02d}.txt".format(slc)
+                       then the observables' text files need to be named: "/phases_{0:02d}.txt".format(slc)
                        Three or four quantities (omitting CA is optional)
                        Order is relevant... pha, amp, cp [, ca]
                        Implaneia txt data will be in txtpath/*.txt
             oifinfofn: default 'info4oif_dict.pkl' suits ImPlaneIA
                       Pickle file of info oifits writers might need, in a dictionary
-                      Located in the same dir as text observable files.  Only one for all slices...
+                      Located in the same dir as text observable files.  One file applies to all image slices...
                       Implaneia writes this dictionary out with the default name.
-            If you want to trim low and/or high ends of eg IFU spectral observables trim them
-            on-the-fly before calling this routine.
+            If you want to trim low and/or high ends of eg IFU spectral observables,
+            trim them *before* calling this routine.
 
             ImPlaneIA saves fp cp in RADIANS.
 
@@ -68,7 +69,7 @@ class ObservablesFromText():
 
         """
 
-        print( "=== ObservablesFromText ===\n One object's *.txt observables' directory path:\n    ", txtpath)
+        if verbose: print( "implane2oifits.py:  ObservablesFromText:\n One datacube (object)'s *.txt observables' directory path:\n    ", txtpath)
         self.txtpath = txtpath
         self.oifpath = oifpath
         self.verbose = verbose
@@ -77,7 +78,7 @@ class ObservablesFromText():
         # Assume same number of observable output files for each observable.
         # Each image analyzed has a phases, an amplitudes, ... txt output file in thie txtdir.
         # Each file might contain different numbers of individual quantities 
-        print('txtpath/{0:s}*.txt'.format(self.observables[0]))
+        if verbose: print('ObservablesFromText: txtpath/{0:s}*.txt'.format(self.observables[0]))
         #   - yea many fringes, more cp's, and so on.
         self.nslices = len(glob.glob(self.txtpath+'/{0:s}*.txt'.format(self.observables[0])))
         if verbose: print(self.nslices, "slices' observables text files found")
@@ -92,8 +93,8 @@ class ObservablesFromText():
         if len(self.observables) == 4:
             self.ca = np.zeros((self.nslices, self.nca))
         self.angunit = angunit
-        if verbose: print("assumes angles in", angunit)
-        if verbose: print("angle unit:", angunit)
+        if verbose: print("ObservablesFromText assumes angles in", angunit)
+        if verbose: print("ObservablesFromText: angle unit:", angunit)
         if angunit == 'radians': self.degree = 180.0 / np.pi
         else: self.degree = 1
 
@@ -114,13 +115,13 @@ class ObservablesFromText():
                         if i<j and j<k and k<q:
                             qlist.append((i,j,k,q))
         qarray = np.array(qlist).astype(np.int)
-        if self.verbose: print("qarray", qarray.shape, "\n", qarray)
+        if self.verbose: print("ObservablesFromText: qarray", qarray.shape, "\n", qarray)
         qname = []
         uvwlist = []
         # foreach row of 3 elts...
         for quad in qarray:
             qname.append("{0:d}_{1:d}_{2:d}_{3:d}".format(quad[0], quad[1], quad[2], quad[3]))
-            if self.verbose: print('quad:', quad, qname[-1])
+            if self.verbose: print('ObservablesFromTextquad:', quad, qname[-1])
             uvwlist.append((self.ctrs[quad[0]] - self.ctrs[quad[1]],
                             self.ctrs[quad[1]] - self.ctrs[quad[2]],
                             self.ctrs[quad[2]] - self.ctrs[quad[3]]))
@@ -139,18 +140,18 @@ class ObservablesFromText():
                     if i<j and j<k:
                          tlist.append((i,j,k))
         tarray = np.array(tlist).astype(np.int)
-        if self.verbose: print("tarray", tarray.shape, "\n", tarray)
+        if self.verbose: print("ObservablesFromText: tarray", tarray.shape, "\n", tarray)
         
         tname = []
         uvlist = []
         # foreach row of 3 elts...
         for triple in tarray:
             tname.append("{0:d}_{1:d}_{2:d}".format(triple[0], triple[1], triple[2]))
-            if self.verbose: print('triple:', triple, tname[-1])
+            if self.verbose: print('ObservablesFromText: triple:', triple, tname[-1])
             uvlist.append( (self.ctrs[triple[0]] - self.ctrs[triple[1]],
                             self.ctrs[triple[1]] - self.ctrs[triple[2]]) )
         #print(len(uvlist), "uvlist", uvlist) 
-        if self.verbose: print( tarray.shape, np.array(uvlist).shape)
+        if self.verbose: print('ObservablesFromText: ',  tarray.shape, np.array(uvlist).shape)
         return tarray, np.array(uvlist)
 
 
@@ -216,7 +217,7 @@ class ObservablesFromText():
         # set up files to read
         # What do we do for IFU or Pol?
         fnheads = [] # file name for each exposure (slice) in an image cube with nslices exposures
-        if self.verbose: print("\tfile names that are being looked for:")
+        if self.verbose: print("ObservablesFromText: \tfile names that are being looked for:")
         for obsname in self.observables: 
             fnheads.append(self.txtpath+"/"+obsname+"_{0:02d}.txt") # ImPlaneIA-specific filenames
             if self.verbose: print("\t"+fnheads[-1])
@@ -287,7 +288,7 @@ def NRMtoOifits2(dic, filename = None, oifprefix=None, datadir=None, verbose = F
     if datadir[-1] != '/': datadir = datadir + '/'
         
     if not os.path.exists(datadir):
-        print('### Create %s directory to save all requested Oifits ###'%datadir)
+        print('NRMtoOifits2:  Create %s directory to save all requested Oifits ###'%datadir)
         os.system('mkdir %s'%datadir)
         
     if type(filename) == str:
@@ -303,8 +304,7 @@ def NRMtoOifits2(dic, filename = None, oifprefix=None, datadir=None, verbose = F
     #------------------------------
     #       Creation OIFITS
     #------------------------------
-    if verbose:
-        print("\n\n### Init creation of OI_FITS (%s) :"%(filename))
+    if verbose: print("\nNRMtoOifits2: \nInit creation of OI_FITS (%s) :"%(filename))
               
     hdulist = fits.HDUList()
     
@@ -410,7 +410,7 @@ def NRMtoOifits2(dic, filename = None, oifprefix=None, datadir=None, verbose = F
     #------------------------------
     
     if verbose:
-        print('-> Including OI Array table...')
+        print('NRMtoOifits2: -> Including OI Array table...')
             
     STAXY = dic['info']['STAXY']
     
@@ -458,7 +458,7 @@ def NRMtoOifits2(dic, filename = None, oifprefix=None, datadir=None, verbose = F
     #------------------------------
     
     if verbose:
-        print('-> Including OI Vis table...')
+        print('NRMtoOifits2: -> Including OI Vis table...')
      
     data =  dic['OI_VIS']
     npts = len(dic['OI_VIS']['VISAMP'])
@@ -492,7 +492,7 @@ def NRMtoOifits2(dic, filename = None, oifprefix=None, datadir=None, verbose = F
     #------------------------------
     
     if verbose:
-        print('-> Including OI Vis2 table...')
+        print('NRMtoOifits2: -> Including OI Vis2 table...')
      
 
     data =  dic['OI_VIS2']
@@ -523,7 +523,7 @@ def NRMtoOifits2(dic, filename = None, oifprefix=None, datadir=None, verbose = F
     #------------------------------
     
     if verbose:
-        print('-> Including OI T3 table...')
+        print('NRMtoOifits2: -> Including OI T3 table...')
 
     data =  dic['OI_T3']
     npts = len(dic['OI_T3']['T3PHI'])
@@ -558,7 +558,7 @@ def NRMtoOifits2(dic, filename = None, oifprefix=None, datadir=None, verbose = F
     #------------------------------
 
     hdulist.writeto(datadir + filename, overwrite=True)
-    cprint('\n\n### OIFITS CREATED (%s).'%filename, 'cyan')
+    cprint('\nNRMtoOifits2: \n### OIFITS CREATED (%s).'%filename, 'cyan')
     
     return None
 
@@ -787,7 +787,7 @@ def implane2oifits2(OV, objecttextdir_c, objecttextdir_t, oifprefix, datadir):
     Plot_observables(nrm_t)
     Plot_observables(nrm_c)  # Plot uncalibrated data
     
-    print(nrm_t, nrm_c)
+    print(': ', nrm_t, nrm_c)
     nrm = Calib_NRM(nrm_t, nrm_c) # Calibrate target by calibrator 
             
     dic = {'OI_VIS2' : {'VIS2DATA' : nrm.vis2,
@@ -851,7 +851,7 @@ def implane2oifits2(OV, objecttextdir_c, objecttextdir_t, oifprefix, datadir):
                     'ISZ' : 77, # size of the image needed (or fov)
                     'NFILE' : 0}        
                     }
-    print("info[OBJECT]", dic['info']['OBJECT'])
+    print("implane2oifits2: info[OBJECT]", dic['info']['OBJECT'])
     # Anand put this call inside Anthony's __main__ so it can be converted into a function.
     NRMtoOifits2(dic, oifprefix=oifprefix, datadir=datadir, verbose=False) # Function to save oifits file (version 2)
 

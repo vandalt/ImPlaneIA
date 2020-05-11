@@ -51,9 +51,7 @@ def main(mirfile, oitxtdir, oversample=3,
     ff_t.fit_fringes(mirfile)
 
     print("oversample {:d} used in modelling the data".format(oversample))
-    print("observables text files in ", oitxtdir)
-    print("observables text files by image file root/* under ",  oitxtdir)
-    ###print("cal observables in subdir", csavedir)
+    print("observables text files by image file root/*.txt under ",  oitxtdir)
     if debug:
         print("Current working directory is ", os.getcwd())
         print("InstrumentData is file: ", InstrumentData.__file__)

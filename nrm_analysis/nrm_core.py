@@ -153,7 +153,7 @@ class FringeFitter:
             fit_fringes_parallel({"object":self, "file":                  fn,\
                                   "id":jj},threads)
         t3 = time.time()
-        print("Parallel with {0} threads took {1}s to fit all fringes".format(\
+        print("Parallel with {0} threads took {1:.2f}s to fit all fringes".format(\
                threads, t3-t2))
 
 
@@ -187,7 +187,7 @@ class FringeFitter:
                     self.sub_dir_str+"/n_modelsolution_{0:02d}.fits".format(slc), \
                     overwrite=True)
         else:
-            print("NOT SAVING ANY FITS FILES. SET save_txt_only=False TO SAVE.")
+            print("nrm_core: NOT SAVING ANY FITS FILES. SET save_txt_only=False TO SAVE.")
 
         # default save to text files
         np.savetxt(self.savedir+self.sub_dir_str + \
@@ -219,7 +219,7 @@ class FringeFitter:
             np.savetxt(self.savedir+self.sub_dir_str+\
                        "/flux_{0:02d}.txt".format(slc), nrm.flux)
           
-        print(nrm.linfit_result)
+        #print(nrm.linfit_result)
         if nrm.linfit_result is not None:          
             # save linearfit results to pickle file
             myPickleFile = os.path.join(self.savedir+self.sub_dir_str,"linearfit_result_{0:02d}.pkl".format(slc))
@@ -309,13 +309,10 @@ def fit_fringes_single_integration(args):
         # use flipped centroids to update centroid of image for JWST - check parity for GPI, Vizier,...
         # pixel coordinates: - note the flip of [0] and [1] to match DS9 view
         image_center = utils.centerpoint(self.ctrd.shape) + np.array((centroid[1], centroid[0])) # info only, unused
-        print("nrm_core:  image_center in py xy coords, information only. Flipped into ds9 xy", image_center)
-        print("nrm_core:  centroid offsets {0} from utils.centroid() ".format(centroid))
-        print("nrm_core:  center of light in array coords (ds9) {0} ".format(image_center))
         nrm.xpos = centroid[1]  # flip 0 and 1 to convert
         nrm.ypos = centroid[0]  # flip 0 and 1
         nrm.psf_offset = nrm.xpos, nrm.ypos  # renamed .bestcenter to .psf_offset
-        print("nrm.core.fit_fringes_single_integration: nrm.psf_offset updated with found 'centroid'\n")
+        if self.debug: print("nrm.core.fit_fringes_single_integration: utils.find_centroid() -> nrm.psf_offset")
     else:
         nrm.psf_offset = self.psf_offset_ff # user-provided psf_offset python-style offsets from array center are here.
 
@@ -847,12 +844,6 @@ class Calibrate:
         print("oif.write in nrm_core: ")
         oif.write(fn_out)
         """
-
-    def txt_2_oifits():
-        """
-        Calibrated data already saved to txt, want to save this to oifits
-        """
-        return None
 
     def _from_gpi_header(fitsfiles):
         """
@@ -2029,12 +2020,6 @@ def get_data(self):
     #self.extra_error = self.extra_error*np.ones(self.nwav)*self.wavls[0] / (self.wavls)
 
     for ii in range(self.ncp):
-        #self.cp[:,ii] = self.oifdata.t3[ii].t3phi
-        #self.cperr[:,ii] = self.oifdata.t3[ii].t3phierr
-        #self.uvcoords[0,:,ii] = self.oifdata.t3[ii].u1coord, self.oifdata.t3[ii].u2coord,\
-        #           -(self.oifdata.t3[ii].u1coord+self.oifdata.t3[ii].u2coord)
-        #self.uvcoords[1, :,ii] = self.oifdata.t3[ii].v1coord, self.oifdata.t3[ii].v2coord,\
-        #           -(self.oifdata.t3[ii].v1coord+self.oifdata.t3[ii].v2coord)
         self.cp[ii, :] = self.oifdata.t3[ii].t3phi
         self.cperr[ii, :] = np.sqrt(self.oifdata.t3[ii].t3phierr**2 + self.extra_error**2)
         self.t3amp[ii, :] = self.oifdata.t3[ii].t3amp
@@ -2043,16 +2028,11 @@ def get_data(self):
                     -(self.oifdata.t3[ii].u1coord+self.oifdata.t3[ii].u2coord)
         self.uvcoords[1, :,ii] = self.oifdata.t3[ii].v1coord, self.oifdata.t3[ii].v2coord,\
                     -(self.oifdata.t3[ii].v1coord+self.oifdata.t3[ii].v2coord)
-        #self.t3vis[:,ii] = self.oifdata.vis2[]
     #print self.cp
     for jj in range(self.nbl):
-        #self.v2[:,jj] = self.oifdata.vis2[jj].vis2data
-        #self.v2err[:,jj] = self.oifdata.vis2[jj].vis2err
         self.v2[jj, :] = self.oifdata.vis2[jj].vis2data
         self.v2err[jj, :] = self.oifdata.vis2[jj].vis2err
         try:
-            #self.pha[:,jj] = self.oifdata.vis[jj].visphi
-            #self.phaerr[:,jj] = self.oifdata.vis[jj].visphierr
             self.pha[jj, :] = self.oifdata.vis[jj].vispha
             self.phaerr[jj, :] = self.oifdata.vis[jj].visphaerr
             self.cv = np.sqrt(self.v2)*np.exp(-1j*self.pha)
@@ -2073,34 +2053,24 @@ def get_data(self):
     # So we move nwav axis to the end:
     self.uvcoords = np.rollaxis(self.uvcoords, 0, 4)
     self.uvcoords_vis = np.rollaxis(self.uvcoords_vis, 0, 3)
-    #for q in range(self.nwav-1):
-    #   self.uvcoords[:,:,:,f] = self.uvcoords[:,:,:,0]
 
 
 def detec_calc_loop(dictlist):
     # ndetected should have shape (nsep, ncon, nang) -- the first 3 dimensions of the cp model
     simcps = dictlist['model'].copy()
     simcps += dictlist['randerrors']
-    #chi2null = reduced_chi2(simcps, dictlist['dataerrors'], 0)
-    #chi2bin = reduced_chi2(simcps, dictlist['dataerrors'], dictlist['model'])
     chi2bin_m_chi2null = np.sum( ((dictlist['model'] - simcps)**2 - (simcps**2)) /(dictlist['dataerrors']**2), axis=(-1,-2))
-    #detected = (chi2bin - chi2null)<0.0
     detected = chi2bin_m_chi2null<0.0
-    #ndetected /= float(dictlist['ntrials'])
     return detected
 
 def detec_calc_loop_all(dictlist):
     # ndetected should have shape (nsep, ncon, nang) -- the first 3 dimensions of the cp model
     simcps = dictlist['model'].copy()
     simcps += dictlist['randerrors']
-    #chi2null = reduced_chi2(simcps, dictlist['dataerrors'], 0)
-    #chi2bin = reduced_chi2(simcps, dictlist['dataerrors'], dictlist['model'])
     nullmodel = np.zeros(simcps.shape)
     nullmodel[:,:,:,simcps.shape[3]/2:, :] = 1.0
     chi2bin_m_chi2null = np.sum( ((dictlist['model'] - simcps)**2 - ((simcps-nullmodel)**2)) /(dictlist['dataerrors']**2), axis=(-1,-2))
-    #detected = (chi2bin - chi2null)<0.0
     detected = chi2bin_m_chi2null<0.0
-    #ndetected /= float(dictlist['ntrials'])
     return detected
 
 
@@ -2109,13 +2079,8 @@ def logl(data, err, model):
     Likelihood given data, errors, and the model values
     These are all shape (nobservable, nwav)
     """
-    #for ii in range(len(model)):
-    #   #ll += -0.5*np.log(2*np.pi)*data[2*ii].size + np.sum(-np.log(data[2*ii+1]**2)
-    #return -0.5*np.log(2*np.pi) - np.sum(np.log(err)) - np.sum((model - data)**2/(2*data**2))
-    #return -0.5*np.log(2*np.pi)*data.size + np.sum(-np.log(err**2) - 0.5*((model - data)/err)**2)
     chi2 = np.nansum(((data-model)/err)**2)
     loglike = -chi2/2
-    #return np.sum(-np.log(err**2) - 0.5*((model - data)/err)**2)
     return loglike
 
 
@@ -2188,5 +2153,3 @@ class DiskAnalyze:
 
                 ll = logl(data, model)
                 return ll
-
-
