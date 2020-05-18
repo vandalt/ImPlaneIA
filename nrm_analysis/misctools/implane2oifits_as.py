@@ -12,6 +12,7 @@ anand@stsci.edu beta 2019 12 04
 """
 
 import glob
+import os
 import pickle
 
 import numpy as np
@@ -383,6 +384,79 @@ def Calib_NRM(nrm_t, nrm_c, method='med'):
 
     return dict2class(output)
 
+def populate_NRM(nrm_t, method='med'):
+    """ 
+    modelled on Calib_NRM() but no calibration done because it's for a single object.
+    Instead it just populates the appropriate dictionary.  
+    So nomenclature looks funny with _5, etc., 
+    Funny-looking clumsy straight handoffs to internal variable nmaes,...
+    """
+
+    visamp_calibrated = nrm_t.fa
+    visphi_calibrated = nrm_t.fp
+    vis2_calibrated = visamp_calibrated**2
+
+    if method == 'med':
+        vis2 = np.median(vis2_calibrated, axis=0)  # V2
+    else:
+        vis2 = np.mean(vis2_calibrated, axis=0)  # V2
+
+    e_vis2 = np.std(vis2_calibrated, axis=0)  # Error on V2
+
+    if method == 'med':
+        visamp = np.median(visamp_calibrated, axis=0)  # Vis. amp
+    else:
+        visamp = np.mean(visamp_calibrated, axis=0)  # Vis. amp
+
+    e_visamp = np.std(visamp_calibrated, axis=0)  # Vis. amp
+
+    if method == 'med':
+        visphi = np.median(visphi_calibrated, axis=0)  # Vis. phase
+    else:
+        visphi = np.mean(visphi_calibrated, axis=0)  # Vis. phase
+
+    e_visphi = np.std(visphi_calibrated, axis=0)  # Vis. phase
+
+    shift2pi = np.zeros(nrm_t.cp.shape)
+    shift2pi[nrm_t.cp >= 6] = 2*np.pi
+    shift2pi[nrm_t.cp <= -6] = -2*np.pi
+
+    """ Anthony, is this your  _t or _c?
+    nrm.cp -= shift2pi
+    """
+    nrm_t.cp -= shift2pi  # I'm guessing it's _t
+
+    cp_cal = nrm_t.cp
+    cpamp_cal = nrm_t.ca
+
+    if method == 'med':
+        cp = np.median(cp_cal, axis=0)
+    else:
+        cp = np.mean(cp_cal, axis=0)
+
+    e_cp = np.std(cp_cal, axis=0)
+
+    if method == 'med':
+        cpamp = np.median(cpamp_cal, axis=0)
+    else:
+        cpamp = np.mean(cpamp_cal, axis=0)
+
+    e_cpamp = np.std(cpamp_cal, axis=0)
+
+    output = {'vis2': vis2,
+              'e_vis2': e_vis2,
+              'visamp': visamp,
+              'e_visamp': e_visamp,
+              'visphi': visphi,
+              'e_visphi': e_visphi,
+              'cp': cp,
+              'e_cp': e_cp,
+              'cpamp': cpamp,
+              'e_cpamp': e_cpamp
+              }
+
+    return dict2class(output)
+
 
 def main_ansou(nh=None, txtdir=None, verbose=True):
     "Reads in every observable available into a list of Observables"
@@ -447,6 +521,7 @@ def observable2dict(nrm, nrm_c=False, display=False):
     # This preserves backward compatibility w/Anthony's pairwise Cal then write oifits
     # using the same function
     if nrm_c: nrm = Calib_NRM(nrm, nrm_c)  # Calibrate target by calibrator
+    else: nrm = populate_NRM(nrm)
 
     dct = {'OI_VIS2': {'VIS2DATA': nrm.vis2,
                        'VIS2ERR': nrm.e_vis2,
@@ -563,7 +638,7 @@ def oitxt2oif(nh=None, oitxtdir=None, oiprefix=None, datadir=None):
     Converted here to only write one oifits file to disk, including stats
     for the object's observables
     """
-    nrm = ObservablesFromText(nh, objecttxtdir, verbose=False) # read in the nrm observables
+    nrm = ObservablesFromText(nh, oitxtdir, verbose=False) # read in the nrm observables
     dct = observable2dict(nrm, display=True) # populate Anthony's dictionary suitable for oifits.py
     oifits.save(dct, oifprefix=oifprefix, datadir=datadir, verbose=False)
     return dct
@@ -572,7 +647,7 @@ def oitxt2oif(nh=None, oitxtdir=None, oiprefix=None, datadir=None):
 if __name__ == "__main__":
 
     moduledir = os.path.expanduser('~') + '/gitsrc/ImPlaneIA/'
-    oitxtdir_t = moduledir + "/example_data/example_niriss/bin_tgt.oitxt"
+    oitxtdir_t = moduledir + "/example_data/example_niriss/bin_tgt_oitxt"
     oifdir_t =  oitxtdir_t + 'Saveoifits/'
 
     ov_main = 3 # only used to create oifits filename prefix to help organize output
