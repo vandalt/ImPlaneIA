@@ -475,6 +475,7 @@ def observable2dict(nrm, nrm_c=False, display=False):
            but we are changing to just to one object at a time.
     """
 
+    print('observable2dict: ', nrm.bholes)
     info = nrm.info4oif_dict
     ctrs = info['ctrs']
     t = Time('%s-%s-%s' %
@@ -521,10 +522,12 @@ def observable2dict(nrm, nrm_c=False, display=False):
     # This preserves backward compatibility w/Anthony's pairwise Cal then write oifits
     # using the same function
     if nrm_c: nrm = Calib_NRM(nrm, nrm_c)  # Calibrate target by calibrator
-    else: nrm = populate_NRM(nrm)
+    else: nrmd2c= populate_NRM(nrm)
 
-    dct = {'OI_VIS2': {'VIS2DATA': nrm.vis2,
-                       'VIS2ERR': nrm.e_vis2,
+    print('observable2dict: post-populate ', nrm.bholes)
+
+    dct = {'OI_VIS2': {'VIS2DATA': nrmd2c.vis2,
+                       'VIS2ERR': nrmd2c.e_vis2,
                        'UCOORD': ucoord,
                        'VCOORD': vcoord,
                        'STA_INDEX': nrm.bholes,
@@ -540,10 +543,10 @@ def observable2dict(nrm, nrm_c=False, display=False):
                       'TIME': 0,
                       'MJD': t.mjd,
                       'INT_TIME': info['itime'],
-                      'VISAMP': nrm.visamp,
-                      'VISAMPERR': nrm.e_visamp,
-                      'VISPHI': nrm.visphi,
-                      'VISPHIERR': nrm.e_visphi,
+                      'VISAMP': nrmd2c.visamp,
+                      'VISAMPERR': nrmd2c.e_visamp,
+                      'VISPHI': nrmd2c.visphi,
+                      'VISPHIERR': nrmd2c.e_visphi,
                       'UCOORD': ucoord,
                       'VCOORD': vcoord,
                       'STA_INDEX': nrm.bholes,
@@ -553,15 +556,15 @@ def observable2dict(nrm, nrm_c=False, display=False):
 
            'OI_T3': {'MJD': t.mjd,
                      'INT_TIME': info['itime'],
-                     'T3PHI': nrm.cp,
-                     'T3PHIERR': nrm.e_cp,
-                     'T3AMP': nrm.cpamp,
-                     'T3AMPERR': nrm.e_cp,
+                     'T3PHI': nrmd2c.cp,
+                     'T3PHIERR': nrmd2c.e_cp,
+                     'T3AMP': nrmd2c.cpamp,
+                     'T3AMPERR': nrmd2c.e_cp,
                      'U1COORD': u1coord,
                      'V1COORD': v1coord,
                      'U2COORD': u2coord,
                      'V2COORD': v2coord,
-                     'STA_INDEX': nrm_c.tholes,
+                     'STA_INDEX': nrm.tholes,
                      'FLAG': flagT3,
                      'BL': bl_cp
                      },
@@ -618,14 +621,14 @@ def observable2dict(nrm, nrm_c=False, display=False):
     return dct
 
 
-def oitxt2oif(nh=None, oitxtdir=None, oiprefix=None, datadir=None):
+def oitxt2oif(nh=None, oitxtdir=None, oifprefix='', datadir=None):
     """
     Input: 
         oitxtdir (str) Directory where implaneia wrote the observables
                        observable files are named: CPs_nn.txt, amplitudes_nn.txt, and so on
                        02d format numbers, 00 start, number the slices in  the 
                        image 3D datacube processed by implaneia.
-        oiprefix (str) Mnemonic prefix added to the output oifits filename (eg "ov6_")
+        oifprefix (str) Mnemonic prefix added to the output oifits filename (eg "ov6_")
                        The oifits filename is constructed from fields in the pickled dictionary
                        written by implaneia into oitxtdir directory.
         datadir (str)  Directory to write the oifits file in
@@ -646,17 +649,24 @@ def oitxt2oif(nh=None, oitxtdir=None, oiprefix=None, datadir=None):
 
 if __name__ == "__main__":
 
+    ov_main = 3 # only used to create oifits filename prefix to help organize output
     moduledir = os.path.expanduser('~') + '/gitsrc/ImPlaneIA/'
+
+    oifprefix_t = "t_ov{:d}_".format(ov_main)
     oitxtdir_t = moduledir + "/example_data/example_niriss/bin_tgt_oitxt"
     oifdir_t =  oitxtdir_t + 'Saveoifits/'
-
-    ov_main = 3 # only used to create oifits filename prefix to help organize output
-    oifprefix_t = "ov{:d}_".format(ov_main)
-
     dct = oitxt2oif(nh=7, oitxtdir=oitxtdir_t, 
-                          oiprefix=oifprefix_t,
+                          oifprefix=oifprefix_t,
                           datadir=oifdir_t)
-
     oifits.show(dct, diffWl=True)
-
     plt.show()
+
+    oifprefix_c = "c_ov{:d}_".format(ov_main)
+    oitxtdir_c = moduledir + "/example_data/example_niriss/bin_cal_oitxt"
+    oifdir_c =  oitxtdir_c + 'Saveoifits/'
+    dct = oitxt2oif(nh=7, oitxtdir=oitxtdir_c, 
+                          oifprefix=oifprefix_c,
+                          datadir=oifdir_c)
+    oifits.show(dct, diffWl=True)
+    plt.show()
+
