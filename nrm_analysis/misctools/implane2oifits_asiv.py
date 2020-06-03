@@ -652,6 +652,7 @@ if __name__ == "__main__":
     ov_main = 3 # only used to create oifits filename prefix to help organize output
     moduledir = os.path.expanduser('~') + '/gitsrc/ImPlaneIA/'
 
+    # convert one file...
     oifprefix_t = "t_ov{:d}_".format(ov_main)
     oitxtdir_t = moduledir + "/example_data/example_niriss/bin_tgt_oitxt"
     oifdir_t =  oitxtdir_t + 'Saveoifits/'
@@ -661,9 +662,10 @@ if __name__ == "__main__":
     oifits.show(dct, diffWl=True)
     plt.show()
 
+    # then convert another file...
     oifprefix_c = "c_ov{:d}_".format(ov_main)
     oitxtdir_c = moduledir + "/example_data/example_niriss/bin_cal_oitxt"
-    oifdir_c =  oitxtdir_c + 'Saveoifits/'
+    oifdir_c =  oitxtdir_c + '/Saveoifits/'
     dct = oitxt2oif(nh=7, oitxtdir=oitxtdir_c, 
                           oifprefix=oifprefix_c,
                           datadir=oifdir_c)
