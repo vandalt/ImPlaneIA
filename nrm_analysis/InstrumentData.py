@@ -504,7 +504,9 @@ class NIRISS:
         # for single slice data, need to read as 3D (1, npix, npix)
         # for utr data, need to read as 3D (ngroup, npix, npix)
         fitsfile = fits.open(fn)
-        scidata=fitsfile[1].data
+        print("Reading data and trimming 4 rows of reference pixels...")
+        scidata=fitsfile[1].data[:,4:, :]
+        print(scidata.shape)
         prihdr=fitsfile[0].header
         scihdr=fitsfile[1].header
         self.updatewithheaderinfo(prihdr, scihdr) # mirage header or MAST header
