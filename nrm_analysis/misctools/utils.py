@@ -498,7 +498,7 @@ def center_imagepeak(img, r='default', cntrimg = True, verbose=False):
         Cropped to place the brightest pixel at the center of the img array
 
     """
-    peakx, peaky, h = min_distance_to_edge(img, cntrimg=cntrimg)
+    peakx, peaky, h = min_distance_to_edge(img)
     if r == 'default':
         r = h.copy()
     else:
@@ -512,7 +512,7 @@ def center_imagepeak(img, r='default', cntrimg = True, verbose=False):
     return cropped
 
 
-def min_distance_to_edge(img, cntrimg = True, verbose=False):
+def min_distance_to_edge(img, cntrimg = False, verbose=False):
     """Return pixel distance to closest detector edge.
 
     Parameters
