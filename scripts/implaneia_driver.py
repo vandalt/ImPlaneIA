@@ -30,7 +30,7 @@ mirexample = os.path.expanduser('~') + \
 fov = 79
 filt="F430M"
 lamc = 4.3e-6
-oversample=11
+oversample=3
 bandpass = np.array([(1.0, lamc),])
 
 pixelscale_as=0.0656
@@ -145,6 +145,8 @@ def simulate_data(affine2d=None, psf_offset_det=None, pistons_w=None):
 
 
 if __name__ == "__main__":
+
+    import pdb; pdb.set_trace()
 
     identity = utils.Affine2d(rotradccw=utils.avoidhexsingularity(0.0),
                               name="affrot_{0:+.3f}deg".format(0.0))
