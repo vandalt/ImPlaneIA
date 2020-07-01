@@ -586,8 +586,10 @@ def observable2dict(nrm, nrm_c=False, display=False):
         plt.figure(figsize=(14.2, 7))
         plt.subplot(1, 2, 1)
         # Index 0 and 1 reversed to get the good u-v coverage (same fft)
-        plt.scatter(ctrs[:, 1], ctrs[:, 0], s=2e3, c='', edgecolors='navy')
-        plt.scatter(-1000, 1000, s=5e1, c='',
+        #lt.scatter(ctrs[:, 1], ctrs[:, 0], s=2e3, c='', edgecolors='navy')
+        plt.scatter(ctrs[:, 1], ctrs[:, 0], s=2e3,       edgecolors='navy')
+        #lt.scatter(-1000, 1000, s=5e1, c='',
+        plt.scatter(-1000, 1000, s=5e1,      
                     edgecolors='navy', label='Aperture mask')
         plt.plot(x, y, '--', color='gray', label='Primary mirror equivalent')
 
@@ -597,8 +599,10 @@ def observable2dict(nrm, nrm_c=False, display=False):
         plt.axis([-4., 4., -4., 4.])
 
         plt.subplot(1, 2, 2)
-        plt.scatter(ucoord, vcoord, s=1e2, c='', edgecolors='navy')
-        plt.scatter(-ucoord, -vcoord, s=1e2, c='', edgecolors='crimson')
+        #lt.scatter(ucoord, vcoord, s=1e2, c='', edgecolors='navy')
+        plt.scatter(ucoord, vcoord, s=1e2,       edgecolors='navy')
+        #lt.scatter(-ucoord, -vcoord, s=1e2, c='', edgecolors='crimson')
+        plt.scatter(-ucoord, -vcoord, s=1e2,       edgecolors='crimson')
 
         plt.plot(0, 0, 'k+')
         plt.axis((D, -D, -D, D))
