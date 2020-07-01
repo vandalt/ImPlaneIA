@@ -351,10 +351,10 @@ class VISIR:
             self.nwav=scidata.shape[0]
             [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
             return scidata, hdr
-        elif len(scidata.shape)==2:
+        elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
             return np.array([scidata,]), hdr
         else:
-            sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
+            sys.exit("invalid data dimensions for VISIR. Should have dimensionality of 2 or 3.")
         return scidata, hdr
 
 class NIRISS:
@@ -515,7 +515,8 @@ class NIRISS:
             self.nwav=scidata.shape[0]
             [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
             return prihdr, scihdr, scidata
-        elif len(scidata.shape)==2:
+        elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
+            print("casting 2D data array into 3D one-slice cube")
             return prihdr, scihdr, scidata
         else:
             sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
