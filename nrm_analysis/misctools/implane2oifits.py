@@ -21,7 +21,8 @@ from matplotlib import pyplot as plt
 from munch import munchify as dict2class
 from scipy.special import comb
 
-import oifits
+#import oifits
+import nrm_analysis.misctools.oifits as oifits
 
 plt.close('all')
 
