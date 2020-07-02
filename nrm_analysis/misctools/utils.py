@@ -5,6 +5,7 @@ import numpy.fft as fft
 from astropy.io import fits
 import os, sys
 import pickle as pickle
+import scipy
 from scipy.special import comb
 import time
 import poppy.matrixDFT as matrixDFT
@@ -309,6 +310,16 @@ def rotate2dccw(vectors, thetarad):
                              s*vector[0] + c*vector[1]])
     return np.array(ctrs_rotated)
 
+    
+def cp_var(nh, cps):
+    """ True standard deviation given non-independent closure phases """
+    return  ((cps - cps.mean())**2).sum() / scipy.special.comb(nh-1,2)
+
+def ca_var(nh, cas):
+    """ True standard deviation given non-independent closure amplitudes """
+    return  ((cas - cas.mean())**2).sum() / scipy.special.comb(nh-3, 2)
+
+
 def default_printoptions():
     np.set_printoptions(edgeitems=3, infstr='inf', linewidth=75, nanstr='nan', precision=8,
     suppress=False, threshold=1000, formatter=None)
@@ -449,6 +460,46 @@ def tophatfilter(lam_c, frac_width, npoints=10):
     for ii in range(len(wllist)):
         filt.append(np.array([1.0, wllist[ii]]))
     return filt
+
+# from https://github.com/spacetelescope/jwst/blob/master/jwst/coron/median_replace_img.pydef 
+def median_fill_value(input_array, input_dq_array, bsize, xc, yc):
+    """
+        Arguments:
+        ----------
+        input_array : ndarray
+            Input array to filter.
+        input_dq_array : ndarray
+            Input data quality array
+        bsize : scalar
+            box size of the data to extract
+        xc: scalar
+           x position of the data extraction
+        xc: scalar
+           y position of the data extraction
+        """
+    # set the half box size
+    hbox = int(bsize/2)
+
+    # Extract the region of interest for the data
+    try:
+        data_array = input_array[xc - hbox:xc + hbox, yc - hbox: yc + hbox]
+        dq_array = input_dq_array[xc - hbox:xc + hbox, yc - hbox: yc + hbox]
+    except IndexError:
+        # If the box is outside the data return 0
+        print('utils.median_fill_value: Box for median filter is outside the data.')
+        return 0.
+
+    # good data only...
+    filtered_array = data_array[dq_array == 0] # != dqflags.pixel['DO_NOT_USE']]
+    median_value = np.median(filtered_array)
+
+    if np.isnan(median_value): # Is this trouble for implaneia? We expect no NaNs... 
+        # If the median fails return 0
+        print('utils.median_fill_value: Median filter returned NaN setting value to 0.')
+        median_value = 0.
+
+    return median_value
+
 
 def crosscorrelatePSFs(a, A, ov, verbose=False):
     """
