@@ -365,6 +365,8 @@ class NIRISS:
                        chooseholes=None, 
                        affine2d=None, 
                        bandpass=None,
+                       bpbox_size=None,
+                       bpexist=True,
                        **kwargs):
         """
         Initialize NIRISS class
@@ -387,9 +389,17 @@ class NIRISS:
         else:
             self.verbose=False
 
+        self.bpexist = bpexist # is there a bad pixel map (eg DQ fits image extension, 0 = good)
+
+        if bpbox_size:
+            self.bpbox_size = bpbox_size
+        else: 
+            self.bpbox_size = 3
+
         if chooseholes:
             print("    **** InstrumentData.NIRISS: ", chooseholes)
         self.chooseholes = chooseholes
+
 
         self.objname = objname
 
@@ -504,22 +514,49 @@ class NIRISS:
         # for single slice data, need to read as 3D (1, npix, npix)
         # for utr data, need to read as 3D (ngroup, npix, npix)
         fitsfile = fits.open(fn)
-        print("Reading data and trimming 4 rows of reference pixels...")
-        scidata=fitsfile[1].data[:,4:, :]
-        print(scidata.shape)
+        scidata=fitsfile[1].data
+
+        if len(scidata.shape)==3:
+            print("input: 3D cube")
+            self.nwav=scidata.shape[0]
+            [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
+        elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
+            print("input: 2D data array convering to 3D one-slice cube")
+            scidata = np.array([scidata,])
+        else:
+            sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
+
+        # refpix removal by trimming
+        scidata = scidata[:,4:, :] # [all slices, imaxis[0], imaxis[1]]
+
+        # fix pix using bad pixel map - WIP 7 2 2020 anand, still fails
+        if self.bpexist:
+            bpdata=fitsfile['DQ'].data # bad pixel extension
+            bpdata = bpdata[4:, :]     #             one im axis, other imaxis
+            print('Refpix-trimmed scidata', scidata.shape)
+            print('Refpix-trimmed bpdata', bpdata.shape)
+
+            # median replace bad pixels
+            # check to see if any of the pixels are flagged in trimmed dta
+            if np.count_nonzero(bpdata != 0) > 0:
+                bad_locations  = np.where(np.not_equal(bpdata, 0))
+            # Save locations of bad pixels...
+            self.bpmask = np.where(bpdata != 0)
+            # fill the bad pixel values with the median of the data in a box region
+            for i_pos in range(len(bad_locations[0])):
+                x_box_pos = bad_locations[0][i_pos]
+                y_box_pos = bad_locations[1][i_pos]
+                median_fill = utils.median_fill_value(scidata, bpdata, self.bpbox_size, x_box_pos, y_box_pos)
+                scidata[x_box_pos, y_box_pos] = median_fill
+    
         prihdr=fitsfile[0].header
         scihdr=fitsfile[1].header
         self.updatewithheaderinfo(prihdr, scihdr) # mirage header or MAST header
+        # createsubdirectory name into which to write txt & oifits observables' files
         self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
-        if len(scidata.shape)==3:
-            self.nwav=scidata.shape[0]
-            [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
-            return prihdr, scihdr, scidata
-        elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
-            print("casting 2D data array into 3D one-slice cube")
-            return prihdr, scihdr, scidata
-        else:
-            sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
+
+        return prihdr, scihdr, scidata
+
     
     def updatewithheaderinfo(self, ph, sh):
         """ input: primary header, science header MAST"""
@@ -599,6 +636,88 @@ class NIRISS:
         """Either from WEBBPSF, or tophat, etc. A set of filter files will also be provided"""
         return None
 
+    def create_bpmask(self, imdata, dqdata):
+        """
+        imdata is 2, 3, or higher-dimensional data
+        dqdata is 2d data, int, 0 for good data quality.
+        saves an np.where() of bad data
+        """
+        bpmask = utils.mask_and_replace_bp(imdata, dqdata)
+        return bpmask
+
+    def jwst_dqflags(self):
+        """ 
+            dqdata is a 2d (32-bit U?)INT array from the DQ extension of the input file.
+            We ignore all data with a non-zero DQ flag.  I copied all values from a 7.5 build jwst...
+            but we ignore any non-zero flag meaning, and ignore the pixel in fringe-fitting
+            The refpix are non-zero DQ, btw...
+            I changed "pixel" to self.pbval and "group" to self.bpgroup. We may use these later, 
+            so here they are but initially we just discriminate between good (zero value) and non-good.
+        """
+
+        """ JWST Data Quality Flags
+            The definitions are documented in the JWST RTD:
+            https://jwst-pipeline.readthedocs.io/en/latest/jwst/references_general/references_general.html#data-quality-flags 
+        """
+        """ JWST Data Quality Flags
+        The definitions are documented in the JWST RTD:
+        https://jwst-pipeline.readthedocs.io/en/latest/jwst/references_general/references_general.html#data-quality-flags
+        Implementation
+        -------------
+        The flags are implemented as "bit flags": Each flag is assigned a bit position
+        in a byte, or multi-byte word, of memory. If that bit is set, the flag assigned
+        to that bit is interpreted as being set or active.
+        The data structure that stores bit flags is just the standard Python `int`,
+        which provides 32 bits. Bits of an integer are most easily referred to using
+        the formula `2**bit_number` where `bit_number` is the 0-index bit of interest.
+        """
+
+        # Pixel-specific flags
+        self.bpval = {
+                 'GOOD':             0,      # No bits set, all is good
+                 'DO_NOT_USE':       2**0,   # Bad pixel. Do not use.
+                 'SATURATED':        2**1,   # Pixel saturated during exposure
+                 'JUMP_DET':         2**2,   # Jump detected during exposure
+                 'DROPOUT':          2**3,   # Data lost in transmission
+                 'OUTLIER':          2**4,   # Flagged by outlier detection. Was RESERVED_1
+                 'RESERVED_2':       2**5,   #
+                 'RESERVED_3':       2**6,   #
+                 'RESERVED_4':       2**7,   #
+                 'UNRELIABLE_ERROR': 2**8,   # Uncertainty exceeds quoted error
+                 'NON_SCIENCE':      2**9,   # Pixel not on science portion of detector
+                 'DEAD':             2**10,  # Dead pixel
+                 'HOT':              2**11,  # Hot pixel
+                 'WARM':             2**12,  # Warm pixel
+                 'LOW_QE':           2**13,  # Low quantum efficiency
+                 'RC':               2**14,  # RC pixel
+                 'TELEGRAPH':        2**15,  # Telegraph pixel
+                 'NONLINEAR':        2**16,  # Pixel highly nonlinear
+                 'BAD_REF_PIXEL':    2**17,  # Reference pixel cannot be used
+                 'NO_FLAT_FIELD':    2**18,  # Flat field cannot be measured
+                 'NO_GAIN_VALUE':    2**19,  # Gain cannot be measured
+                 'NO_LIN_CORR':      2**20,  # Linearity correction not available
+                 'NO_SAT_CHECK':     2**21,  # Saturation check not available
+                 'UNRELIABLE_BIAS':  2**22,  # Bias variance large
+                 'UNRELIABLE_DARK':  2**23,  # Dark variance large
+                 'UNRELIABLE_SLOPE': 2**24,  # Slope variance large (i.e., noisy pixel)
+                 'UNRELIABLE_FLAT':  2**25,  # Flat variance large
+                 'OPEN':             2**26,  # Open pixel (counts move to adjacent pixels)
+                 'ADJ_OPEN':         2**27,  # Adjacent to open pixel
+                 'UNRELIABLE_RESET': 2**28,  # Sensitive to reset anomaly
+                 'MSA_FAILED_OPEN':  2**29,  # Pixel sees light from failed-open shutter
+                 'OTHER_BAD_PIXEL':  2**30,  # A catch-all flag
+                 'REFERENCE_PIXEL':  2**31,  # Pixel is a reference pixel
+        }
+
+        # Group-specific flags. Once groups are combined, these flags
+        # are equivalent to the pixel-specific flags.
+        self.bpgroup = {
+                 'GOOD':       self.bpval['GOOD'],
+                 'DO_NOT_USE': self.bpval['DO_NOT_USE'],
+                 'SATURATED':  self.bpval['SATURATED'],
+                 'JUMP_DET':   self.bpval['JUMP_DET'],
+                 'DROPOUT':    self.bpval['DROPOUT'],
+        }
 
 class NIRC2:
     def __init__(self, reffile, **kwargs):
