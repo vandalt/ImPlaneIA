@@ -573,7 +573,15 @@ class NIRISS:
         info4oif_dict['lam_w'] = self.lam_w
         info4oif_dict['lam_bin'] = self.lam_bin
 
-        self.objname =  ph["TARGNAME"]; info4oif_dict['objname'] = self.objname
+        # Target information
+        if ph["TARGNAME"] == 'UNKNOWN':  # use proposer's name for target
+            self.objname =  ph["TARGPROP"]
+        else:
+            self.objname =  ph["TARGNAME"]
+        # 'ABDor' or 'AB Dor' work. Do not use '-' in aptx proposal name
+        # self.objname =  "ABDor"; info4oif_dict['objname'] = self.objname 
+        self.objname = self.objname.replace('-','')
+        info4oif_dict['objname'] = self.objname
         self.ra = ph["TARG_RA"]; info4oif_dict['ra'] = self.ra
         self.dec = ph["TARG_DEC"]; info4oif_dict['dec'] = self.dec
 

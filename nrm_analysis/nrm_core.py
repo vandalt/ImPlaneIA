@@ -36,7 +36,6 @@ from scipy.stats import sem, mstats
 import pickle as pickle
 import matplotlib.pyplot as plt
 
-#import nrm_analysis.oifits as oifits
 
 # Module imports
 from nrm_analysis.fringefitting.LG_Model import NRM_Model
@@ -117,6 +116,10 @@ class FringeFitter:
             self.save_txt_only = kwargs["save_txt_only"]
         else:
             self.save_txt_only = False
+        if "oifprefix" in kwargs:
+            self.oifprefix = kwargs["oifprefix"]
+        else:
+            self.oifprefix = "oifprefix_"
         #######################################################################
 
 
@@ -214,7 +217,7 @@ class FringeFitter:
 
         # Read in all relevant text observables and save to oifits file...
         dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.savedir+self.sub_dir_str+'/' ,
-                                             oifprefix='testOIF_',
+                                             oifprefix=self.oifprefix,
                                              datadir=self.savedir+'/') # .savedir)
 
 
