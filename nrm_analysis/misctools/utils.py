@@ -1367,7 +1367,7 @@ def t3err(viserr, N=7):
     MIRAGE template file is in the string variable mirexample
 """
 
-def amisim2mirage(datadir, amisimfns, mirexample, filt):
+def amisim2mirage(datadir, amisimfns, mirexample, filt, verbose=False):
     """
     datadir: where input amisim files (cubes or 2d) are located
     amisimfns: one or a list/tuple of simulated data files
@@ -1385,7 +1385,7 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt):
     if type(amisimfns) == str:
             amisimfns = [amisimfns, ]
     for fname in amisimfns:
-        print(fname+':', end='')
+        if verbose: print(fname+':', end='')
         fobj_sim = fits.open(datadir+fname+".fits")
         if len(fobj_sim[0].data.shape) == 2:    #make single slice of data into a 1 slice cube
             d = np.zeros((1, fobj_sim[0].data.shape[0], fobj_sim[0].data.shape[1]))
@@ -1417,10 +1417,10 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt):
         # that amisim used... the nmae must be an allowd ami filter
         # actul bandpasses can be manipulated when creating the simulation.
         mirobj[0].header["FILTER"] = filt
-        print(" TARGNAME =", mirobj[0].header["TARGNAME"],  " ",
-              mirobj[0].header["FILTER"],
-              " Input", fobj_sim[0].data.shape,
-              " Output", mirobj[1].data.shape)
+        if verbose: print(" TARGNAME =", mirobj[0].header["TARGNAME"],  " ",
+                          mirobj[0].header["FILTER"],
+                          " Input", fobj_sim[0].data.shape,
+                          " Output", mirobj[1].data.shape)
 
         # write out miragized sim data
         mirobj.writeto(datadir+fname+mirext+".fits", overwrite=True)

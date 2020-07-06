@@ -68,6 +68,7 @@ class FringeFitter:
         interactive - default True, prompts user to overwrite/create fresh directory.  
                       False will overwrite files where necessary.
         find_rotation - will find the best pupil rotation that matches the data
+        verbose - T/F
 
         main method:
         * fit_fringes
@@ -120,6 +121,10 @@ class FringeFitter:
             self.oifprefix = kwargs["oifprefix"]
         else:
             self.oifprefix = "oifprefix_"
+        if "verbose" in kwargs:
+            self.verbose = kwargs["verbose"]
+        else:
+            self.verbose = False
         #######################################################################
 
 
@@ -160,6 +165,14 @@ class FringeFitter:
         print("Parallel with {0} threads took {1:.2f}s to fit all fringes".format(\
                threads, t3-t2))
 
+        print("nrm_core: output directory:", self.instrument_data.sub_dir_str)
+        # Read in all relevant text observables and save to oifits file...
+        dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.savedir+self.instrument_data.sub_dir_str+'/' ,
+                                             oifprefix=self.oifprefix,
+                                             datadir=self.savedir+'/',
+                                             verbose=self.verbose,
+                                             )
+
 
     def save_output(self, slc, nrm):
         # cropped & centered PSF
@@ -190,8 +203,6 @@ class FringeFitter:
                     header=modelhdu.header).writeto(self.savedir+\
                     self.sub_dir_str+"/n_modelsolution_{0:02d}.fits".format(slc), \
                     overwrite=True)
-        else:
-            print("nrm_core: NOT SAVING ANY FITS FILES. SET save_txt_only=False TO SAVE.")
 
         # default save to text files
         np.savetxt(self.savedir+self.sub_dir_str + \
@@ -216,9 +227,9 @@ class FringeFitter:
             pfd.close()
 
         # Read in all relevant text observables and save to oifits file...
-        dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.savedir+self.sub_dir_str+'/' ,
-                                             oifprefix=self.oifprefix,
-                                             datadir=self.savedir+'/') # .savedir)
+        #dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.savedir+self.sub_dir_str+'/' ,
+        #                                     oifprefix=self.oifprefix,
+        #                                     datadir=self.savedir+'/') # .savedir)
 
 
         # optional save outputs

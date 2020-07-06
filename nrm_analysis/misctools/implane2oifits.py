@@ -83,8 +83,8 @@ class ObservablesFromText():
         #   - yes many fringes, more cp's, and so on.
         self.nslices = len(
             glob.glob(self.txtpath+'/{0:s}*.txt'.format(self.observables[0])))
-        if verbose:
-            print(self.nslices, "slices' observables text files found")
+        if verbose: print("misctools.implane2oifits: slices' observables text filesets found:", self.nslices)
+
         self.nh = nh
         self.nbl = int(comb(self.nh, 2))
         self.ncp = int(comb(self.nh, 3))
@@ -262,7 +262,7 @@ class ObservablesFromText():
         self.qholes, self.quvw = self._makequads_all()
 
 
-def Plot_observables(tab, vmin=0, vmax=1.1, cmax=180, unit_cp='deg'):
+def Plot_observables(tab, vmin=0, vmax=1.1, cmax=180, unit_cp='deg', display=False):
     cp = tab.cp
 
     if unit_cp == 'rad':
@@ -282,32 +282,35 @@ def Plot_observables(tab, vmin=0, vmax=1.1, cmax=180, unit_cp='deg'):
     target = tab.info4oif_dict['objname']
 
     cmin = -cmax*conv_cp
-    fig = plt.figure(figsize=(10, 5))
-    plt.subplot(1, 2, 1)
-    plt.title('Uncalibrated Vis. (%s)' % target)
-    plt.plot(Vis.transpose(), 'gray', alpha=.2)
-    plt.plot(Vis_mean, 'k--', label='Mean')
-    plt.plot(Vis_med, linestyle='--', color='crimson', label='Median')
-    plt.xlabel('Index', color='dimgray', fontsize=12)
-    plt.ylabel(r'Vis.', color='dimgray', fontsize=12)
-    plt.ylim([vmin, vmax])
-    plt.legend(loc='best')
+    if display:
+        fig = plt.figure(figsize=(10, 5))
+        plt.subplot(1, 2, 1)
+        plt.title('Uncalibrated Vis. (%s)' % target)
+        plt.plot(Vis.transpose(), 'gray', alpha=.2)
+        plt.plot(Vis_mean, 'k--', label='Mean')
+        plt.plot(Vis_med, linestyle='--', color='crimson', label='Median')
+        plt.xlabel('Index', color='dimgray', fontsize=12)
+        plt.ylabel(r'Vis.', color='dimgray', fontsize=12)
+        plt.ylim([vmin, vmax])
+        plt.legend(loc='best')
 
-    plt.subplot(1, 2, 2)
-    plt.title('Uncalibrated CP (%s)' % target)
-    plt.plot(cp.transpose(), 'gray', alpha=.2)
-    plt.plot(cp_mean, 'k--', label='Mean')
-    plt.plot(cp_med, linestyle='--', color='crimson', label='Median')
-    plt.xlabel('Index', color='dimgray', fontsize=12)
-    plt.ylabel('CP [%s]' % unit_cp, color='dimgray', fontsize=12)
-    plt.hlines(h1, 0, len(cp_mean),
-               lw=1, color='k', alpha=.2, ls='--')
-    plt.hlines(-h1, 0, len(cp_mean),
-               lw=1, color='k', alpha=.2, ls='--')
-    plt.ylim([cmin, cmax])
-    plt.legend(loc='best')
-    plt.tight_layout()
-    return fig
+        plt.subplot(1, 2, 2)
+        plt.title('Uncalibrated CP (%s)' % target)
+        plt.plot(cp.transpose(), 'gray', alpha=.2)
+        plt.plot(cp_mean, 'k--', label='Mean')
+        plt.plot(cp_med, linestyle='--', color='crimson', label='Median')
+        plt.xlabel('Index', color='dimgray', fontsize=12)
+        plt.ylabel('CP [%s]' % unit_cp, color='dimgray', fontsize=12)
+        plt.hlines(h1, 0, len(cp_mean),
+                   lw=1, color='k', alpha=.2, ls='--')
+        plt.hlines(-h1, 0, len(cp_mean),
+                   lw=1, color='k', alpha=.2, ls='--')
+        plt.ylim([cmin, cmax])
+        plt.legend(loc='best')
+        plt.tight_layout()
+        return fig
+    else:
+        return
 
 
 def calib_NRM(nrm_t, nrm_c, method='med'):
@@ -610,12 +613,12 @@ def observable2dict(nrm, nrm_c=False, display=False):
         plt.ylabel('Fourier v-coordinate [m]')
         plt.tight_layout()
 
-        Plot_observables(nrm)
-        if nrm_c: Plot_observables(nrm_c)  # Plot calibrated or single object raw oifits data
+        Plot_observables(nrm, display=display)
+        if nrm_c: Plot_observables(nrm_c=display)  # Plot calibrated or single object raw oifits data
     return dct
 
 
-def oitxt2oif(nh=None, oitxtdir=None, oifprefix='', datadir=None):
+def oitxt2oif(nh=None, oitxtdir=None, oifprefix='', datadir=None, verbose=False):
     """
     Input: 
         oitxtdir (str) Directory where implaneia wrote the observables
@@ -635,8 +638,8 @@ def oitxt2oif(nh=None, oitxtdir=None, oifprefix='', datadir=None):
     Converted here to only write one oifits file to disk, including stats
     for the object's observables
     """
-    nrm = ObservablesFromText(nh, oitxtdir, verbose=False) # read in the nrm observables
-    dct = observable2dict(nrm, display=True) # populate Anthony's dictionary suitable for oifits.py
+    nrm = ObservablesFromText(nh, oitxtdir, verbose=verbose) # read in the nrm observables
+    dct = observable2dict(nrm, display=False) # populate Anthony's dictionary suitable for oifits.py
                                              # nrm_c defaults to false: do not calibrate, no cal star given
     oifits.save(dct, oifprefix=oifprefix, datadir=datadir, verbose=False)
     print('in directory {0:s}'.format(datadir))

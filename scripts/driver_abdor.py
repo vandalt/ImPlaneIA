@@ -47,7 +47,8 @@ def analyze_data(fitsfn=None, fitsimdir=None, affine2d=None,
                          psf_offset_ff = None, 
                          rotsearch_d=None,
                          set_pistons=None,
-                         oversample=3):
+                         oversample=3,
+                         verbose=False):
     """ 
         returns: affine2d (measured or input), 
         psf_offset_find_rotation (input),
@@ -55,53 +56,89 @@ def analyze_data(fitsfn=None, fitsimdir=None, affine2d=None,
         fringe pistons/r (found)
     """
 
-    print("analyze_data: input file", fitsfn)
-    print("analyze_data: oversample", oversample)
+    if verbose: print("analyze_data: input", fitsimdir+fitsfn)
+    if verbose: print("analyze_data: oversample", oversample)
 
-    data = fits.getdata(fitsfn)
-    fobj = fits.open(fitsfn)
+    #data = fits.getdata(fitsfn)
+    fobj = fits.open(fitsimdir+fitsfn)
 
-    print(fobj[0].header['FILTER'])
+    if verbose: print(fobj[0].header['FILTER'])
     niriss = InstrumentData.NIRISS(fobj[0].header['FILTER'], bpexist=False)
     ff_t = nrm_core.FringeFitter(niriss, 
                                  datadir=fitsimdir, 
                                  savedir=fitsimdir,
                                  oversample=oversample,
                                  oifprefix="ov{:d}_".format(oversample),
-                                 interactive=False)
-    ff_t.fit_fringes(fitsfn)
-    print(fitsfn)
-    sys.exit()
+                                 interactive=False,
+                                 save_txt_only=True)
+    ff_t.fit_fringes(fitsimdir+fitsfn)
     examine_residuals(ff_t)
 
     np.set_printoptions(formatter={'float': lambda x: '{:+.2e}'.format(x)}, linewidth=80)
-    print("analyze_data: fringepistons/rad", ff_t.nrm.fringepistons)
+    if verbose: print("analyze_data: fringepistons/rad", ff_t.nrm.fringepistons)
     utils.default_printoptions()
     return affine2d, psf_offset_find_rotation, ff_t.nrm.psf_offset, ff_t.nrm.fringepistons
 
 
-def main(fitsimdir, ifn, oversample=3):
+def main(fitsimdir, ifn, oversample=3, verbose=False):
     """ 
     fitsimdir: string: dir containing data file
-    ifn: str: inout data file name, 2d cal or 3d calint MAST header fits file
+    ifn: str
     """
     
-    fitsimdir = os.path.expanduser('~')+"/data/implaneia/niriss_development/2dinput/"
-    if not os.path.exists(fitsimdir):  
-        os.makedirs(fitsimdir)
-    df = fitsimdir+'niscal_mir.fits'
-
     np.set_printoptions(formatter={'float': lambda x: '{:+.2e}'.format(x)}, linewidth=80)
-    print("__main__: analyzing", ifn)
+    if verbose: print("__main__: main", ifn)
+    if verbose: print("__main__: fitsimdir", fitsimdir)
 
-    aff, psf_offset_r, psf_offset_ff, fringepistons = analyze_data(df, fitsimdir, oversample=oversample)
-    print("implaneia output in: ", fitsimdir, "\n")
+    aff, psf_offset_r, psf_offset_ff, fringepistons = analyze_data(ifn, fitsimdir, 
+                                                                   oversample=oversample,
+                                                                   verbose=verbose)
+    del aff
+    del psf_offset_r
+    del psf_offset_ff
+    del fringepistons
+    #plot.show()
 
-    plot.show()
 
 if __name__ == "__main__":
 
-    main(fitsimdir=os.path.expanduser('~')+"/data/implaneia/niriss_development/2dinput/", 
-         ifn='niscal_mir.fits',
-         oversample=5
-         )
+    mirexample = os.path.expanduser('~') + '/gitsrc/' +\
+        "/ImPlaneIA/example_data/example_niriss/" + \
+        "jw00793001001_01101_00001_nis_cal.fits"
+
+    datasuperdir = os.path.expanduser('~') + '/data/implaneia/amisim_udem_nis019/'
+    filters = ['F480M', 'F430M', 'F380M']
+    datafiles_byfilter = {}
+    # create file names for 'simple' CAP-019 observations...
+    for filt in filters:
+        datafiles_byfilter[filt] = ['t_ABDor_{:s}__myPSF_{:s}_Obs1_00'.format(filt,filt),
+                                   ] # debug flow for one observation, Obs1 - 3 filters, 3 oifits files
+        datafiles_byfilter[filt] = ['t_ABDor_{:s}__myPSF_{:s}_Obs1_00'.format(filt,filt),
+                                    't_ABDor_{:s}__myPSF_{:s}_Obs2_00'.format(filt,filt),
+                                    't_HD37093_{:s}__myPSF_{:s}_Obs4_00'.format(filt,filt),
+                                    't_HD36805_{:s}__myPSF_{:s}_Obs6_00'.format(filt,filt),
+                                   ] # 12 oifits files
+    # convert to _mir files, add target name & prop from amisim filename t_targetname_...
+    for filt in filters:
+        fitsimdir = datasuperdir + filt + '/'
+        utils.amisim2mirage(fitsimdir, datafiles_byfilter[filt], mirexample, filt)
+        # following target name loop only needs to occur once... but doesn't hurt
+        add_targetname = True
+        if add_targetname:
+            for fitsfile in datafiles_byfilter[filt]: # put in target name for oif to pick up, use in prefix
+                targname = fitsfile.split('_')[1].upper()
+                mirfitsfn = fitsfile+'_mir.fits'
+                fobj = fits.open(fitsimdir+mirfitsfn)
+                fobj[0].header['TARGNAME'] = (targname, 'parsed from file name')
+                fobj[0].header['TARGPROP'] = (targname, 'parsed from file name')
+                fobj.writeto(fitsimdir+mirfitsfn, overwrite=True)
+
+    count = 0
+    for filt in filters:
+        print('__main__: ', datasuperdir, filt)
+        for fn in  datafiles_byfilter[filt]:
+            print('__main__  ', count, fn)
+            fn_mir = fn+'_mir.fits'
+            main(fitsimdir=datasuperdir+filt+'/', ifn=fn_mir, oversample=5, verbose=False)
+            plot.close()
+            count += 1

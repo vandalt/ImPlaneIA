@@ -456,7 +456,7 @@ class NIRISS:
             self.wls = [utils.combine_transmission(self.throughput, src), ]
         except:
             self.wls = [self.throughput, ]
-        print("self.throughput:\n", self.throughput)
+        if self.verbose: print("self.throughput:\n", self.throughput)
 
         # Wavelength info for NIRISS bands F277W, F380M, F430M, or F480M
         self.wavextension = ([self.lam_c[self.filt],], [self.lam_w[self.filt],])
@@ -574,14 +574,10 @@ class NIRISS:
         info4oif_dict['lam_bin'] = self.lam_bin
 
         # Target information
-        if ph["TARGNAME"] == 'UNKNOWN':  # use proposer's name for target
-            self.objname =  ph["TARGPROP"]
-        else:
-            self.objname =  ph["TARGNAME"]
+        self.objname =  ph["TARGNAME"]
         # 'ABDor' or 'AB Dor' work. Do not use '-' in aptx proposal name
         # self.objname =  "ABDor"; info4oif_dict['objname'] = self.objname 
-        self.objname = self.objname.replace('-','')
-        info4oif_dict['objname'] = self.objname
+        self.objname = self.objname.replace('-',''); info4oif_dict['objname'] = self.objname
         self.ra = ph["TARG_RA"]; info4oif_dict['ra'] = self.ra
         self.dec = ph["TARG_DEC"]; info4oif_dict['dec'] = self.dec
 
