@@ -367,6 +367,7 @@ class NIRISS:
                        bandpass=None,
                        bpbox_size=None,
                        bpexist=True,
+                       firstfew = None,
                        **kwargs):
         """
         Initialize NIRISS class
@@ -382,6 +383,8 @@ class NIRISS:
         bandpass: None or [(wt,wlen),(wt,wlen),...].  Monochromatic would be e.g. [(1.0, 4.3e-6)]
                   Explicit bandpass arg will replace *all* niriss filter-specific variables with 
                   the given bandpass, so you can simulate 21cm psfs through something called "F430M"!
+        firstfew: None or the number of slices to truncate input cube to in memory,
+                  the latter for fast developmpent
         """
         
         if "verbose" in kwargs:
@@ -400,6 +403,9 @@ class NIRISS:
             print("    **** InstrumentData.NIRISS: ", chooseholes)
         self.chooseholes = chooseholes
 
+
+        self.firstfew = firstfew
+        if firstfew is not None: print("InstrumentData: analysing firstfew={:d} slices".format(firstfew))
 
         self.objname = objname
 
@@ -518,6 +524,9 @@ class NIRISS:
 
         if len(scidata.shape)==3:
             print("input: 3D cube")
+            # truncate all but the first few slices for rapid development
+            if self.firstfew is not None:
+                if scidata.shape[0] > self.firstfew:  scidata = scidata[:self.firstfew, :, :]
             self.nwav=scidata.shape[0]
             [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
         elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1

@@ -178,7 +178,7 @@ class FringeFitter:
         # cropped & centered PSF
         self.datapeak = self.ctrd.max()
         #TBD: Keep only n_*.fits files after testing is done and before doing ImPlaneIA delivery
-        if self.save_txt_only==False:
+        if self.save_txt_only == False:
             fits.PrimaryHDU(data=self.ctrd, \
                     header=self.scihdr).writeto(self.savedir+\
                     self.sub_dir_str+"/centered_{0}.fits".format(slc), \
@@ -226,12 +226,6 @@ class FringeFitter:
             pickle.dump(self.instrument_data.info4oif_dict, pfd)
             pfd.close()
 
-        # Read in all relevant text observables and save to oifits file...
-        #dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.savedir+self.sub_dir_str+'/' ,
-        #                                     oifprefix=self.oifprefix,
-        #                                     datadir=self.savedir+'/') # .savedir)
-
-
         # optional save outputs
         if self.verbose_save:
             np.savetxt(self.savedir+self.sub_dir_str+\
@@ -242,7 +236,8 @@ class FringeFitter:
         #print(nrm.linfit_result)
         if nrm.linfit_result is not None:          
             # save linearfit results to pickle file
-            myPickleFile = os.path.join(self.savedir+self.sub_dir_str,"linearfit_result_{0:02d}.pkl".format(slc))
+            myPickleFile = os.path.join(self.savedir+self.sub_dir_str,
+                                        "linearfit_result_{0:02d}.pkl".format(slc))
             with open( myPickleFile , "wb" ) as f:
                 pickle.dump((nrm.linfit_result), f) 
             print("Wrote pickled file  %s" % myPickleFile)
