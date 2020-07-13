@@ -153,14 +153,13 @@ if __name__ == "__main__":
     count = 0
     for filt in filters:
         for fn in  datafiles_byfilter[filt]:
-            print('__main__  analyzing', count, 'of', len( datafiles_byfilter[filt])*len(filters),  fn)
-            print(len(datafiles_byfilter), len(filters))
+            print('__main__  analyzing', count+1, 'of', len( datafiles_byfilter[filt])*len(filters),  fn)
             fn_mir = fn+'_mir.fits'
             main(fitsimdir=datasuperdir+filt+'/', 
                  ifn=fn_mir, 
-                 oversample=1, 
+                 oversample=5, 
                  mnem=fn.split('_')[-2] + '_' +fn.split('_')[-1] + '-',   # eg 'Obs1_00_' 
-                 firstfew=5,
+                 #firstfew=5,
                  verbose=False)
             plot.close()
             count += 1
