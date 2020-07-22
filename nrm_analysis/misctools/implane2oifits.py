@@ -463,6 +463,171 @@ def populate_NRM(nrm_t, method='med'):
 
     return dict2class(output)
 
+#################  reading oifits into memory..
+###  Later we can create default values for each attribute's attributes to handle 
+###  observables without errors, and so on.
+class Visobj():
+    def __init__(self):
+        return None
+class Vis2obj():
+    def __init__(self):
+        return None
+class T3obj():
+    def __init__(self):
+        return None
+class WLobj():
+    def __init__(self):
+        return None
+class DictToObservable():
+    """
+    Convert a dictionary compatible with oifits.save to an in-memory
+    Observable object 
+
+        anand@stsci.edu 2020.07.17
+    """
+
+    def __init__(self, dct, verbose=False):
+
+        """
+        dct: dictionary resulting from oifits.load() of an oifits file
+             returns an nrm "observble" with four attributes, 
+                self.vis2obj
+                self.visobj
+                self.t3obj
+                self.wlobj
+            that each contain the associated oifits->dictionary elements.
+
+        This internal memory-only use is used for eg calibrating an observation with another, or 
+        playing with multiple calbrators, each read into one such Observable..
+
+        Usage:  e.g.
+
+            tgt = Dict2Observable(dct_abdor)
+            c_1 = Dict2Observable(dct_c_1)
+            c_2 = Dict2Observable(dct_c_2)
+        """
+
+        """
+        dct = {'OI_VIS2': {'VIS2DATA': nrmd2c.vis2,
+                           'VIS2ERR': nrmd2c.e_vis2,
+                           'UCOORD': ucoord,
+                           'VCOORD': vcoord,
+                           'STA_INDEX': nrm.bholes,
+                           'MJD': t.mjd,
+                           'INT_TIME': info['itime'],
+                           'TIME': 0,
+                           'TARGET_ID': 1,
+                           'FLAG': flagVis,
+                           'BL': bl_vis
+                           },
+        """
+        vis2obj = Vis2obj()
+        vis2obj.vis2 = dct['OI_VIS2']['VIS2DATA']
+        vis2obj.e_vis2 = dct['OI_VIS2']['VIS2ERR']
+        vis2obj.ucoord = dct['OI_VIS2']['UCOORD']
+        vis2obj.vcoord = dct['OI_VIS2']['VCOORD']
+        vis2obj.bholes = dct['OI_VIS2']['STA_INDEX']
+        vis2obj.t = Time(dct['OI_VIS2']['MJD'], format='mjd')
+        vis2obj.itime = dct['OI_VIS2']['INT_TIME']
+        vis2obj.time = dct['OI_VIS2']['TIME']
+        vis2obj.target_id = dct['OI_VIS2']['TARGET_ID']
+        vis2obj.flagVis = dct['OI_VIS2']['FLAG']
+        vis2obj.bl_vis= dct['OI_VIS2']['BL']
+        self.vis2obj = vis2obj
+
+        """
+               'OI_VIS': {'TARGET_ID': 1,
+                          'TIME': 0,
+                          'MJD': t.mjd,
+                          'INT_TIME': info['itime'],
+                          'VISAMP': nrmd2c.visamp,
+                          'VISAMPERR': nrmd2c.e_visamp,
+                          'VISPHI': nrmd2c.visphi,
+                          'VISPHIERR': nrmd2c.e_visphi,
+                          'UCOORD': ucoord,
+                          'VCOORD': vcoord,
+                          'STA_INDEX': nrm.bholes,
+                          'FLAG': flagVis,
+                          'BL': bl_vis
+                          },
+        """
+        visobj = Visobj()
+        visobj.target_id = dct['OI_VIS']['TARGET_ID']
+        visobj.t = Time(dct['OI_VIS']['MJD'], format='mjd')
+        visobj.itime = dct['OI_VIS']['INT_TIME']
+        visobj.time = dct['OI_VIS']['TIME']
+        visobj.visamp = ['OI_VIS']['VISAMP']
+        visobj.e_visamp = ['OI_VIS']['VISAMPERR']
+        visobj.visphi = ['OI_VIS']['VISPHI']
+        visobj.e_visphi = ['OI_VIS']['VISPHIERR']
+        visobj.ucoord = ['OI_VIS']['UCOORD']
+        visobj.vcoord = ['OI_VIS']['VCOORD']
+        visobj.bholes = ['OI_VIS']['STA_INDEX']
+        visobj.flagVis = ['OI_VIS']['FLAG']
+        visobj.bl_vis = dct['OI_VIS']['BL']
+        self.visobj = visobj
+
+        """
+               'OI_T3': {'MJD': t.mjd,
+                         'INT_TIME': info['itime'],
+                         'T3PHI': nrmd2c.cp,
+                         'T3PHIERR': nrmd2c.e_cp,
+                         'T3AMP': nrmd2c.cpamp,
+                         'T3AMPERR': nrmd2c.e_cp,
+                         'U1COORD': u1coord,
+                         'V1COORD': v1coord,
+                         'U2COORD': u2coord,
+                         'V2COORD': v2coord,
+                         'STA_INDEX': nrm.tholes,
+                         'FLAG': flagT3,
+                         'BL': bl_cp
+                         },
+        """
+        t3obj = T3obj()
+        t3obj.t.mjd = dct['OI_T3']['MJD']
+        t3obj.itime = dct['OI_T3']['INT_TIME']
+        t3obj.cp = dct['OI_T3']['T3PHI']
+        t3obj.e_cp = dct['OI_T3']['T3PHIERR']
+        t3obj.cpamp = dct['OI_T3']['T3AMP']
+        t3obj.e_cp = dct['OI_T3']['T3AMPERR']
+        t3obj.u1coord = dct['OI_T3']['U1COORD']
+        t3obj.v1coord = dct['OI_T3']['V1COORD']
+        t3obj.u2coord = dct['OI_T3']['U2COORD']
+        t3obj.v2coord = dct['OI_T3']['V2COORD']
+        t3obj.tholes = dct['OI_T3']['STA_INDEX']
+        t3obj.flagT3 = dct['OI_T3']['FLAG']
+        t3obj.bl_cp = dct['OI_T3']['BL']
+        self.t3obj = t3obj
+
+
+        wlobj = WLobj()
+        wlobj.wl = dct['OI_WAVELENGTH']['EFF_WAVE']
+        wlobj.e_wl = dct['OI_WAVELENGTH']['EFF_BAND']
+        self.wlobj = wlobj
+
+        """
+        info = {} #mimic implaneia's catchall info dictionary
+               'info': {'TARGET': info['objname'],
+                        'CALIB': info['objname'],
+                        'OBJECT': info['objname'],
+                        'FILT': info['filt'],
+                        'INSTRUME': info['instrument'],
+                        'MASK': info['arrname'],
+                        'MJD': t.mjd,
+                        'DATE-OBS': t.fits,
+                        'TELESCOP': info['telname'],
+                        'OBSERVER': 'UNKNOWN',
+                        'INSMODE': info['pupil'],
+                        'PSCALE': info['pscale_mas'],
+                        'STAXY': info['ctrs'],
+                        'ISZ': 77,  # size of the image needed (or fov)
+                        'NFILE': 0}
+               }
+        """
+        return 
+#
+#
+##################  reading oifits into memory... end
 
 def observable2dict(nrm, nrm_c=False, display=False):
     """ Convert nrm data in an Observable loaded with `ObservablesFromText` into 
