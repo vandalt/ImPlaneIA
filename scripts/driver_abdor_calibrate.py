@@ -23,7 +23,8 @@ def main(alloifsdir):
         oifinputdict[(oif.split('.')[-2]).split('/')[-1]] = oifits.load(oif)
 
     print('oifits files found are read into a dict of oifits.load() dic structures')
-    for clef in (oifinputdict.keys()):
+    sortedobs = sorted(oifinputdict.keys())
+    for clef in sortedobs:
         print('  ', '{:55s}'.format(clef), 
               '{:10s}'.format(oifinputdict[clef]['info']['TARGET']),
               '{:10s}'.format(oifinputdict[clef]['info']['FILT']), 
