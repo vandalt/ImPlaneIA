@@ -466,6 +466,33 @@ def populate_NRM(nrm_t, method='med'):
 #################  reading oifits into memory..
 ###  Later we can create default values for each attribute's attributes to handle 
 ###  observables without errors, and so on.
+def calibrate_observable(tgt, cal):
+    """
+    input: two observabless  (such as one gets from Dict2Observable)
+    return an observable object (such as one gets from Dict2Observable) that is calibrated.
+    """
+    obs=copy.deepcopy(tgt)
+
+    obs.vis2obj.vis2 = tgt.vis2obj.vis2 / cal.vis2obj.vis2
+    obs.vis2obj.e_vis2 = np.sqrt(tgt.vis2obj.e_vis2*tgt.vis2obj.e_vis2 + 
+                                 cal.vis2obj.e_vis2*cal.vis2obj.e_vis2)
+
+    obs.visobj.visamp = tgt.visobj.visamp / cal.visobj.visamp 
+    obs.visobj.e_visamp = np.sqrt(tgt.visobj.e_visamp*tgt.visobj.e_visamp + \
+                                  cal.visobj.e_visamp*cal.visobj.e_visamp)
+
+    obs.visobj.visphi = tgt.visobj.visphi  - cal.visobj.visphi
+    obs.visobj.e_visphi = np.sqrt(tgt.visobj.e_visphi*tgt.visobj.e_visphi +\
+                                  tgt.visobj.e_visphi*tgt.visobj.e_visphi)
+
+    obs.t3obj.cp = tgt.t3obj.cp - cal.t3obj.cp 
+    obs.t3obj.e_cp = np.sqrt(tgt.t3obj.e_cp*tgt.t3obj.e_cp + \
+                             cal.t3obj.e_cp*cal.t3obj.e_cp)
+    obs.t3obj.cpamp = tgt.t3obj.cpamp  / cal.t3obj.cpamp
+
+    return obs
+
+
 class Visobj():
     def __init__(self):
         return None
@@ -481,7 +508,13 @@ class WLobj():
 class DictToObservable():
     """
     Convert a dictionary compatible with oifits.save to an in-memory
-    Observable object 
+    Observable object that is organized similar to an oifits file's entries.
+
+    This is different storage orgnization than the readobservablefromyext utility.A
+    The latter is more mplaneia-centric in organization, using a dictionary
+    info4oif to enable oifits writing.
+
+    Some day implaneia might become natively oifits-like in observables' organization...
 
         anand@stsci.edu 2020.07.17
     """
@@ -507,20 +540,6 @@ class DictToObservable():
             c_2 = Dict2Observable(dct_c_2)
         """
 
-        """
-        dct = {'OI_VIS2': {'VIS2DATA': nrmd2c.vis2,
-                           'VIS2ERR': nrmd2c.e_vis2,
-                           'UCOORD': ucoord,
-                           'VCOORD': vcoord,
-                           'STA_INDEX': nrm.bholes,
-                           'MJD': t.mjd,
-                           'INT_TIME': info['itime'],
-                           'TIME': 0,
-                           'TARGET_ID': 1,
-                           'FLAG': flagVis,
-                           'BL': bl_vis
-                           },
-        """
         vis2obj = Vis2obj()
         vis2obj.vis2 = dct['OI_VIS2']['VIS2DATA']
         vis2obj.e_vis2 = dct['OI_VIS2']['VIS2ERR']
@@ -535,56 +554,24 @@ class DictToObservable():
         vis2obj.bl_vis= dct['OI_VIS2']['BL']
         self.vis2obj = vis2obj
 
-        """
-               'OI_VIS': {'TARGET_ID': 1,
-                          'TIME': 0,
-                          'MJD': t.mjd,
-                          'INT_TIME': info['itime'],
-                          'VISAMP': nrmd2c.visamp,
-                          'VISAMPERR': nrmd2c.e_visamp,
-                          'VISPHI': nrmd2c.visphi,
-                          'VISPHIERR': nrmd2c.e_visphi,
-                          'UCOORD': ucoord,
-                          'VCOORD': vcoord,
-                          'STA_INDEX': nrm.bholes,
-                          'FLAG': flagVis,
-                          'BL': bl_vis
-                          },
-        """
         visobj = Visobj()
         visobj.target_id = dct['OI_VIS']['TARGET_ID']
         visobj.t = Time(dct['OI_VIS']['MJD'], format='mjd')
         visobj.itime = dct['OI_VIS']['INT_TIME']
         visobj.time = dct['OI_VIS']['TIME']
-        visobj.visamp = ['OI_VIS']['VISAMP']
-        visobj.e_visamp = ['OI_VIS']['VISAMPERR']
-        visobj.visphi = ['OI_VIS']['VISPHI']
-        visobj.e_visphi = ['OI_VIS']['VISPHIERR']
-        visobj.ucoord = ['OI_VIS']['UCOORD']
-        visobj.vcoord = ['OI_VIS']['VCOORD']
-        visobj.bholes = ['OI_VIS']['STA_INDEX']
-        visobj.flagVis = ['OI_VIS']['FLAG']
+        visobj.visamp = dct['OI_VIS']['VISAMP']
+        visobj.e_visamp = dct['OI_VIS']['VISAMPERR']
+        visobj.visphi = dct['OI_VIS']['VISPHI']
+        visobj.e_visphi = dct['OI_VIS']['VISPHIERR']
+        visobj.ucoord = dct['OI_VIS']['UCOORD']
+        visobj.vcoord = dct['OI_VIS']['VCOORD']
+        visobj.bholes = dct['OI_VIS']['STA_INDEX']
+        visobj.flagVis = dct['OI_VIS']['FLAG']
         visobj.bl_vis = dct['OI_VIS']['BL']
         self.visobj = visobj
 
-        """
-               'OI_T3': {'MJD': t.mjd,
-                         'INT_TIME': info['itime'],
-                         'T3PHI': nrmd2c.cp,
-                         'T3PHIERR': nrmd2c.e_cp,
-                         'T3AMP': nrmd2c.cpamp,
-                         'T3AMPERR': nrmd2c.e_cp,
-                         'U1COORD': u1coord,
-                         'V1COORD': v1coord,
-                         'U2COORD': u2coord,
-                         'V2COORD': v2coord,
-                         'STA_INDEX': nrm.tholes,
-                         'FLAG': flagT3,
-                         'BL': bl_cp
-                         },
-        """
         t3obj = T3obj()
-        t3obj.t.mjd = dct['OI_T3']['MJD']
+        t3obj.t = Time(dct['OI_T3']['MJD'], format='mjd')
         t3obj.itime = dct['OI_T3']['INT_TIME']
         t3obj.cp = dct['OI_T3']['T3PHI']
         t3obj.e_cp = dct['OI_T3']['T3PHIERR']
