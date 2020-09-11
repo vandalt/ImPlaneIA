@@ -124,8 +124,8 @@ if __name__ == "__main__":
                     'jw01093002001_01101_00001_nis_calints.fits',
                    ]
 
-    FIRSTFEW = 5 # eg 5, or None to analyze all slices
     FIRSTFEW = None # eg 5, or None to analyze all slices
+    FIRSTFEW = 5 # eg 5, or None to analyze all slices
     OVERSAMPLE = 7
     print('FIRSTFEW', FIRSTFEW, 'OVERSAMPLE', OVERSAMPLE)
 
