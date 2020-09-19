@@ -29,23 +29,19 @@ def check_oifits_headers(file1,file2):
     header2 = {}
     with fits.open(file2) as hdulist2:
         ext_iter = iter(extlist)
+        print(extlist)
         for extname in ext_iter:
             try:
                 hdr = hdulist2[extname].header
                 header2[extname] = hdr
+                print('Extension: %s' % extname)
+                for hdrkey in header1[extname].keys():
+                    if not hdrkey in header2[extname].keys():
+                        print('\t key/value not present in file2: \t %s/%s' % (hdrkey, header1[extname][hdrkey]))
             except KeyError:
                 # what if one of the extensions in file1 is not in file2?
-                # this does not work currently
-                next(ext_iter, None)
-                hdr = hdulist2[extname].header
-                header2[extname] = hdr
+                print('\t Extension %s does not exist in file2' % extname)
                 continue
-    # check which header keywords exist in file1 but not file2
-    for ext in header1.keys():
-        print('Extension: %s' % ext)
-        for hdrkey in header1[ext].keys():
-            if not hdrkey in header2[ext].keys():
-                print('\t key/value not present in file2: \t %s/%s' % (hdrkey, header1[ext][hdrkey]))
 
 
 if __name__ == "__main__":
@@ -54,6 +50,6 @@ if __name__ == "__main__":
     notworkingfile = os.path.join(indir, 'ov7_ABDOR_NIRISS_jwst_g7s6c_F480M_59670.oifits')
 
     check_oifits_headers(workingfile, notworkingfile)
-
-    # this currently does not work
-    #check_oifits_headers(notworkingfile, workingfile)
+    print('\n')
+    # It works the other way too
+    check_oifits_headers(notworkingfile, workingfile)
