@@ -472,7 +472,7 @@ class NIRISS:
         # only one NRM on JWST:
         self.telname = "NIRISS"
         self.instrument = "NIRISS"
-        self.arrname = "jwst_g7s6c"
+        self.arrname = "jwst_g7s6c"  # immplaneia mask set with this - unify to short form later 
         self.holeshape="hex"
         self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=chooseholes, 
                                          holeshape=self.holeshape )
@@ -598,8 +598,9 @@ class NIRISS:
 
         self.instrument = ph["INSTRUME"]; info4oif_dict['instrument'] = self.instrument
         self.pupil =  ph["PUPIL"]; info4oif_dict['pupil'] = self.pupil
-        # "ImPlaneIA internal mask name" - same as maskname
-        self.arrname = "jwst_g7s6c"; info4oif_dict['arrname'] = self.arrname   # ???unclean hardcoding
+        # "ImPlaneIA internal mask name" - oifwriter looks for 'mask'...
+        self.arrname = "jwst_g7s6c"
+        info4oif_dict['arrname'] = 'g7s6'; info4oif_dict['mask'] = info4oif_dict['arrname']
 
         # if data was generated on the average pixel scale of the header
         # then this is the right value that gets read in, and used in fringe fitting
