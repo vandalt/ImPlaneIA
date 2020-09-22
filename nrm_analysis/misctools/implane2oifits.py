@@ -21,7 +21,6 @@ from matplotlib import pyplot as plt
 from munch import munchify as dict2class
 from scipy.special import comb
 
-#import oifits
 import nrm_analysis.misctools.oifits as oifits
 
 plt.close('all')
@@ -210,7 +209,6 @@ class ObservablesFromText():
               self.cp*self.degree, "\n")
         if len(self.observables) == 4:
             print(self.ca.shape, "ca:\n", self.ca, "\n")
-        # print("implane2oifits._showdata: self.info4oif_dict['objname']", self.info4oif_dict)
 
         print("hole centers array shape:", self.ctrs.shape)
 
@@ -493,6 +491,9 @@ def calibrate_observable(tgt, cal):
     return obs
 
 
+class Infoobj():
+    def __init__(self):
+        return None
 class Visobj():
     def __init__(self):
         return None
@@ -592,6 +593,24 @@ class DictToObservable():
         wlobj.e_wl = dct['OI_WAVELENGTH']['EFF_BAND']
         self.wlobj = wlobj
 
+        infoobj = Infoobj()
+        infoobj.target = dct['info']['TARGET'],
+        infoobj.calib = dct['info']['CALIB'],
+        infoobj.object = dct['info']['OBJECT'],
+        infoobj.filt = dct['info']['FILT'],
+        infoobj.instrume = dct['info']['INSTRUME']
+        infoobj.arrname = dct['info']['MASK']
+        infoobj.mjd = dct['info']['MJD'],
+        infoobj.dateobs = dct['info']['DATE-OBS'],
+        infoobj.telname = dct['info']['TELESCOP']
+        infoobj.observer = dct['info']['OBSERVER']
+        infoobj.insmode = dct['info']['INSMODE']
+        infoobj.pscale = dct['info']['PSCALE']
+        infoobj.staxy = dct['info']['STAXY']
+        infoobj.isz = dct['info']['ISZ'],
+        infoobj.nfile = dct['info']['NFILE']
+        self.infoobj = infoobj
+
         """
         info = {} #mimic implaneia's catchall info dictionary
                'info': {'TARGET': info['objname'],
@@ -625,12 +644,12 @@ def observable2dict(nrm, nrm_c=False, display=False):
            but we are changing to just to one object at a time.
     """
 
-    info = nrm.info4oif_dict
-    ctrs = info['ctrs']
+    info4oif = nrm.info4oif_dict
+    ctrs = info4oif['ctrs']
     t = Time('%s-%s-%s' %
-             (info['year'], info['month'], info['day']), format='fits')
-    ins = info['telname']
-    filt = info['filt']
+             (info4oif['year'], info4oif['month'], info4oif['day']), format='fits')
+    ins = info4oif['telname']
+    filt = info4oif['filt']
 
     wl, e_wl = oifits.GetWavelength(ins, filt)
 
@@ -679,7 +698,7 @@ def observable2dict(nrm, nrm_c=False, display=False):
                        'VCOORD': vcoord,
                        'STA_INDEX': nrm.bholes,
                        'MJD': t.mjd,
-                       'INT_TIME': info['itime'],
+                       'INT_TIME': info4oif['itime'],
                        'TIME': 0,
                        'TARGET_ID': 1,
                        'FLAG': flagVis,
@@ -689,7 +708,7 @@ def observable2dict(nrm, nrm_c=False, display=False):
            'OI_VIS': {'TARGET_ID': 1,
                       'TIME': 0,
                       'MJD': t.mjd,
-                      'INT_TIME': info['itime'],
+                      'INT_TIME': info4oif['itime'],
                       'VISAMP': nrmd2c.visamp,
                       'VISAMPERR': nrmd2c.e_visamp,
                       'VISPHI': nrmd2c.visphi,
@@ -702,7 +721,7 @@ def observable2dict(nrm, nrm_c=False, display=False):
                       },
 
            'OI_T3': {'MJD': t.mjd,
-                     'INT_TIME': info['itime'],
+                     'INT_TIME': info4oif['itime'],
                      'T3PHI': nrmd2c.cp,
                      'T3PHIERR': nrmd2c.e_cp,
                      'T3AMP': nrmd2c.cpamp,
@@ -720,19 +739,20 @@ def observable2dict(nrm, nrm_c=False, display=False):
                              'EFF_BAND': e_wl
                              },
 
-           'info': {'TARGET': info['objname'],
-                    'CALIB': info['objname'],
-                    'OBJECT': info['objname'],
-                    'FILT': info['filt'],
-                    'INSTRUME': info['instrument'],
-                    'MASK': info['arrname'],
+           'info': {'TARGET': info4oif['objname'],
+                    'CALIB': info4oif['objname'],
+                    'OBJECT': info4oif['objname'],
+                    'FILT': info4oif['filt'],
+                    'INSTRUME': info4oif['instrument'],
+                    'ARRNAME': info4oif['arrname'],
+                    'MASK': info4oif['arrname'], # oifits.py looks for dct.info['MASK']
                     'MJD': t.mjd,
                     'DATE-OBS': t.fits,
-                    'TELESCOP': info['telname'],
+                    'TELESCOP': info4oif['telname'],
                     'OBSERVER': 'UNKNOWN',
-                    'INSMODE': info['pupil'],
-                    'PSCALE': info['pscale_mas'],
-                    'STAXY': info['ctrs'],
+                    'INSMODE': info4oif['pupil'],
+                    'PSCALE': info4oif['pscale_mas'],
+                    'STAXY': info4oif['ctrs'],
                     'ISZ': 77,  # size of the image needed (or fov)
                     'NFILE': 0}
            }
