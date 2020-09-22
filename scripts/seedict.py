@@ -1,5 +1,7 @@
 #! /usr/bin/env python
+import os
 import pickle
+print(os.getcwd())
 pfd = open("info4oif_dict.pkl",'rb')
 dict = pickle.load(pfd)
 
