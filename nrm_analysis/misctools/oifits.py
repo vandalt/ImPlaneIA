@@ -150,6 +150,8 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     hdu.header['OBJECT'] = dic['info']['OBJECT']
     hdu.header['INSMODE'] = dic['info']['INSMODE']
     hdu.header['FILT'] = dic['info']['FILT']
+    hdu.header['ARRNAME'] = dic['info']['ARRNAME'] # Anand 9/2020
+    hdu.header['MASK'] = dic['info']['ARRNAME'] # Anand 9/2020
 
     hdulist.append(hdu)
     # ------------------------------
@@ -390,6 +392,7 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
 
     hdu.header['EXTNAME'] = 'OI_T3'
     hdu.header['INSNAME'] = dic['info']['INSTRUME']
+    hdu.header['ARRNAME'] = dic['info']['MASK'] # Anand 9/2020
     hdu.header['OI_REVN'] = 2, 'Revision number of the table definition'
     hdu.header['DATE-OBS'] = dic['info']['DATE-OBS'], 'Zero-point for table (UTC)'
     hdulist.append(hdu)
