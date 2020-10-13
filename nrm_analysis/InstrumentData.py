@@ -470,7 +470,7 @@ class NIRISS:
         #############################
 
         # only one NRM on JWST:
-        self.telname = "NIRISS"
+        self.telname = "JWST"
         self.instrument = "NIRISS"
         self.arrname = "jwst_g7s6c"  # immplaneia mask set with this - unify to short form later 
         self.holeshape="hex"
@@ -574,7 +574,6 @@ class NIRISS:
         # That way we don't drag in objects like InstrumentData into code that reads text results
         # and writes oifits files - a simple built-in dictionary is the only object used in this transfer.
         info4oif_dict = {}
-        self.telname= "JWST"; info4oif_dict['telname'] = self.telname
         info4oif_dict['telname'] = self.telname
 
         info4oif_dict['filt'] = self.filt
@@ -599,8 +598,9 @@ class NIRISS:
         self.instrument = ph["INSTRUME"]; info4oif_dict['instrument'] = self.instrument
         self.pupil =  ph["PUPIL"]; info4oif_dict['pupil'] = self.pupil
         # "ImPlaneIA internal mask name" - oifwriter looks for 'mask'...
-        self.arrname = "jwst_g7s6c"
-        info4oif_dict['arrname'] = 'g7s6'; info4oif_dict['mask'] = info4oif_dict['arrname']
+        self.arrname = "jwst_g7s6c"  # implaneia internal name - historical
+        info4oif_dict['arrname'] = 'g7s6' # for oif
+        info4oif_dict['mask'] = info4oif_dict['arrname']  # Soulain mask goes into oif arrname
 
         # if data was generated on the average pixel scale of the header
         # then this is the right value that gets read in, and used in fringe fitting
@@ -616,12 +616,12 @@ class NIRISS:
         self.pscale_mas = 0.5 * (pscalex_deg + pscaley_deg) * (60*60*1000); info4oif_dict['pscale_mas'] = self.pscale_mas
         self.pscale_rad = utils.mas2rad(self.pscale_mas); info4oif_dict['pscale_rad'] = self.pscale_rad
         self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=self.chooseholes,
-                                         holeshape=self.holeshape)
-
-        str = ph["DATE-OBS"]
-        self.year = str[:4]; info4oif_dict['year'] = self.year
-        self.month = str[5:7]; info4oif_dict['month'] = self.month
-        self.day = str[8:10]; info4oif_dict['day'] = self.day
+                                         holeshape=self.holeshape) # for STAtions x y in oifs
+        self.date = ph["DATE-OBS"] + "T" + ph["TIME-OBS"]; info4oif_dict['date'] = self.date
+        datestr = ph["DATE-OBS"]
+        self.year = datestr[:4]; info4oif_dict['year'] = self.year
+        self.month = datestr[5:7]; info4oif_dict['month'] = self.month
+        self.day = datestr[8:10]; info4oif_dict['day'] = self.day
         self.parangh= sh["ROLL_REF"]; info4oif_dict['parangh'] = self.parangh
         self.pa = sh["PA_V3"]; info4oif_dict['pa'] = self.pa
 
@@ -638,6 +638,8 @@ class NIRISS:
 
         info4oif_dict['ctrs'] = self.mask.ctrs
         info4oif_dict['hdia'] = self.mask.hdia
+
+        info4oif_dict['nslices'] = self.nwav # nwav: number of image slices or IFU cube slices - AMI is imager
         self.info4oif_dict = info4oif_dict # save it when writing extracted observables txt
 
 
