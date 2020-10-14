@@ -126,9 +126,9 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     install_requires=[
-        'astropy', 'scipy', 'matplotlib', 'linearfit', 'poppy', 'uncertainties', 'logging', 'aplpy'
+        'astropy', 'scipy', 'matplotlib', 'linearfit', 'poppy', 'aplpy'
     ],
-    tests_require=['pytest', 'scipy', 'matplotlib', 'linearfit', 'poppy', 'uncertainties', 'logging', 'aplpy'],
+    tests_require=['pytest', 'scipy', 'matplotlib', 'linearfit', 'poppy', 'aplpy'],
     packages=find_packages(),
     package_data={PACKAGENAME: ['pars/*']},
     cmdclass={
