@@ -1,11 +1,11 @@
 # nrm_analysis README #
 
-Reduces aperture masking images to fringe observables, calibrates, does basic model fitting. Package development led by Alexandra Greenbaum following legacy code by Greenbaum, Anand Sivaramakrishnan, and Laurent Pueyo. Further contributions from Sivaramakrishnan, Deepashri Thatte, Johannes Sahlmann, Anthony Soulain, Rachel Cooper
+Reduces aperture masking images to fringe observables, and writes out oifits files.  Calibration of a target's oifits file by another is supported.  Model-fitting is not performed by this branch. Original package development led by Alexandra Greenbaum following legacy code by Greenbaum, Anand Sivaramakrishnan, and Laurent Pueyo. Further design changes and contributions from Sivaramakrishnan, Deepashri Thatte, Johannes Sahlmann, Anthony Soulain, Rachel Cooper
 
 
 Develop branch dedicated for the moment to JWST NIRISS AMI
 
-To get the source files for the delivery branch:
+To get the source files for the develop branch:
 
 	git clone --single-branch --branch develop git@github.com:anand0xff/ImPlaneIA.git
 
@@ -16,4 +16,4 @@ It was deleted from the develop branch here, as too many interfaces and methods 
 
 GPI data flow needs testing with this branch.  
 
-Please see NOTES.md for STScI builld 7.5 delivery notes.
+Please see NOTES.md for STScI build 7.5 delivery notes.

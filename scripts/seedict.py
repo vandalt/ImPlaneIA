@@ -1,8 +1,9 @@
 #! /usr/bin/env python
+import sys
 import os
 import pickle
 print(os.getcwd())
-pfd = open("info4oif_dict.pkl",'rb')
+pfd = open(sys.argv[1],'rb')
 dict = pickle.load(pfd)
 
 for kk in dict.keys():

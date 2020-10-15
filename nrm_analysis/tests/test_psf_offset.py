@@ -9,7 +9,7 @@ from astropy import units as u
 #from nrm_analysis.misctools.utils import Affine2d
 from nrm_analysis.misctools.utils import affinepars2header
 from nrm_analysis.fringefitting.LG_Model import NRM_Model
-from nrm_analysis.fringefitting import utility_classes as UC # for make_standard_image
+#from nrm_analysis.fringefitting import utility_classes as UC # for make_standard_image
 """
     Test PSF offset directions, half-pixel after unification on ImCtr, fromfunctions
     for LG++, and Affine2d class effect ond centering the psf in the array.
