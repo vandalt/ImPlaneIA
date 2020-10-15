@@ -1405,9 +1405,13 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt, verbose=False, trim2sub8
         mirobj[1].data = mirobj[1].data.astype(np.float32)
         mirobj[1].data = fobj_sim[0].data # replace with ami_sim data
         if trim2sub80:  # trim ends of cols, rows (if needed) to 80 x 80
-            mirobj[1].data = mirobj[1].data[:,:80,:80]  # trim ends of cols, rows (if needed) to 80 x 80
+            lenx = mirobj[1].data.shape[1] - 80
+            leny = mirobj[1].data.shape[2] - 80 
+            lox = lenx//2
+            loy = leny//2
+            mirobj[1].data = mirobj[1].data[:,lox:lox+80,loy:loy+80]  # trim ends of cols, rows (if needed) to 80 x 80
             print("INFO: utils.amisim2mirage will trim input image(s) to SUB80")
-            print("      but we still need trim to array center code here!")
+            print("      approx centering middle pixel (even/odd trouble?)")
         else:
             print("INFO: utils.amisim2mirage will not trim input image(s) to SUB80")
 
