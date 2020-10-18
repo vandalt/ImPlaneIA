@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
 """
-@author: Anthony Soulain (University of Sydney)
+@author: Anthony Soulain (University of Sydney), Rachel Cooper (STScI), Anand Sivaramakrishnan (STScI)
+
 
 --------------------------------------------------------------------
 implaneIA software

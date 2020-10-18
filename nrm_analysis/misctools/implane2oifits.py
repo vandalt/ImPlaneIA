@@ -61,7 +61,7 @@ class ObservablesFromText():
             If you want to trim low and/or high ends of eg IFU spectral observables trim them
             on-the-fly before calling this routine.
 
-            ImPlaneIA saves fp cp in RADIANS.
+            ImPlaneIA saves fp cp in RADIANS.  Here we convert to DEGREES when writing to all OIFITS output from implaneia - 2020.10.18
 
             Units: as SI as possible.
 
@@ -96,9 +96,9 @@ class ObservablesFromText():
             self.ca = np.zeros((self.nslices, self.nca))
         self.angunit = angunit
         if verbose:
-            print("assumes angles in", angunit)
+            print("assumes implaneia angles in", angunit)
         if verbose:
-            print("angle unit:", angunit)
+            print("implaneia text output angle unit:", angunit)
         if angunit == 'radians':
             self.degree = 180.0 / np.pi
         else:
@@ -225,10 +225,9 @@ class ObservablesFromText():
         # to only be called from init
         # loop through all the requested observables,
         # read in the exposure slices of a data cube
-        # or the wavelength slices of IFU?
+        # Incoming imia text files' angles radians, want degrees in oifs
 
         # set up files to read
-        # What do we do for IFU or Pol?
         # file name for each exposure (slice) in an image cube with nslices exposures
         fnheads = []
         if self.verbose:
@@ -241,9 +240,11 @@ class ObservablesFromText():
 
         # load from text into data rrays:
         for slice in range(self.nslices):
-            self.fp[slice:] = np.loadtxt(fnheads[0].format(slice))
+            # Sydney oifits prefers degrees 2020.10.17
+            self.fp[slice:] = np.loadtxt(fnheads[0].format(slice)) * 180.0 / np.pi
             self.fa[slice:] = np.loadtxt(fnheads[1].format(slice))
-            self.cp[slice:] = np.loadtxt(fnheads[2].format(slice))
+            self.cp[slice:] = np.loadtxt(fnheads[2].format(slice)) * 180.0 / np.pi
+            # Do the same to-degrees conversion with segment phases when we get to them!
             if len(self.observables) == 4:
                 self.ca[slice:] = np.loadtxt(fnheads[3].format(slice))
 
@@ -254,7 +255,40 @@ class ObservablesFromText():
             for key in self.info4oif_dict.keys():
                 print(key)
         pfd.close()
+        self.ctrs = self.info4oif_dict['ctrs'] # just get an array of the right shape...
+        self.ctrs[:,0] = self.info4oif_dict['ctrs'][:,1]         # impY ->  oifX
+        self.ctrs[:,1] = self.info4oif_dict['ctrs'][:,0] * -1    # impX -> -oifY
         self.ctrs = self.info4oif_dict['ctrs']
+        """   seexyz.py
+        Sydney oifitx oi_array:
+            Found oi_array
+            ColDefs(
+            name = 'TEL_NAME'; format = '16A'
+            name = 'STA_NAME'; format = '16A'
+            name = 'STA_INDEX'; format = '1I'
+            name = 'DIAMETER'; format = '1E'; unit = 'METERS'
+            name = 'STAXYZ'; format = '3D'; unit = 'METERS'
+            name = 'FOV'; format = '1D'; unit = 'ARCSEC'
+            name = 'FOVTYPE'; format = '6A'
+            )
+            <class 'numpy.ndarray'>
+           [[ 0.      -2.64     0.     ]
+            [-2.28631  0.       0.     ]
+            [ 2.28631 -1.32     0.     ]
+            [-2.28631  1.32     0.     ]
+            [-1.14315  1.98     0.     ]
+            [ 2.28631  1.32     0.     ]
+            [ 1.14315  1.98     0.     ]]
+        implaneia ctrs
+           [[ 2.64000000e+00 -1.61653377e-16]
+            [ 1.39996111e-16  2.28631000e+00]
+            [ 1.32000010e+00 -2.28631000e+00]
+            [-1.32000010e+00  2.28631000e+00]
+            [-1.98000000e+00  1.14315000e+00]
+            [-1.32000010e+00 -2.28631000e+00]
+            [-1.98000000e+00 -1.14315000e+00]]
+            implaneia needs to flip x and y, and switch sign on x when writing oifits
+        """
         self.bholes, self.bls = self._makebaselines()
         self.tholes, self.tuv = self._maketriples_all()
         self.qholes, self.quvw = self._makequads_all()
@@ -794,6 +828,7 @@ def observable2dict(nrm, nrm_c=False, display=False):
 
 def oitxt2oif(nh=None, oitxtdir=None, oifprefix='', datadir=None, verbose=False):
     """
+    The interface routine called by implaneia's fit_fringes.
     Input: 
         oitxtdir (str) Directory where implaneia wrote the observables
                        observable files are named: CPs_nn.txt, amplitudes_nn.txt, and so on
