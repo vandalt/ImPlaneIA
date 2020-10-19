@@ -860,7 +860,7 @@ def calib_dicts(dct_t, dct_c):
     cp_t = dct_t['OI_T3']['T3PHI']
     cp_c = dct_c['OI_T3']['T3PHI']
     fa_t = dct_t['OI_VIS2']['VIS2DATA']
-    fa_c = dct_t['OI_VIS2']['VIS2DATA']
+    fa_c = dct_c['OI_VIS2']['VIS2DATA']
     cp_out = cp_t - cp_c
     fa_out = fa_t / fa_c
     # add their errors in quadrature
