@@ -255,10 +255,8 @@ class ObservablesFromText():
             for key in self.info4oif_dict.keys():
                 print(key)
         pfd.close()
-        self.ctrs = self.info4oif_dict['ctrs'] # just get an array of the right shape...
-        self.ctrs[:,0] = self.info4oif_dict['ctrs'][:,1]         # impY ->  oifX
-        self.ctrs[:,1] = self.info4oif_dict['ctrs'][:,0] * -1    # impX -> -oifY
         self.ctrs = self.info4oif_dict['ctrs']
+
         """   seexyz.py
         Sydney oifitx oi_array:
             Found oi_array
@@ -279,15 +277,7 @@ class ObservablesFromText():
             [-1.14315  1.98     0.     ]
             [ 2.28631  1.32     0.     ]
             [ 1.14315  1.98     0.     ]]
-        implaneia ctrs
-           [[ 2.64000000e+00 -1.61653377e-16]
-            [ 1.39996111e-16  2.28631000e+00]
-            [ 1.32000010e+00 -2.28631000e+00]
-            [-1.32000010e+00  2.28631000e+00]
-            [-1.98000000e+00  1.14315000e+00]
-            [-1.32000010e+00 -2.28631000e+00]
-            [-1.98000000e+00 -1.14315000e+00]]
-            implaneia needs to flip x and y, and switch sign on x when writing oifits
+            implaneia flips x and y, and switches sign on x 
         """
         self.bholes, self.bls = self._makebaselines()
         self.tholes, self.tuv = self._maketriples_all()

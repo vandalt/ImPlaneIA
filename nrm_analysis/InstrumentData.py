@@ -636,7 +636,19 @@ class NIRISS:
             self.itime = ph["EFFINTTM"]; info4oif_dict['itime'] = self.itime
 
 
-        info4oif_dict['ctrs'] = self.mask.ctrs
+        np.set_printoptions(precision=5, suppress=True, linewidth=160, 
+                            formatter={'float': lambda x: "%10.5f," % x})
+        # Sydney oif coords switch... slow but sure this time!  (I hope...)
+        # print("self.mask.ctrs: \n", self.mask.ctrs)
+        stax_oif = self.mask.ctrs[:,1].copy()  * -1
+        stay_oif = self.mask.ctrs[:,0].copy()  * -1
+        # print("stax_oif: ", stax_oif)
+        # print("stay_oif: ", stay_oif)
+        oifctrs = np.zeros(self.mask.ctrs.shape)
+        oifctrs[:,0] = stax_oif
+        oifctrs[:,1] = stay_oif
+        info4oif_dict['ctrs'] = oifctrs
+        # print("info4oif ctrs : \n", info4oif_dict['ctrs'])
         info4oif_dict['hdia'] = self.mask.hdia
 
         info4oif_dict['nslices'] = self.nwav # nwav: number of image slices or IFU cube slices - AMI is imager
