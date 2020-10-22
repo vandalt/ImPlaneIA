@@ -326,9 +326,9 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     col5 = fits.Column(name='VISAMP', format='1D', array=data['VISAMP'])
     col6 = fits.Column(name='VISAMPERR', format='1D', array=data['VISAMPERR'])
     col7 = fits.Column(name='VISPHI', format='1D', unit='DEGREES',
-                    array=np.rad2deg(data['VISPHI']))
+                    array=data['VISPHI'])
     col8 = fits.Column(name='VISPHIERR', format='1D', unit='DEGREES',
-                    array=np.rad2deg(data['VISPHIERR']))
+                    array=data['VISPHIERR'])
     col9 = fits.Column(name='UCOORD', format='1D',
                     unit='METERS', array=data['UCOORD'])
     col10 = fits.Column(name='VCOORD', format='1D',
@@ -423,9 +423,9 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     col5 = fits.Column(name='T3AMP', format='1D', array=data['T3AMP'])
     col6 = fits.Column(name='T3AMPERR', format='1D', array=data['T3AMPERR'])
     col7 = fits.Column(name='T3PHI', format='1D', unit='DEGREES',
-                    array=np.rad2deg(data['T3PHI']))
+                    array=data['T3PHI'])
     col8 = fits.Column(name='T3PHIERR', format='1D', unit='DEGREES',
-                    array=np.rad2deg(data['T3PHIERR']))
+                    array=data['T3PHIERR'])
     col9 = fits.Column(name='U1COORD', format='1D',
                     unit='METERS', array=data['U1COORD'])
     col10 = fits.Column(name='V1COORD', format='1D',

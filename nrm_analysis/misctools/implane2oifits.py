@@ -76,7 +76,7 @@ class ObservablesFromText():
         self.oifinfofn = oifinfofn
         # Assume same number of observable output files for each observable.  
         # Eg 1 slice or NINT slices cube output from eg implaneia.
-        # Each image analyzed has a phases, an amplitudes, ... txt output file in thie txtdir.
+        # Each image analyzed has a phases, an amplitudes, ... txt output file in this txtdir.
         # Each file might contain different numbers of individual quantities
         if verbose: print('Example of txt file pattern:  txtpath/{0:s}*.txt'.format(self.observables[0]))
         #   - yes many fringes, more cp's, and so on.
@@ -96,10 +96,10 @@ class ObservablesFromText():
             self.ca = np.zeros((self.nslices, self.nca))
         self.angunit = angunit
         if verbose:
-            print("assumes implaneia angles in", angunit)
-        if verbose:
-            print("implaneia text output angle unit:", angunit)
+            print("ImPlaneIA text output angle unit: %s" % angunit)
+
         if angunit == 'radians':
+            print("Will convert all angular quantities to degrees for saving")
             self.degree = 180.0 / np.pi
         else:
             self.degree = 1
@@ -238,12 +238,12 @@ class ObservablesFromText():
             if self.verbose:
                 print("\t"+fnheads[-1])
 
-        # load from text into data rrays:
+        # load from text into data arrays:
         for slice in range(self.nslices):
             # Sydney oifits prefers degrees 2020.10.17
-            self.fp[slice:] = np.loadtxt(fnheads[0].format(slice)) * 180.0 / np.pi
+            self.fp[slice:] = np.rad2deg(np.loadtxt(fnheads[0].format(slice)))# * 180.0 / np.pi
             self.fa[slice:] = np.loadtxt(fnheads[1].format(slice))
-            self.cp[slice:] = np.loadtxt(fnheads[2].format(slice)) * 180.0 / np.pi
+            self.cp[slice:] = np.rad2deg(np.loadtxt(fnheads[2].format(slice)))# * 180.0 / np.pi
             # Do the same to-degrees conversion with segment phases when we get to them!
             if len(self.observables) == 4:
                 self.ca[slice:] = np.loadtxt(fnheads[3].format(slice))
