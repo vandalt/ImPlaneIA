@@ -160,6 +160,11 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     hdu.header['FILT'] = dic['info']['FILT']
     hdu.header['ARRNAME'] = dic['info']['ARRNAME'] # Anand 9/2020
     hdu.header['MASK'] = dic['info']['ARRNAME'] # Anand 9/2020
+    # name of calibrator if applicable. RC 1/2021
+    try:
+        hdu.header['CALIB'] = dic['info']['CALIB']
+    except KeyError:
+        pass
 
     hdulist.append(hdu)
     # ------------------------------

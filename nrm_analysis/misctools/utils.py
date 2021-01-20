@@ -1419,8 +1419,12 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt, verbose=False, trim2sub8
         mirkeys = list(mirobj[0].header.keys())
 
         for kwd in fobj_sim[0].header.keys():
-            if  kwd not in mirkeys and 'NAXIS' not in kwd:
-                mirobj[0].header[kwd] = (fobj_sim[0].header[kwd], fobj_sim[0].header.comments[kwd])
+            if kwd not in mirkeys and 'NAXIS' not in kwd:
+                try:
+                    mirobj[0].header[kwd] = (fobj_sim[0].header[kwd], fobj_sim[0].header.comments[kwd])
+                except ValueError: # ignore keyword if contains non-ASCII characters. May cause breakage
+                    # usually a problem with HISTORY keywprds
+                    continue
        
         # change the example mirage header to the correct filter name
         # that amisim used... the nmae must be an allowd ami filter

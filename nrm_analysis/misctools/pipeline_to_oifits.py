@@ -264,7 +264,7 @@ def pipeline2oifits(main_fn, datadir, uncal_fn=None):
     # Use header to make info4oif_dict
     instdata.updatewithheaderinfo(pri_hdr,sci_hdr)
     oifitsdict = instdata.info4oif_dict
-    print(oifitsdict['ctrs'])
+    #print(oifitsdict['ctrs'])
     # since mirage file is not 2 or 3 dimensional, missed 'itime' keyword in dict.
     # skirting around that issue inelegantly for now...
     # take EFFEXPTM keyword from main file
@@ -280,7 +280,7 @@ def pipeline2oifits(main_fn, datadir, uncal_fn=None):
     return fulldict
 
 if __name__ == "__main__":
-    indir = '/user/rcooper/Projects/NIRISS/AMI/build75testing/ami_sims/'
+    indir = 'ami_sims/'
     targ_fn = 'jw01093001001_01101_amiavg.fits'  # AB-Dor simulation (target)
     calib_fn = 'jw01093001001_01101_psf-amiavg.fits'  # HD-37093 simulation (calibrator)
     pipeline2oifits(targ_fn, indir)

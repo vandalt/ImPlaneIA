@@ -856,26 +856,36 @@ def calib_dicts(dct_t, dct_c):
     Returns:
         calib_dict (dict): oifits-compatible dictionary of calibrated observables/info
     """
-    
-    cp_t = dct_t['OI_T3']['T3PHI']
-    cp_c = dct_c['OI_T3']['T3PHI']
-    fa_t = dct_t['OI_VIS2']['VIS2DATA']
-    fa_c = dct_c['OI_VIS2']['VIS2DATA']
-    cp_out = cp_t - cp_c
-    fa_out = fa_t / fa_c
-    # add their errors in quadrature
+    # cp is closure phase
+    # sqv is square visibility
+    # va is visibility amplitude
+
+    cp_out = dct_t['OI_T3']['T3PHI'] - dct_c['OI_T3']['T3PHI']
+    sqv_out = dct_t['OI_VIS2']['VIS2DATA'] / dct_c['OI_VIS2']['VIS2DATA']
+    va_out = dct_t['OI_VIS']['VISAMP'] / dct_c['OI_VIS']['VISAMP']
+    # add their errors in quadrature (sufficient for now) 1/2021
     cperr_t = dct_t['OI_T3']['T3PHIERR']
     cperr_c = dct_c['OI_T3']['T3PHIERR']
-    faerr_c = dct_t['OI_VIS2']['VIS2ERR']
-    faerr_t = dct_c['OI_VIS2']['VIS2ERR']
+    sqverr_c = dct_t['OI_VIS2']['VIS2ERR']
+    sqverr_t = dct_c['OI_VIS2']['VIS2ERR']
+    vaerr_t = dct_t['OI_VIS']['VISAMPERR']
+    vaerr_c = dct_c['OI_VIS']['VISAMPERR']
     cperr_out = np.sqrt(cperr_t**2. + cperr_c**2.)
-    faerr_out = np.sqrt(faerr_t**2. + faerr_c**2.)
-    # copy the target dict and modify a few things
+    sqverr_out = np.sqrt(sqverr_t**2. + sqverr_c**2.)
+    vaerr_out = np.sqrt(vaerr_t**2. + vaerr_c**2.)
+
+    # copy the target dict and modify with the calibrated observables
     calib_dict = dct_t.copy()
     calib_dict['OI_T3']['T3PHI'] = cp_out
-    calib_dict['OI_VIS2']['VIS2DATA'] = fa_out
+    calib_dict['OI_VIS2']['VIS2DATA'] = sqv_out
+    calib_dict['OI_VIS']['VISAMP'] = va_out
     calib_dict['OI_T3']['T3PHIERR'] = cperr_out
-    calib_dict['OI_VIS2']['VIS2EE'] = faerr_out
+    calib_dict['OI_VIS2']['VIS2ERR'] = sqverr_out
+    calib_dict['OI_VIS']['VISAMPERR'] = vaerr_out
+    # preserve the name of the calibrator star
+    calname = dct_c['info']['OBJECT']
+    calib_dict['info']['CALIB'] = calname
+
 
     return calib_dict
 
