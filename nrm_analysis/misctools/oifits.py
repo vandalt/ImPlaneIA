@@ -54,7 +54,10 @@ def Format_STAINDEX_V2(tab):
     for x in tab:
         ap1 = int(x[0])
         ap2 = int(x[1])
-        line = np.array([ap1, ap2]) + 1
+        if np.min(tab) == 0:
+            line = np.array([ap1, ap2]) + 1 # RAC 2/2021
+        else:
+            line = np.array([ap1, ap2])
         sta_index.append(line)
     return sta_index
 
@@ -66,7 +69,10 @@ def Format_STAINDEX_T3(tab):
         ap1 = int(x[0])
         ap2 = int(x[1])
         ap3 = int(x[2])
-        line = np.array([ap1, ap2, ap3]) + 1
+        if np.min(tab) == 0:
+            line = np.array([ap1, ap2, ap3]) + 1
+        else:
+            line = np.array([ap1, ap2, ap3])
         sta_index.append(line)
     return sta_index
 
