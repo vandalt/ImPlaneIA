@@ -21,6 +21,7 @@ import os, sys, time
 # mask geometries, GPI, NIRISS, VISIR supported...
 from .misctools.mask_definitions import NRM_mask_definitions 
 from .misctools import utils
+from .misctools import lpl_ianc
 
 um = 1.0e-6
 
@@ -365,8 +366,7 @@ class NIRISS:
                        chooseholes=None, 
                        affine2d=None, 
                        bandpass=None,
-                       bpbox_size=None,
-                       bpexist=True,
+                       nbadpix=4,
                        firstfew = None,
                        **kwargs):
         """
@@ -385,6 +385,7 @@ class NIRISS:
                   the given bandpass, so you can simulate 21cm psfs through something called "F430M"!
         firstfew: None or the number of slices to truncate input cube to in memory,
                   the latter for fast developmpent
+        nbadpix:  Number of good pixels to use when fixing bad pixels
         """
         
         if "verbose" in kwargs:
@@ -392,12 +393,8 @@ class NIRISS:
         else:
             self.verbose=False
 
-        self.bpexist = bpexist # is there a bad pixel map (eg DQ fits image extension, 0 = good)
-
-        if bpbox_size:
-            self.bpbox_size = bpbox_size
-        else: 
-            self.bpbox_size = 3
+        # self.bpexist set True/False if  DQ fits image extension exists/doesn't
+        self.nbadpix = 4
 
         if chooseholes:
             print("    **** InstrumentData.NIRISS: ", chooseholes)
@@ -472,7 +469,7 @@ class NIRISS:
         # only one NRM on JWST:
         self.telname = "JWST"
         self.instrument = "NIRISS"
-        self.arrname = "jwst_g7s6c"  # immplaneia mask set with this - unify to short form later 
+        self.arrname = "jwst_g7s6c"  # implaneia mask set with this - unify to short form later 
         self.holeshape="hex"
         self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=chooseholes, 
                                          holeshape=self.holeshape )
@@ -519,14 +516,26 @@ class NIRISS:
         # mode options are slice or UTR
         # for single slice data, need to read as 3D (1, npix, npix)
         # for utr data, need to read as 3D (ngroup, npix, npix)
+        # fix bad pixels using DQ extension and LPL local averaging, 
+        # but send bad pixel array down to where fringes are fit so they can be ignored.
         fitsfile = fits.open(fn)
         scidata=fitsfile[1].data
+        # usually DQ in MAST file... make it non-fatal DQ missing
+        try:
+            bpdata=fitsfile['DQ'].data # bad pixel extension
+            self.bpexist = True
+        except:
+            print("InstrumentData: no DQ exension found in", fn)
+            print("InstrumentData: assuming all pixels are good.", fn)
+            self.bpexist = False
 
-        if len(scidata.shape)==3:
+        if scidata.ndim == 3:  #len(scidata.shape)==3:
             print("input: 3D cube")
             # truncate all but the first few slices for rapid development
             if self.firstfew is not None:
-                if scidata.shape[0] > self.firstfew:  scidata = scidata[:self.firstfew, :, :]
+                if scidata.shape[0] > self.firstfew:  
+                    scidata = scidata[:self.firstfew, :, :]
+                    bpdata = bpdata[:self.firstfew, :, :]
             self.nwav=scidata.shape[0]
             [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
         elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
@@ -537,34 +546,25 @@ class NIRISS:
 
         # refpix removal by trimming
         scidata = scidata[:,4:, :] # [all slices, imaxis[0], imaxis[1]]
+        print('Refpix-trimmed off scidata', scidata.shape)
 
-        # fix pix using bad pixel map - WIP 7 2 2020 anand, still fails
+        # fix pix using bad pixel map - runs now.  Need to sanity-check.
         if self.bpexist:
-            bpdata=fitsfile['DQ'].data # bad pixel extension
-            bpdata = bpdata[4:, :]     #             one im axis, other imaxis
-            print('Refpix-trimmed scidata', scidata.shape)
-            print('Refpix-trimmed bpdata', bpdata.shape)
-
-            # median replace bad pixels
-            # check to see if any of the pixels are flagged in trimmed dta
-            if np.count_nonzero(bpdata != 0) > 0:
-                bad_locations  = np.where(np.not_equal(bpdata, 0))
-            # Save locations of bad pixels...
-            self.bpmask = np.where(bpdata != 0)
-            # fill the bad pixel values with the median of the data in a box region
-            for i_pos in range(len(bad_locations[0])):
-                x_box_pos = bad_locations[0][i_pos]
-                y_box_pos = bad_locations[1][i_pos]
-                median_fill = utils.median_fill_value(scidata, bpdata, self.bpbox_size, x_box_pos, y_box_pos)
-                scidata[x_box_pos, y_box_pos] = median_fill
+            bpdata = bpdata[:,4:, :]     # refpix removal by trimming to match image trim
+            print('Refpix-trimmed off bpdata ', bpdata.shape)
+            for slc in range(bpdata.shape[0]):
+                lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
     
         prihdr=fitsfile[0].header
         scihdr=fitsfile[1].header
-        self.updatewithheaderinfo(prihdr, scihdr) # mirage header or MAST header
-        # createsubdirectory name into which to write txt & oifits observables' files
+        # MAST header or similar kwds info for oifits writer:
+        self.updatewithheaderinfo(prihdr, scihdr)
+
+        # create subdirectory name into which to write txt & oifits observables' files
+        # This is a subdirectory where the data was found, named for fits input root name
         self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
 
-        return prihdr, scihdr, scidata
+        return prihdr, scihdr, scidata, bpdata
 
     
     def updatewithheaderinfo(self, ph, sh):
@@ -663,15 +663,6 @@ class NIRISS:
     def _generate_filter_files():
         """Either from WEBBPSF, or tophat, etc. A set of filter files will also be provided"""
         return None
-
-    def create_bpmask(self, imdata, dqdata):
-        """
-        imdata is 2, 3, or higher-dimensional data
-        dqdata is 2d data, int, 0 for good data quality.
-        saves an np.where() of bad data
-        """
-        bpmask = utils.mask_and_replace_bp(imdata, dqdata)
-        return bpmask
 
     def jwst_dqflags(self):
         """ 
