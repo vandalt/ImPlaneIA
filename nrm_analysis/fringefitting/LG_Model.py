@@ -110,7 +110,9 @@ class NRM_Model():
         self.holeshape = holeshape
         self.pixel = pixscale # det pix in rad (square)
         self.over = over
-        self.maskname = mask
+        self.maskname = mask  # should change to "mask", and mask.maskname is then eg jwst_g7s6c or whatever 2021 feb anand
+        # Cos incoming 'mask' is str, this is a mask object.
+        #elf.mask = mask  # should change to "mask", and mask.maskname is then eg jwst_g7s6c or whatever 2021 feb anand
         self.pixweight = pixweight 
 
         # WARNING! JWST CHOOSEHOLES CODE NOW DUPLICATED IN mask_definitions.py WARNING! ###
@@ -414,7 +416,13 @@ class NRM_Model():
 
 
     def fit_image(self, image, reference=None, pixguess=None, rotguess=0, psf_offset=(0,0),
-                  modelin=None, savepsfs=False):
+                  modelin=None, savepsfs=False, bpd=None):
+        """
+        This works on 2D "centered" images fed to it.
+        bpd is optional 2D bad pixel array, same size as image.  Zero is OK pixel.
+        self.maskname is a maskdef object with property self.maskname.mask a string
+        2021
+        """
 
         self.vprint(self, "\n    **** LG_Model.NRM_Model.fit_image: psf_offset {}".format(psf_offset))
         if hasattr(modelin, 'shape'):
@@ -473,12 +481,13 @@ class NRM_Model():
                             psf_offset=self.bestcenter, 
                             pixscale=self.pixel)
         else:
+            # This is the standard implaneia path on JWST NIRISS slice data 
+            #
             self.vprint(self, "    **** LG_Model.NRM_Model.fit_image: fittingmodel=modelin")
             self.fittingmodel = modelin
             
         self.soln, self.residual, self.cond,self.linfit_result = \
-                leastsqnrm.matrix_operations(image, self.fittingmodel, \
-                verbose=False)
+                leastsqnrm.matrix_operations(image, self.fittingmodel, verbose=False, bpd=bpd)
 
         self.vprint(self, "NRM_Model Raw Soln:")
         self.vprint(self, self.soln)
