@@ -24,13 +24,30 @@ def scaling(img, photons):  # RENAME this function
     return photons / total
 
 
-def matrix_operations(img, model, flux = None, verbose=False, linfit=False):
+"""
+def matrix_operations(img, model, flux = None, verbose=False, linfit=False, bpd=None):
     # least squares matrix operations to solve A x = b, where A is the model,
     # b is the data (image), and x is the coefficient vector we are solving for.
     # In 2-D data x = inv(At.A).(At.b) 
+    #
+    # bpd an array of bad pixel locations, or None.  0=>good data
+"""
+
+    
+def matrix_operations(img, model, flux = None, verbose=False, linfit=False, bpd=None):
+    # least squares matrix operations to solve A x = b, where A is the model,
+    # b is the data (image), and x is the coefficient vector we are solving for.
+    # In 2-D data x = inv(At.A).(At.b)
+    #
+    # bpd an array of bad pixel locations, or None.  0=>good data
 
     flatimg = img.reshape(np.shape(img)[0] * np.shape(img)[1])
-    nanlist = np.where(np.isnan(flatimg))
+
+    # Originally Alex had  nans coding bad pixels in the image.
+    # Anand: re-use the nan terminology code but driven by bad pixel frame
+    if type(bpd is not bool): nanlist = np.where(np.isnan(flatimg))
+    else: nanlist = np.where(np.isnan(flatimg))
+
     flatimg = np.delete(flatimg, nanlist)
     if flux is not None:
         flatimg = flux * flatimg / flatimg.sum()
@@ -70,7 +87,7 @@ def matrix_operations(img, model, flux = None, verbose=False, linfit=False):
         print("transpose * image data dimensions", np.shape(data_vector))
         print("flat img * transpose dimensions", np.shape(inverse))
 
-    if linfit: 
+    if linfit:
         try:
             from linearfit import linearfit
 
@@ -81,7 +98,7 @@ def matrix_operations(img, model, flux = None, verbose=False, linfit=False):
             noise = np.sqrt(np.abs(flatimg))
 
             # this sets the weights of pixels fulfilling condition to zero
-            weights = np.where(np.abs(flatimg)<=1.0, 0.0, 1.0/(noise**2))    
+            weights = np.where(np.abs(flatimg)<=1.0, 0.0, 1.0/(noise**2))
 
             # uniform weight
             wy = weights
@@ -111,7 +128,6 @@ def matrix_operations(img, model, flux = None, verbose=False, linfit=False):
             print("linearfit module not imported, no covariances saved.")
 
     return x, res, cond, linfit_result
-    
 
 def weighted_operations(img, model, weights, verbose=False):
     # least squares matrix operations to solve A x = b, where A is the model, b is the data (image), and x is the coefficient vector we are solving for. In 2-D data x = inv(At.A).(At.b) 
