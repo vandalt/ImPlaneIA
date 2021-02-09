@@ -129,7 +129,7 @@ class FringeFitter:
 
 
         #######################################################################
-        # Create directories if they don't already exit
+        # Create directories if they don't already exist
         try:
             os.mkdir(self.savedir)
         except:
@@ -146,7 +146,8 @@ class FringeFitter:
                 pass
 
     ###
-    # May 2017 J Sahlmann updates: parallelized fringe-fitting!
+    # May 2017 J Sahlmann updates: parallelized fringe-fitting
+    # Feb 2021 anand added bpdata to fringe fitting
     ###
 
     def fit_fringes(self, fns, threads = 0):
@@ -154,12 +155,12 @@ class FringeFitter:
             fns = [fns, ]
 
         # Can get fringes for images in parallel
-        store_dict = [{"object":self, "file":                 fn,"id":jj} \
+        store_dict = [{"object":self, "file":fn,"id":jj} \
                         for jj,fn in enumerate(fns)]
 
         t2 = time.time()
         for jj, fn in enumerate(fns):
-            fit_fringes_parallel({"object":self, "file":                  fn,\
+            fit_fringes_parallel({"object":self, "file":fn,\
                                   "id":jj},threads)
         t3 = time.time()
         print("Parallel with {0} threads took {1:.2f}s to fit all fringes".format(\
@@ -260,7 +261,7 @@ def fit_fringes_parallel(args, threads):
     self = args['object']
     filename = args['file']
     id_tag = args['id']
-    self.prihdr, self.scihdr, self.scidata = self.instrument_data.read_data(filename)
+    self.prihdr, self.scihdr, self.scidata, self.bpdata = self.instrument_data.read_data(filename)
     self.sub_dir_str = self.instrument_data.sub_dir_str
     try:
         os.mkdir(self.savedir+self.sub_dir_str)
@@ -283,7 +284,7 @@ def fit_fringes_parallel(args, threads):
 
 def fit_fringes_single_integration(args):
     self = args["object"]
-    slc = args["slc"]
+    slc = args["slc"]  # indexes each slice of 3D stack of images
     id_tag = args["slc"]
     nrm = NRM_Model(mask=self.instrument_data.mask,
                     pixscale=self.instrument_data.pscale_rad,
@@ -291,32 +292,35 @@ def fit_fringes_single_integration(args):
                     affine2d=self.instrument_data.affine2d,
                     over = self.oversample)
 
+    # for image data from single filter, this is the filter bandpass.
+    # otherwise it's the IFU wavelength slice.
     nrm.bandpass = self.instrument_data.wls[slc]
 
     if self.npix == 'default':
         self.npix = self.scidata[slc,:,:].shape[0]
-
-    DBG = False # AS testing gross psf orientatioun while getting to LG++ beta release 2018 09
-    if DBG:
-        nrm.simulate(fov=self.npix, bandpass=self.instrument_data.wls[slc], over=self.oversample)
-        fits.PrimaryHDU(data=nrm.psf).writeto(self.savedir + "perfect.fits", overwrite=True)
-
+    
     # New or modified in LG++
     # center the image on its peak pixel:
     # AS subtract 1 from "r" below  for testing >1/2 pixel offsets
     # AG 03-2019 -- is above comment still relevant?
     
+    # Where appropriate, the slice under consideration is centered, and processed
     if self.instrument_data.arrname=="NIRC2_9NRM":
-        self.ctrd = utils.center_imagepeak(self.scidata[slc, :,:], 
+        self.ctrd = utils.center_imagepeak(self.scidata[slc,:,:], 
                         r = (self.npix -1)//2 - 2, cntrimg=False)  
     elif self.instrument_data.arrname=="gpi_g10s40":
-        self.ctrd = utils.center_imagepeak(self.scidata[slc, :,:], 
+        self.ctrd = utils.center_imagepeak(self.scidata[slc,:,:], 
                         r = (self.npix -1)//2 - 2, cntrimg=True)  
+    elif self.instrument_data.arrname=="jwst_g7s6c":
+        # get the cropped image and identically-cropped bad pixel data:
+        self.ctrd, self.ctrb = utils.center_imagepeak(self.scidata[slc,:,:], bpd=self.bpdata[slc,:,:]) 
     else:
-        self.ctrd = utils.center_imagepeak(self.scidata[slc, :,:])  
+        self.ctrd = utils.center_imagepeak(self.scidata[slc,:,:])  
     
 
-    nrm.reference = self.ctrd  # self. is the cropped image centered on the brightest pixel
+    # store the 2D cropped image centered on the brightest pixel, bad pixels smoothed over
+    #nrm.reference = self.ctrd  # self.ctrd is the cropped image centered on the brightest pixel
+
     if self.psf_offset_ff is None:
         # returned values have offsets x-y flipped:
         # Finding centroids the Fourier way assumes no bad pixels case - Fourier domain mean slope
@@ -332,11 +336,16 @@ def fit_fringes_single_integration(args):
         nrm.psf_offset = self.psf_offset_ff # user-provided psf_offset python-style offsets from array center are here.
 
 
-    nrm.make_model(fov = self.ctrd.shape[0], bandpass=nrm.bandpass, 
+    nrm.make_model(fov=self.ctrd.shape[0], 
+                   bandpass=nrm.bandpass, 
                    over=self.oversample,
                    psf_offset=nrm.psf_offset,  
                    pixscale=nrm.pixel)
-    nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.psf_offset)
+    # again, fit just one slice...
+    if self.instrument_data.arrname=="jwst_g7s6c":
+        nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.psf_offset, bpd=self.ctrb)
+    else:
+        nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.psf_offset)
 
     """
     Attributes now stored in nrm object:
@@ -351,6 +360,7 @@ def fit_fringes_single_integration(args):
     cond            --- matrix condition for inversion
     fringepistons   --- zero-mean piston opd in radians on each hole (eigenphases)
     -----------------------------------------------------------------------------
+    For jwst_g7s6 cropped-to-match-data bad pixel array 'ctrb' is also stored
     """
 
     if self.debug==True:
