@@ -535,13 +535,14 @@ def crosscorrelatePSFs(a, A, ov, verbose=False):
 #    print("deprecated - switch to using  'center_imagepeak'")
 #    return center_imagepeak(img, r='default')
        
-def center_imagepeak(img, r='default', cntrimg = True, verbose=False):
+def center_imagepeak(img, r=None, cntrimg = True, bpd=False, verbose=False):
 
     """Return a cropped version of the input image centered on the peak pixel.
 
     Parameters
     ----------
     img : numpy input array
+    bpd : bad pixel array eg STScI MAST DQ extenion for JWST-NIRISS AmI 
 
     Returns
     -------
@@ -550,17 +551,24 @@ def center_imagepeak(img, r='default', cntrimg = True, verbose=False):
 
     """
     peakx, peaky, h = min_distance_to_edge(img)
-    if r == 'default':
+    if r is None:
         r = h.copy()
     else:
         pass
 
     cropped = img[int(peakx-r):int(peakx+r+1), int(peaky-r):int(peaky+r+1)]
+    if type(bpd) is not bool: 
+        bpdcrop = bpd[int(peakx-r):int(peakx+r+1), int(peaky-r):int(peaky+r+1)]
+
     if verbose:
         print('Cropped image shape:',cropped.shape)
         print('value at center:', cropped[r,r])
         print(np.where(cropped == cropped.max()))
-    return cropped
+
+
+    if type(bpd) is not bool: return cropped, bpdcrop
+    else:                     return cropped
+    
 
 
 def min_distance_to_edge(img, cntrimg = False, verbose=False):
