@@ -638,10 +638,13 @@ class NIRISS:
 
         np.set_printoptions(precision=5, suppress=True, linewidth=160, 
                             formatter={'float': lambda x: "%10.5f," % x})
+        print("self.mask.ctrs: \n", self.mask.ctrs)
+        # rotate mask hole center coords by PAV3 # RAC 2021
+        ctrs_sky = self.mast2sky()
+        print("new ctrs: \n", ctrs_sky)
         # Sydney oif coords switch... slow but sure this time!  (I hope...)
-        # print("self.mask.ctrs: \n", self.mask.ctrs)
-        stax_oif = self.mask.ctrs[:,1].copy()  * -1
-        stay_oif = self.mask.ctrs[:,0].copy()  * -1
+        stax_oif =  ctrs_sky[:,1].copy()  * -1
+        stay_oif =  ctrs_sky[:,0].copy()  * -1
         # print("stax_oif: ", stax_oif)
         # print("stay_oif: ", stay_oif)
         oifctrs = np.zeros(self.mask.ctrs.shape)
@@ -737,6 +740,28 @@ class NIRISS:
                  'JUMP_DET':   self.bpval['JUMP_DET'],
                  'DROPOUT':    self.bpval['DROPOUT'],
         }
+
+    def mast2sky(self):
+        """
+        Rotate hole center coordinates by the V3 position angle from north in degrees (PAV3)
+        Hole center coords are in the V2, V3 plane in meters.
+        Return rotated coordinates to be put in info4oif_dict.
+        implane2oifits.ObservablesFromText uses these to calculate baselines.
+        """
+        pa = self.pa
+        mask_ctrs = self.mask.ctrs
+        if pa != 0.0:
+            v2 = mask_ctrs[:,0]
+            v3 = mask_ctrs[:,1]
+            #v2_rot = v3*np.cos(np.deg2rad(pa)) - v2*np.sin(np.deg2rad(pa))
+            #v3_rot = v3*np.sin(np.deg2rad(pa)) + v2*np.cos(np.deg2rad(pa))
+            ctrs_rot = np.zeros(mask_ctrs.shape)
+            ctrs_rot[:,0] = v2_rot
+            ctrs_rot[:,1] = v3_rot
+        else:
+            ctrs_rot = mask_ctrs
+        return ctrs_rot
+
 
 class NIRC2:
     def __init__(self, reffile, **kwargs):
