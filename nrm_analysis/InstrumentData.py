@@ -753,8 +753,9 @@ class NIRISS:
         if pa != 0.0:
             v2 = mask_ctrs[:,0]
             v3 = mask_ctrs[:,1]
-            #v2_rot = v3*np.cos(np.deg2rad(pa)) - v2*np.sin(np.deg2rad(pa))
-            #v3_rot = v3*np.sin(np.deg2rad(pa)) + v2*np.cos(np.deg2rad(pa))
+            # clockwise rotation
+            v2_rot = v3*np.cos(np.deg2rad(pa)) + v2*np.sin(np.deg2rad(pa))
+            v3_rot = -v3*np.sin(np.deg2rad(pa)) + v2*np.cos(np.deg2rad(pa))
             ctrs_rot = np.zeros(mask_ctrs.shape)
             ctrs_rot[:,0] = v2_rot
             ctrs_rot[:,1] = v3_rot
