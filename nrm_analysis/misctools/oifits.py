@@ -166,6 +166,7 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     hdu.header['FILT'] = dic['info']['FILT']
     hdu.header['ARRNAME'] = dic['info']['ARRNAME'] # Anand 9/2020
     hdu.header['MASK'] = dic['info']['ARRNAME'] # Anand 9/2020
+    hdu.header['PA'] = dic['info']['PA'] # RC 1/2021
     # name of calibrator if applicable. RC 1/2021
     try:
         hdu.header['CALIB'] = dic['info']['CALIB']
@@ -525,6 +526,10 @@ def load(filename, target=None, ins=None, mask=None, include_vis=True):
         dic['info']['INSMODE'] = hdr['INSMODE']
     except KeyError:
         dic['info']['INSMODE'] = None
+    try:
+        dic['info']['PA'] = hdr['PA']
+    except KeyError:
+        dic['info']['PA'] = None
 
     for hdu in fitsHandler[1:]:
         # RAC 9/2020

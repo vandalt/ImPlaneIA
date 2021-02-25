@@ -256,6 +256,7 @@ class ObservablesFromText():
                 print(key)
         pfd.close()
         self.ctrs = self.info4oif_dict['ctrs']
+        self.pa = self.info4oif_dict['pa']
 
         """   seexyz.py
         Sydney oifitx oi_array:
@@ -780,7 +781,9 @@ def observable2dict(nrm, nrm_c=False, display=False):
                     'PSCALE': info4oif['pscale_mas'],
                     'STAXY': info4oif['ctrs'],
                     'ISZ': 77,  # size of the image needed (or fov)
-                    'NFILE': 0}
+                    'NFILE': 0,
+                    'PA': info4oif['pa']
+                    }
            }
 
     if display:
@@ -883,9 +886,7 @@ def calib_dicts(dct_t, dct_c):
     calib_dict['OI_VIS2']['VIS2ERR'] = sqverr_out
     calib_dict['OI_VIS']['VISAMPERR'] = vaerr_out
     # preserve the name of the calibrator star
-    calname = dct_c['info']['OBJECT']
-    calib_dict['info']['CALIB'] = calname
-
+    calib_dict['info']['CALIB'] = dct_c['info']['OBJECT']
 
     return calib_dict
 
