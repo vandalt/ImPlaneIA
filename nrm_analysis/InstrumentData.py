@@ -706,6 +706,7 @@ class NIRISS:
         self.day = datestr[8:10]; info4oif_dict['day'] = self.day
         self.parangh= sh["ROLL_REF"]; info4oif_dict['parangh'] = self.parangh
         self.pa = sh["PA_V3"]; info4oif_dict['pa'] = self.pa
+        self.vparity = sh["VPARITY"]; info4oif_dict['vparity'] = self.vparity
 
         # An INTegration is NGROUPS "frames", not relevant here but context info.
         # 2d => "cal" file combines all INTegrations (ramps)
