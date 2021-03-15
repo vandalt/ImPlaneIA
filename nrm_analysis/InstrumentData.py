@@ -566,6 +566,89 @@ class NIRISS:
 
         return prihdr, scihdr, scidata, bpdata
 
+
+    def cdmatrix_to_sky(self, vec, cd11, cd12, cd21, cd22):
+        """ use the global header values explicitly, for clarity 
+            vec is 2d, units of pixels
+            cdij is 2x4 array in units degrees/pixel
+        """
+        return np.array((cd11*vec[0] + cd12*vec[1], cd21*vec[0] + cd22*vec[1]))
+
+
+    def degrees_per_pixel(self, phdr):
+        """
+        input: phdr:  fits data file's header with or without CDELT1, CDELT2 (degrees per pixel)
+        returns: cdelt1, cdelt2: tuple, degrees per pixel along axes 1, 2
+                         EITHER: read from header CDELT[12] keywords 
+                             OR: calculated using CD matrix (Jacobian of RA-TAN, DEC-TAN degrees
+                                 to pixel directions 1,2.  No deformation included in this routine,
+                                 but the CD matric includes non-linear field distortion.
+                                 No pupil distortion or rotation here.
+                        MISSING: If keywords are missing default hardcoded cdelts are returned.
+                                 The exact algorithm may substitute this later.
+                                 Below seems good to ~5th significant figure when compared to 
+                                 cdelts header values prior to replacement by cd matrix approach.
+            N.D. at stsci 11 Mar 20212
+
+            We start in Level 1 with the PC matrix and CDELT.
+            CDELTs come from the SIAF.
+
+            The PC matrix is computed from the roll angle, V3YANG and the parity.
+            The code is here
+            https://github.com/spacetelescope/jwst/blob/master/jwst/assign_wcs/util.py#L153
+
+            In the level 2 imaging pipeline, assign_wcs adds the distortion to the files.
+            At the end it computes an approximation of the entire distortion transformation
+            by fitting a polynomial. This approximated distortion is represented as SIP
+            polynomials in the FITS headers.
+
+            Because SIP, by definition, uses a CD matrix, the PC + CDELT are replaced by CD.
+
+            How to get CDELTs back?
+
+            I think once the rotation, skew and scale are in the CD matrix it's very hard to
+            disentangle them. The best way IMO is to calculate the local scale using three
+            point difference. There is a function in jwst that does this.
+
+            Using a NIRISS image as an example:
+
+            from jwst.assign_wcs import util
+            from jwst import datamodels
+
+            im=datamodels.open('niriss_image_assign_wcs.fits')
+
+            util.compute_scale(im.meta.wcs, (im.meta.wcsinfo.ra_ref, im.meta.wcsinfo.dec_ref))
+
+            1.823336635353374e-05
+
+            The function returns a constant scale. Is this sufficient for what you need or
+            do you need scales and sheer along each axis? The code in util.compute_scale can
+            help with figuring out how to get scales along each axis.
+
+            I hope this answers your question.
+        """
+
+        if 'CD1_1' in phdr.keys() and 'CD1_2' in phdr.keys() and  \
+             'CD2_1' in phdr.keys() and 'CD2_2' in phdr.keys():
+            cd11 = phdr['CD1_1']
+            cd12 = phdr['CD1_2']
+            cd21 = phdr['CD2_1']
+            cd22 = phdr['CD2_2']
+            # Create unit vectors in detector pixel X and Y directions, units: detector pixels
+            dxpix  =  np.array((1.0, 0.0)) # axis 1 step
+            dypix  =  np.array((0.0, 1.0)) # axis 2 step
+            # transform pixel x and y steps to RA-tan, Dec-tan degrees
+            dxsky = self.cdmatrix_to_sky(dxpix, cd11, cd12, cd21, cd22)
+            dysky = self.cdmatrix_to_sky(dypix, cd11, cd12, cd21, cd22)
+            print("Used CD matrix for pixel scales")
+            return np.linalg.norm(dxsky, ord=2), np.linalg.norm(dysky, ord=2)
+        elif 'CDELT1' in phdr.keys() and 'CDELT2' in phdr.keys():
+            return phdr['CDELT1'], phdr['CDELT2']
+            print("Used CDDELT[12] for pixel scales")
+        else:
+            print('InstrumentData: Warning: NIRISS pixel scales not in header.  Using 65.6 mas in deg/pix')
+            return 65.6/(60.0*60.0*1000), 65.6/(60.0*60.0*1000)
+
     
     def updatewithheaderinfo(self, ph, sh):
         """ input: primary header, science header MAST"""
@@ -604,19 +687,18 @@ class NIRISS:
 
         # if data was generated on the average pixel scale of the header
         # then this is the right value that gets read in, and used in fringe fitting
-        pscalex_deg = sh["CDELT1"]
-        pscaley_deg = sh["CDELT2"]
+        pscalex_deg, pscaley_deg = self.degrees_per_pixel(sh)
         #
-        # To use ami_sim's eg 65.6 mas/pixel scale we hardcode it here...
-        pscalex_deg = 65.6 / (1000 *60 * 60)
-        pscaley_deg = 65.6 / (1000 *60 * 60)
         info4oif_dict['pscalex_deg'] = pscalex_deg
         info4oif_dict['pscaley_deg'] = pscaley_deg
         # Whatever we did set is averaged for isotropic pixel scale here
-        self.pscale_mas = 0.5 * (pscalex_deg + pscaley_deg) * (60*60*1000); info4oif_dict['pscale_mas'] = self.pscale_mas
+        self.pscale_mas = 0.5 * (pscalex_deg + pscaley_deg) * (60*60*1000); \
+        info4oif_dict['pscale_mas'] = self.pscale_mas
         self.pscale_rad = utils.mas2rad(self.pscale_mas); info4oif_dict['pscale_rad'] = self.pscale_rad
+
         self.mask = NRM_mask_definitions(maskname=self.arrname, chooseholes=self.chooseholes,
                                          holeshape=self.holeshape) # for STAtions x y in oifs
+
         self.date = ph["DATE-OBS"] + "T" + ph["TIME-OBS"]; info4oif_dict['date'] = self.date
         datestr = ph["DATE-OBS"]
         self.year = datestr[:4]; info4oif_dict['year'] = self.year
@@ -663,9 +745,10 @@ class NIRISS:
         print("InstrumentData: ", "Resetting InstrumentData instantiation's nwave to", nwav)
         self.nwav = nwav
 
-    def _generate_filter_files():
-        """Either from WEBBPSF, or tophat, etc. A set of filter files will also be provided"""
-        return None
+    # Delete if this is not8 called from anywhere!
+    #  def _generate_filter_files():
+    #      """Either from WEBBPSF, or tophat, etc. A set of filter files will also be provided"""
+    #      return None
 
     def jwst_dqflags(self):
         """ 
@@ -741,6 +824,7 @@ class NIRISS:
                  'DROPOUT':    self.bpval['DROPOUT'],
         }
 
+
     def mast2sky(self):
         """
         Rotate hole center coordinates by the V3 position angle from north in degrees (PAV3)
@@ -753,7 +837,7 @@ class NIRISS:
         if pa != 0.0:
             v2 = mask_ctrs[:,0]
             v3 = mask_ctrs[:,1]
-            # clockwise rotation
+            # clockwise rotation.  Because AMI data always has VPARITY=-1 in science header.
             v2_rot = v3*np.cos(np.deg2rad(pa)) + v2*np.sin(np.deg2rad(pa))
             v3_rot = -v3*np.sin(np.deg2rad(pa)) + v2*np.cos(np.deg2rad(pa))
             ctrs_rot = np.zeros(mask_ctrs.shape)
