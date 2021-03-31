@@ -326,7 +326,10 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                     data[akey] = data[akey][0]
         except TypeError:
             pass
-
+    if len(data['VISAMP'].shape) == 1: # figure out if it's multi-slice or not
+        nslice = 1
+    else:
+        nslice = data['VISAMP'].shape[1] # this would cause an error if not multi-slice
     col1 = fits.Column(name='TARGET_ID', format='1I',
                     array=[data['TARGET_ID']]*npts)
     col2 = fits.Column(name='TIME', format='1D', unit='SECONDS',
@@ -335,11 +338,11 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                     array=[data['MJD']]*npts)
     col4 = fits.Column(name='INT_TIME', format='1D', unit='SECONDS',
                     array=[data['INT_TIME']]*npts)
-    col5 = fits.Column(name='VISAMP', format='1D', array=data['VISAMP'])
-    col6 = fits.Column(name='VISAMPERR', format='1D', array=data['VISAMPERR'])
-    col7 = fits.Column(name='VISPHI', format='1D', unit='DEGREES',
+    col5 = fits.Column(name='VISAMP', format='%dD'%nslice, array=data['VISAMP'])
+    col6 = fits.Column(name='VISAMPERR', format='%dD'%nslice, array=data['VISAMPERR'])
+    col7 = fits.Column(name='VISPHI', format='%dD'%nslice, unit='DEGREES',
                     array=data['VISPHI'])
-    col8 = fits.Column(name='VISPHIERR', format='1D', unit='DEGREES',
+    col8 = fits.Column(name='VISPHIERR', format='%dD'%nslice, unit='DEGREES',
                     array=data['VISPHIERR'])
     col9 = fits.Column(name='UCOORD', format='1D',
                     unit='METERS', array=data['UCOORD'])
@@ -377,7 +380,6 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                     data[akey] = data[akey][0]
         except TypeError:
             pass
-
     col1 = fits.Column(name='TARGET_ID', format='1I',
                     array=[data['TARGET_ID']]*npts)
     col2 = fits.Column(name='TIME', format='1D', unit='SECONDS',
@@ -386,8 +388,8 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                     array=[data['MJD']]*npts)
     col4 = fits.Column(name='INT_TIME', format='1D', unit='SECONDS',
                     array=[data['INT_TIME']]*npts)
-    col5 = fits.Column(name='VIS2DATA', format='1D', array=data['VIS2DATA'])
-    col6 = fits.Column(name='VIS2ERR', format='1D', array=data['VIS2ERR'])
+    col5 = fits.Column(name='VIS2DATA', format='%dD'%nslice, array=data['VIS2DATA'])
+    col6 = fits.Column(name='VIS2ERR', format='%dD'%nslice, array=data['VIS2ERR'])
     col7 = fits.Column(name='UCOORD', format='1D',
                     unit='METERS', array=data['UCOORD'])
     col8 = fits.Column(name='VCOORD', format='1D',
@@ -432,11 +434,11 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                     array=[data['MJD']]*npts)
     col4 = fits.Column(name='INT_TIME', format='1D', unit='SECONDS',
                     array=[data['INT_TIME']]*npts)
-    col5 = fits.Column(name='T3AMP', format='1D', array=data['T3AMP'])
-    col6 = fits.Column(name='T3AMPERR', format='1D', array=data['T3AMPERR'])
-    col7 = fits.Column(name='T3PHI', format='1D', unit='DEGREES',
+    col5 = fits.Column(name='T3AMP', format='%dD'%nslice, array=data['T3AMP'])
+    col6 = fits.Column(name='T3AMPERR', format='%dD'%nslice, array=data['T3AMPERR'])
+    col7 = fits.Column(name='T3PHI', format='%dD'%nslice, unit='DEGREES',
                     array=data['T3PHI'])
-    col8 = fits.Column(name='T3PHIERR', format='1D', unit='DEGREES',
+    col8 = fits.Column(name='T3PHIERR', format='%dD'%nslice, unit='DEGREES',
                     array=data['T3PHIERR'])
     col9 = fits.Column(name='U1COORD', format='1D',
                     unit='METERS', array=data['U1COORD'])

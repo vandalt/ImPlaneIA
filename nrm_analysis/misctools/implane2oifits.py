@@ -336,82 +336,82 @@ def Plot_observables(tab, vmin=0, vmax=1.1, cmax=180, unit_cp='deg', display=Fal
         return
 
 
-def calib_NRM(nrm_t, nrm_c, method='med'):
-
-    # calibration factor Vis. (supposed to be one)
-    fact_calib_visamp = np.mean(nrm_c.fa, axis=0)
-    # calibration factor Phase Vis. (supposed to be zero)
-    fact_calib_visphi = np.mean(nrm_c.fp, axis=0)
-
-    visamp_calibrated = nrm_t.fa/fact_calib_visamp
-    visphi_calibrated = nrm_t.fp - fact_calib_visphi
-    vis2_calibrated = visamp_calibrated**2
-
-    if method == 'med':
-        vis2 = np.median(vis2_calibrated, axis=0)  # V2
-    else:
-        vis2 = np.mean(vis2_calibrated, axis=0)  # V2
-
-    e_vis2 = np.std(vis2_calibrated, axis=0)  # Error on V2
-
-    if method == 'med':
-        visamp = np.median(visamp_calibrated, axis=0)  # Vis. amp
-    else:
-        visamp = np.mean(visamp_calibrated, axis=0)  # Vis. amp
-
-    e_visamp = np.std(visamp_calibrated, axis=0)  # Vis. amp
-
-    if method == 'med':
-        visphi = np.median(visphi_calibrated, axis=0)  # Vis. phase
-    else:
-        visphi = np.mean(visphi_calibrated, axis=0)  # Vis. phase
-
-    e_visphi = np.std(visphi_calibrated, axis=0)  # Vis. phase
-
-    # calibration factor closure amp (supposed to be one)
-    fact_calib_cpamp = np.mean(nrm_c.ca, axis=0)
-    # calibration factor closure phase (supposed to be zero)
-    fact_calib_cpphi = np.mean(nrm_c.cp, axis=0)
-
-    shift2pi = np.zeros(nrm_t.cp.shape)
-    shift2pi[nrm_t.cp >= 6] = 2*np.pi
-    shift2pi[nrm_t.cp <= -6] = -2*np.pi
-
-    """ Anthony, is this your  _t or _c?
-    nrm.cp -= shift2pi
-    """
-    nrm_t.cp -= shift2pi  # I'm guessing it's _t
-
-    cp_cal = nrm_t.cp - fact_calib_cpphi
-    cpamp_cal = nrm_t.ca/fact_calib_cpamp
-
-    if method == 'med':
-        cp = np.median(cp_cal, axis=0)
-    else:
-        cp = np.mean(cp_cal, axis=0)
-
-    e_cp = np.std(cp_cal, axis=0)
-
-    if method == 'med':
-        cpamp = np.median(cpamp_cal, axis=0)
-    else:
-        cpamp = np.mean(cpamp_cal, axis=0)
-
-    e_cpamp = np.std(cpamp_cal, axis=0)
-
-    output = {'vis2': vis2,
-              'e_vis2': e_vis2,
-              'visamp': visamp,
-              'e_visamp': e_visamp,
-              'visphi': visphi,
-              'e_visphi': e_visphi,
-              'cp': cp,
-              'e_cp': e_cp,
-              'cpamp': cpamp,
-              'e_cpamp': e_cpamp
-              }
-
-    return dict2class(output)
+# def calib_NRM(nrm_t, nrm_c, method='med'):
+#
+#     # calibration factor Vis. (supposed to be one)
+#     fact_calib_visamp = np.mean(nrm_c.fa, axis=0)
+#     # calibration factor Phase Vis. (supposed to be zero)
+#     fact_calib_visphi = np.mean(nrm_c.fp, axis=0)
+#
+#     visamp_calibrated = nrm_t.fa/fact_calib_visamp
+#     visphi_calibrated = nrm_t.fp - fact_calib_visphi
+#     vis2_calibrated = visamp_calibrated**2
+#
+#     if method == 'med':
+#         vis2 = np.median(vis2_calibrated, axis=0)  # V2
+#     else:
+#         vis2 = np.mean(vis2_calibrated, axis=0)  # V2
+#
+#     e_vis2 = np.std(vis2_calibrated, axis=0)  # Error on V2
+#
+#     if method == 'med':
+#         visamp = np.median(visamp_calibrated, axis=0)  # Vis. amp
+#     else:
+#         visamp = np.mean(visamp_calibrated, axis=0)  # Vis. amp
+#
+#     e_visamp = np.std(visamp_calibrated, axis=0)  # Vis. amp
+#
+#     if method == 'med':
+#         visphi = np.median(visphi_calibrated, axis=0)  # Vis. phase
+#     else:
+#         visphi = np.mean(visphi_calibrated, axis=0)  # Vis. phase
+#
+#     e_visphi = np.std(visphi_calibrated, axis=0)  # Vis. phase
+#
+#     # calibration factor closure amp (supposed to be one)
+#     fact_calib_cpamp = np.mean(nrm_c.ca, axis=0)
+#     # calibration factor closure phase (supposed to be zero)
+#     fact_calib_cpphi = np.mean(nrm_c.cp, axis=0)
+#
+#     shift2pi = np.zeros(nrm_t.cp.shape)
+#     shift2pi[nrm_t.cp >= 6] = 2*np.pi
+#     shift2pi[nrm_t.cp <= -6] = -2*np.pi
+#
+#     """ Anthony, is this your  _t or _c?
+#     nrm.cp -= shift2pi
+#     """
+#     nrm_t.cp -= shift2pi  # I'm guessing it's _t
+#
+#     cp_cal = nrm_t.cp - fact_calib_cpphi
+#     cpamp_cal = nrm_t.ca/fact_calib_cpamp
+#
+#     if method == 'med':
+#         cp = np.median(cp_cal, axis=0)
+#     else:
+#         cp = np.mean(cp_cal, axis=0)
+#
+#     e_cp = np.std(cp_cal, axis=0)
+#
+#     if method == 'med':
+#         cpamp = np.median(cpamp_cal, axis=0)
+#     else:
+#         cpamp = np.mean(cpamp_cal, axis=0)
+#
+#     e_cpamp = np.std(cpamp_cal, axis=0)
+#
+#     output = {'vis2': vis2,
+#               'e_vis2': e_vis2,
+#               'visamp': visamp,
+#               'e_visamp': e_visamp,
+#               'visphi': visphi,
+#               'e_visphi': e_visphi,
+#               'cp': cp,
+#               'e_cp': e_cp,
+#               'cpamp': cpamp,
+#               'e_cpamp': e_cpamp
+#               }
+#
+#     return dict2class(output)
 
 def populate_NRM(nrm_t, method='med'):
     """ 
@@ -419,58 +419,76 @@ def populate_NRM(nrm_t, method='med'):
     Instead it just populates the appropriate dictionary.  
     So nomenclature looks funny with _5, etc., 
     Funny-looking clumsy straight handoffs to internal variable nmaes,...
+    # RAC 3/3021
+    If method='multi', preserve observables in each slice (integration) in the output class.
+    Multi-slice observable arrays will have read-in shape (len(observable),nslices).
+    Errors of multi-slice observables will be all zero (for now)
+    Otherwise, take median or mean (assumed if method not 'med' or 'multi').
+
     """
 
-    visamp_calibrated = nrm_t.fa
-    visphi_calibrated = nrm_t.fp
-    vis2_calibrated = visamp_calibrated**2
+    visamp_in = nrm_t.fa
+    visphi_in = nrm_t.fp
+    vis2_in = visamp_in**2
 
-    if method == 'med':
-        vis2 = np.median(vis2_calibrated, axis=0)  # V2
+    if method == 'multi':
+        vis2 = vis2_in.T
+        e_vis2 = np.zeros(vis2.shape)
+    elif method == 'med':
+        vis2 = np.median(vis2_in, axis=0)  # V2
+        e_vis2 = np.std(vis2_in, axis=0)  # Error on V2
     else:
-        vis2 = np.mean(vis2_calibrated, axis=0)  # V2
+        vis2 = np.mean(vis2_in, axis=0)  # V2
+        e_vis2 = np.std(vis2_in, axis=0)  # Error on V2
 
-    e_vis2 = np.std(vis2_calibrated, axis=0)  # Error on V2
-
-    if method == 'med':
-        visamp = np.median(visamp_calibrated, axis=0)  # Vis. amp
+    if method == 'multi':
+        visamp = visamp_in.T
+        e_visamp = np.zeros(visamp.shape)
+    elif method == 'med':
+        visamp = np.median(visamp_in, axis=0)  # Vis. amp
+        e_visamp = np.std(visamp_in, axis=0)  # Error on Vis. amp
     else:
-        visamp = np.mean(visamp_calibrated, axis=0)  # Vis. amp
+        visamp = np.mean(visamp_in, axis=0)  # Vis. amp
+        e_visamp = np.std(visamp_in, axis=0)  # Error on Vis. amp
 
-    e_visamp = np.std(visamp_calibrated, axis=0)  # Vis. amp
-
-    if method == 'med':
-        visphi = np.median(visphi_calibrated, axis=0)  # Vis. phase
+    if method == 'multi':
+        visphi = visphi_in.T
+        e_visphi = np.zeros(visphi.shape)
+    elif method == 'med':
+        visphi = np.median(visphi_in, axis=0)  # Vis. phase
+        e_visphi = np.std(visphi_in, axis=0)
     else:
-        visphi = np.mean(visphi_calibrated, axis=0)  # Vis. phase
-
-    e_visphi = np.std(visphi_calibrated, axis=0)  # Vis. phase
+        visphi = np.mean(visphi_in, axis=0)  # Vis. phase
+        e_visphi = np.std(visphi_in, axis=0)  # Error on Vis. phase
 
     shift2pi = np.zeros(nrm_t.cp.shape)
     shift2pi[nrm_t.cp >= 6] = 2*np.pi
     shift2pi[nrm_t.cp <= -6] = -2*np.pi
 
-    """ Anthony, is this your  _t or _c?
-    nrm.cp -= shift2pi
-    """
-    nrm_t.cp -= shift2pi  # I'm guessing it's _t
+    nrm_t.cp -= shift2pi
 
-    cp_cal = nrm_t.cp
-    cpamp_cal = nrm_t.ca
+    cp_in = nrm_t.cp
+    cpamp_in = nrm_t.ca
 
-    if method == 'med':
-        cp = np.median(cp_cal, axis=0)
+    if method == 'multi':
+        cp = cp_in.T
+        e_cp = np.zeros(cp.shape)
+    elif method == 'med':
+        cp = np.median(cp_in, axis=0)
+        e_cp = np.std(cp_in, axis=0)
     else:
-        cp = np.mean(cp_cal, axis=0)
+        cp = np.mean(cp_in, axis=0)
+        e_cp = np.std(cp_in, axis=0)
 
-    e_cp = np.std(cp_cal, axis=0)
-
-    if method == 'med':
-        cpamp = np.median(cpamp_cal, axis=0)
+    if method == 'multi':
+        cpamp = cpamp_in.T
+        e_cpamp = np.zeros(cpamp.shape)
+    elif method == 'med':
+        cpamp = np.median(cpamp_in, axis=0)
+        e_cpamp = np.std(cpamp_in, axis=0)
     else:
-        cpamp = np.mean(cpamp_cal, axis=0)
-
-    e_cpamp = np.std(cpamp_cal, axis=0)
+        cpamp = np.mean(cpamp_in, axis=0)
+        e_cpamp = np.std(cpamp_in, axis=0)
 
     output = {'vis2': vis2,
               'e_vis2': e_vis2,
@@ -486,187 +504,186 @@ def populate_NRM(nrm_t, method='med'):
 
     return dict2class(output)
 
-#################  reading oifits into memory..
-###  Later we can create default values for each attribute's attributes to handle 
-###  observables without errors, and so on.
-def calibrate_observable(tgt, cal):
-    """
-    input: two observabless  (such as one gets from Dict2Observable)
-    return an observable object (such as one gets from Dict2Observable) that is calibrated.
-    """
-    obs=copy.deepcopy(tgt)
-
-    obs.vis2obj.vis2 = tgt.vis2obj.vis2 / cal.vis2obj.vis2
-    obs.vis2obj.e_vis2 = np.sqrt(tgt.vis2obj.e_vis2*tgt.vis2obj.e_vis2 + 
-                                 cal.vis2obj.e_vis2*cal.vis2obj.e_vis2)
-
-    obs.visobj.visamp = tgt.visobj.visamp / cal.visobj.visamp 
-    obs.visobj.e_visamp = np.sqrt(tgt.visobj.e_visamp*tgt.visobj.e_visamp + \
-                                  cal.visobj.e_visamp*cal.visobj.e_visamp)
-
-    obs.visobj.visphi = tgt.visobj.visphi  - cal.visobj.visphi
-    obs.visobj.e_visphi = np.sqrt(tgt.visobj.e_visphi*tgt.visobj.e_visphi +\
-                                  tgt.visobj.e_visphi*tgt.visobj.e_visphi)
-
-    obs.t3obj.cp = tgt.t3obj.cp - cal.t3obj.cp 
-    obs.t3obj.e_cp = np.sqrt(tgt.t3obj.e_cp*tgt.t3obj.e_cp + \
-                             cal.t3obj.e_cp*cal.t3obj.e_cp)
-    obs.t3obj.cpamp = tgt.t3obj.cpamp  / cal.t3obj.cpamp
-
-    return obs
-
-
-class Infoobj():
-    def __init__(self):
-        return None
-class Visobj():
-    def __init__(self):
-        return None
-class Vis2obj():
-    def __init__(self):
-        return None
-class T3obj():
-    def __init__(self):
-        return None
-class WLobj():
-    def __init__(self):
-        return None
-class DictToObservable():
-    """
-    Convert a dictionary compatible with oifits.save to an in-memory
-    Observable object that is organized similar to an oifits file's entries.
-
-    This is different storage orgnization than the readobservablefromyext utility.A
-    The latter is more mplaneia-centric in organization, using a dictionary
-    info4oif to enable oifits writing.
-
-    Some day implaneia might become natively oifits-like in observables' organization...
-
-        anand@stsci.edu 2020.07.17
-    """
-
-    def __init__(self, dct, verbose=False):
-
-        """
-        dct: dictionary resulting from oifits.load() of an oifits file
-             returns an nrm "observble" with four attributes, 
-                self.vis2obj
-                self.visobj
-                self.t3obj
-                self.wlobj
-            that each contain the associated oifits->dictionary elements.
-
-        This internal memory-only use is used for eg calibrating an observation with another, or 
-        playing with multiple calbrators, each read into one such Observable..
-
-        Usage:  e.g.
-
-            tgt = Dict2Observable(dct_abdor)
-            c_1 = Dict2Observable(dct_c_1)
-            c_2 = Dict2Observable(dct_c_2)
-        """
-
-        vis2obj = Vis2obj()
-        vis2obj.vis2 = dct['OI_VIS2']['VIS2DATA']
-        vis2obj.e_vis2 = dct['OI_VIS2']['VIS2ERR']
-        vis2obj.ucoord = dct['OI_VIS2']['UCOORD']
-        vis2obj.vcoord = dct['OI_VIS2']['VCOORD']
-        vis2obj.bholes = dct['OI_VIS2']['STA_INDEX']
-        vis2obj.t = Time(dct['OI_VIS2']['MJD'], format='mjd')
-        vis2obj.itime = dct['OI_VIS2']['INT_TIME']
-        vis2obj.time = dct['OI_VIS2']['TIME']
-        vis2obj.target_id = dct['OI_VIS2']['TARGET_ID']
-        vis2obj.flagVis = dct['OI_VIS2']['FLAG']
-        vis2obj.bl_vis= dct['OI_VIS2']['BL']
-        self.vis2obj = vis2obj
-
-        visobj = Visobj()
-        visobj.target_id = dct['OI_VIS']['TARGET_ID']
-        visobj.t = Time(dct['OI_VIS']['MJD'], format='mjd')
-        visobj.itime = dct['OI_VIS']['INT_TIME']
-        visobj.time = dct['OI_VIS']['TIME']
-        visobj.visamp = dct['OI_VIS']['VISAMP']
-        visobj.e_visamp = dct['OI_VIS']['VISAMPERR']
-        visobj.visphi = dct['OI_VIS']['VISPHI']
-        visobj.e_visphi = dct['OI_VIS']['VISPHIERR']
-        visobj.ucoord = dct['OI_VIS']['UCOORD']
-        visobj.vcoord = dct['OI_VIS']['VCOORD']
-        visobj.bholes = dct['OI_VIS']['STA_INDEX']
-        visobj.flagVis = dct['OI_VIS']['FLAG']
-        visobj.bl_vis = dct['OI_VIS']['BL']
-        self.visobj = visobj
-
-        t3obj = T3obj()
-        t3obj.t = Time(dct['OI_T3']['MJD'], format='mjd')
-        t3obj.itime = dct['OI_T3']['INT_TIME']
-        t3obj.cp = dct['OI_T3']['T3PHI']
-        t3obj.e_cp = dct['OI_T3']['T3PHIERR']
-        t3obj.cpamp = dct['OI_T3']['T3AMP']
-        t3obj.e_cp = dct['OI_T3']['T3AMPERR']
-        t3obj.u1coord = dct['OI_T3']['U1COORD']
-        t3obj.v1coord = dct['OI_T3']['V1COORD']
-        t3obj.u2coord = dct['OI_T3']['U2COORD']
-        t3obj.v2coord = dct['OI_T3']['V2COORD']
-        t3obj.tholes = dct['OI_T3']['STA_INDEX']
-        t3obj.flagT3 = dct['OI_T3']['FLAG']
-        t3obj.bl_cp = dct['OI_T3']['BL']
-        self.t3obj = t3obj
-
-
-        wlobj = WLobj()
-        wlobj.wl = dct['OI_WAVELENGTH']['EFF_WAVE']
-        wlobj.e_wl = dct['OI_WAVELENGTH']['EFF_BAND']
-        self.wlobj = wlobj
-
-        infoobj = Infoobj()
-        infoobj.target = dct['info']['TARGET'],
-        infoobj.calib = dct['info']['CALIB'],
-        infoobj.object = dct['info']['OBJECT'],
-        infoobj.filt = dct['info']['FILT'],
-        infoobj.instrume = dct['info']['INSTRUME']
-        infoobj.arrname = dct['info']['MASK']
-        infoobj.mjd = dct['info']['MJD'],
-        infoobj.dateobs = dct['info']['DATE-OBS'],
-        infoobj.telname = dct['info']['TELESCOP']
-        infoobj.observer = dct['info']['OBSERVER']
-        infoobj.insmode = dct['info']['INSMODE']
-        infoobj.pscale = dct['info']['PSCALE']
-        infoobj.staxy = dct['info']['STAXY']
-        infoobj.isz = dct['info']['ISZ'],
-        infoobj.nfile = dct['info']['NFILE']
-        self.infoobj = infoobj
-
-        """
-        info = {} #mimic implaneia's catchall info dictionary
-               'info': {'TARGET': info['objname'],
-                        'CALIB': info['objname'],
-                        'OBJECT': info['objname'],
-                        'FILT': info['filt'],
-                        'INSTRUME': info['instrument'],
-                        'MASK': info['arrname'],
-                        'MJD': t.mjd,
-                        'DATE-OBS': t.fits,
-                        'TELESCOP': info['telname'],
-                        'OBSERVER': 'UNKNOWN',
-                        'INSMODE': info['pupil'],
-                        'PSCALE': info['pscale_mas'],
-                        'STAXY': info['ctrs'],
-                        'ISZ': 77,  # size of the image needed (or fov)
-                        'NFILE': 0}
-               }
-        """
-        return 
+# #################  reading oifits into memory..
+# ###  Later we can create default values for each attribute's attributes to handle
+# ###  observables without errors, and so on.
+# def calibrate_observable(tgt, cal):
+#     """
+#     input: two observabless  (such as one gets from Dict2Observable)
+#     return an observable object (such as one gets from Dict2Observable) that is calibrated.
+#     """
+#     obs=copy.deepcopy(tgt)
+#
+#     obs.vis2obj.vis2 = tgt.vis2obj.vis2 / cal.vis2obj.vis2
+#     obs.vis2obj.e_vis2 = np.sqrt(tgt.vis2obj.e_vis2*tgt.vis2obj.e_vis2 +
+#                                  cal.vis2obj.e_vis2*cal.vis2obj.e_vis2)
+#
+#     obs.visobj.visamp = tgt.visobj.visamp / cal.visobj.visamp
+#     obs.visobj.e_visamp = np.sqrt(tgt.visobj.e_visamp*tgt.visobj.e_visamp + \
+#                                   cal.visobj.e_visamp*cal.visobj.e_visamp)
+#
+#     obs.visobj.visphi = tgt.visobj.visphi  - cal.visobj.visphi
+#     obs.visobj.e_visphi = np.sqrt(tgt.visobj.e_visphi*tgt.visobj.e_visphi +\
+#                                   tgt.visobj.e_visphi*tgt.visobj.e_visphi)
+#
+#     obs.t3obj.cp = tgt.t3obj.cp - cal.t3obj.cp
+#     obs.t3obj.e_cp = np.sqrt(tgt.t3obj.e_cp*tgt.t3obj.e_cp + \
+#                              cal.t3obj.e_cp*cal.t3obj.e_cp)
+#     obs.t3obj.cpamp = tgt.t3obj.cpamp  / cal.t3obj.cpamp
+#
+#     return obs
 #
 #
-##################  reading oifits into memory... end
+# class Infoobj():
+#     def __init__(self):
+#         return None
+# class Visobj():
+#     def __init__(self):
+#         return None
+# class Vis2obj():
+#     def __init__(self):
+#         return None
+# class T3obj():
+#     def __init__(self):
+#         return None
+# class WLobj():
+#     def __init__(self):
+#         return None
+# class DictToObservable():
+#     """
+#     Convert a dictionary compatible with oifits.save to an in-memory
+#     Observable object that is organized similar to an oifits file's entries.
+#
+#     This is different storage orgnization than the readobservablefromyext utility.A
+#     The latter is more mplaneia-centric in organization, using a dictionary
+#     info4oif to enable oifits writing.
+#
+#     Some day implaneia might become natively oifits-like in observables' organization...
+#
+#         anand@stsci.edu 2020.07.17
+#     """
+#
+#     def __init__(self, dct, verbose=False):
+#
+#         """
+#         dct: dictionary resulting from oifits.load() of an oifits file
+#              returns an nrm "observble" with four attributes,
+#                 self.vis2obj
+#                 self.visobj
+#                 self.t3obj
+#                 self.wlobj
+#             that each contain the associated oifits->dictionary elements.
+#
+#         This internal memory-only use is used for eg calibrating an observation with another, or
+#         playing with multiple calbrators, each read into one such Observable..
+#
+#         Usage:  e.g.
+#
+#             tgt = Dict2Observable(dct_abdor)
+#             c_1 = Dict2Observable(dct_c_1)
+#             c_2 = Dict2Observable(dct_c_2)
+#         """
+#
+#         vis2obj = Vis2obj()
+#         vis2obj.vis2 = dct['OI_VIS2']['VIS2DATA']
+#         vis2obj.e_vis2 = dct['OI_VIS2']['VIS2ERR']
+#         vis2obj.ucoord = dct['OI_VIS2']['UCOORD']
+#         vis2obj.vcoord = dct['OI_VIS2']['VCOORD']
+#         vis2obj.bholes = dct['OI_VIS2']['STA_INDEX']
+#         vis2obj.t = Time(dct['OI_VIS2']['MJD'], format='mjd')
+#         vis2obj.itime = dct['OI_VIS2']['INT_TIME']
+#         vis2obj.time = dct['OI_VIS2']['TIME']
+#         vis2obj.target_id = dct['OI_VIS2']['TARGET_ID']
+#         vis2obj.flagVis = dct['OI_VIS2']['FLAG']
+#         vis2obj.bl_vis= dct['OI_VIS2']['BL']
+#         self.vis2obj = vis2obj
+#
+#         visobj = Visobj()
+#         visobj.target_id = dct['OI_VIS']['TARGET_ID']
+#         visobj.t = Time(dct['OI_VIS']['MJD'], format='mjd')
+#         visobj.itime = dct['OI_VIS']['INT_TIME']
+#         visobj.time = dct['OI_VIS']['TIME']
+#         visobj.visamp = dct['OI_VIS']['VISAMP']
+#         visobj.e_visamp = dct['OI_VIS']['VISAMPERR']
+#         visobj.visphi = dct['OI_VIS']['VISPHI']
+#         visobj.e_visphi = dct['OI_VIS']['VISPHIERR']
+#         visobj.ucoord = dct['OI_VIS']['UCOORD']
+#         visobj.vcoord = dct['OI_VIS']['VCOORD']
+#         visobj.bholes = dct['OI_VIS']['STA_INDEX']
+#         visobj.flagVis = dct['OI_VIS']['FLAG']
+#         visobj.bl_vis = dct['OI_VIS']['BL']
+#         self.visobj = visobj
+#
+#         t3obj = T3obj()
+#         t3obj.t = Time(dct['OI_T3']['MJD'], format='mjd')
+#         t3obj.itime = dct['OI_T3']['INT_TIME']
+#         t3obj.cp = dct['OI_T3']['T3PHI']
+#         t3obj.e_cp = dct['OI_T3']['T3PHIERR']
+#         t3obj.cpamp = dct['OI_T3']['T3AMP']
+#         t3obj.e_cp = dct['OI_T3']['T3AMPERR']
+#         t3obj.u1coord = dct['OI_T3']['U1COORD']
+#         t3obj.v1coord = dct['OI_T3']['V1COORD']
+#         t3obj.u2coord = dct['OI_T3']['U2COORD']
+#         t3obj.v2coord = dct['OI_T3']['V2COORD']
+#         t3obj.tholes = dct['OI_T3']['STA_INDEX']
+#         t3obj.flagT3 = dct['OI_T3']['FLAG']
+#         t3obj.bl_cp = dct['OI_T3']['BL']
+#         self.t3obj = t3obj
+#
+#
+#         wlobj = WLobj()
+#         wlobj.wl = dct['OI_WAVELENGTH']['EFF_WAVE']
+#         wlobj.e_wl = dct['OI_WAVELENGTH']['EFF_BAND']
+#         self.wlobj = wlobj
+#
+#         infoobj = Infoobj()
+#         infoobj.target = dct['info']['TARGET'],
+#         infoobj.calib = dct['info']['CALIB'],
+#         infoobj.object = dct['info']['OBJECT'],
+#         infoobj.filt = dct['info']['FILT'],
+#         infoobj.instrume = dct['info']['INSTRUME']
+#         infoobj.arrname = dct['info']['MASK']
+#         infoobj.mjd = dct['info']['MJD'],
+#         infoobj.dateobs = dct['info']['DATE-OBS'],
+#         infoobj.telname = dct['info']['TELESCOP']
+#         infoobj.observer = dct['info']['OBSERVER']
+#         infoobj.insmode = dct['info']['INSMODE']
+#         infoobj.pscale = dct['info']['PSCALE']
+#         infoobj.staxy = dct['info']['STAXY']
+#         infoobj.isz = dct['info']['ISZ'],
+#         infoobj.nfile = dct['info']['NFILE']
+#         self.infoobj = infoobj
+#
+#         """
+#         info = {} #mimic implaneia's catchall info dictionary
+#                'info': {'TARGET': info['objname'],
+#                         'CALIB': info['objname'],
+#                         'OBJECT': info['objname'],
+#                         'FILT': info['filt'],
+#                         'INSTRUME': info['instrument'],
+#                         'MASK': info['arrname'],
+#                         'MJD': t.mjd,
+#                         'DATE-OBS': t.fits,
+#                         'TELESCOP': info['telname'],
+#                         'OBSERVER': 'UNKNOWN',
+#                         'INSMODE': info['pupil'],
+#                         'PSCALE': info['pscale_mas'],
+#                         'STAXY': info['ctrs'],
+#                         'ISZ': 77,  # size of the image needed (or fov)
+#                         'NFILE': 0}
+#                }
+#         """
+#         return
+# #
+# #
+# ##################  reading oifits into memory... end
 
-def observable2dict(nrm, nrm_c=False, display=False):
+def observable2dict(nrm, multi=False, display=False):
     """ Convert nrm data in an Observable loaded with `ObservablesFromText` into 
         a dictionary compatible with oifits.save and oifits.show function.
     nrm:   an ObservablesFromText object, treated as a target if nrm_c=None
-    nrm_c  an ObservablesFromText object for a calibrator if a target-calibrator
-           pair are being analysed.  This retains some backwards compatibility,
-           but we are changing to just to one object at a time.
+    multi:  Bool. If true, do not take mean or median of slices
+            (preserve separate integrations)
     """
 
     info4oif = nrm.info4oif_dict
@@ -712,10 +729,10 @@ def observable2dict(nrm, nrm_c=False, display=False):
     flagVis = [False] * nrm.nbl
     flagT3 = [False] * nrm.ncp
 
-    # This preserves backward compatibility w/Anthony's pairwise Cal then write oifits
-    # using the same function
-    if nrm_c: nrm = calib_NRM(nrm, nrm_c)  # Calibrate target by calibrator
-    else: nrmd2c = populate_NRM(nrm)
+    if multi == True:
+        nrmd2c = populate_NRM(nrm, method='multi') # RAC 2021
+    else:
+        nrmd2c = populate_NRM(nrm, method='med')
 
     dct = {'OI_VIS2': {'VIS2DATA': nrmd2c.vis2,
                        'VIS2ERR': nrmd2c.e_vis2,
@@ -815,7 +832,7 @@ def observable2dict(nrm, nrm_c=False, display=False):
         plt.tight_layout()
 
         Plot_observables(nrm, display=display)
-        if nrm_c: Plot_observables(nrm_c=display)  # Plot calibrated or single object raw oifits data
+        #if nrm_c: Plot_observables(nrm_c=display)  # Plot calibrated or single object raw oifits data
     return dct
 
 
@@ -844,6 +861,9 @@ def oitxt2oif(nh=None, oitxtdir=None, oifprefix='', datadir=None, verbose=False)
     dct = observable2dict(nrm, display=False) # populate Anthony's dictionary suitable for oifits.py
                                              # nrm_c defaults to false: do not calibrate, no cal star given
     oifits.save(dct, oifprefix=oifprefix, datadir=datadir, verbose=False)
+    # save multi-slice fits
+    dct_multi = observable2dict(nrm, multi=True, display=False)
+    oifits.save(dct_multi, oifprefix=oifprefix+'multi_', datadir=datadir, verbose=False)
     print('in directory {0:s}'.format(datadir))
     return dct
 
