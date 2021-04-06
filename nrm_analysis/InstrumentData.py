@@ -553,7 +553,17 @@ class NIRISS:
             bpdata = bpdata[:,4:, :]     # refpix removal by trimming to match image trim
             print('Refpix-trimmed off bpdata ', bpdata.shape)
             for slc in range(bpdata.shape[0]):
-                lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
+                if slc == 10000000:
+                    scia = scidata[slc,:,:]
+                    fits.PrimaryHDU(data=scidata[slc,:,:]).writeto(
+                        '/Users/anand/data/implaneia/NAP019data/scia.fits', overwrite=True)
+                scidata[slc,:,:] = lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
+                if slc == 10000000:
+                    scib = scidata[slc,:,:]
+                    fits.PrimaryHDU(data=scib).writeto(
+                        '/Users/anand/data/implaneia/NAP019data/scib.fits', overwrite=True)
+                    fits.PrimaryHDU(data=bpdata[slc,:,:]).writeto(
+                        '/Users/anand/data/implaneia/NAP019data/bpd.fits', overwrite=True)
     
         prihdr=fitsfile[0].header
         scihdr=fitsfile[1].header
