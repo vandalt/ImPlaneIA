@@ -204,6 +204,13 @@ class FringeFitter:
                     header=modelhdu.header).writeto(self.savedir+\
                     self.sub_dir_str+"/n_modelsolution_{0:02d}.fits".format(slc), \
                     overwrite=True)
+            try: # if there's an appropriately trimmed bad pixel map write it out
+                fits.PrimaryHDU(data=self.ctrb, \
+                    header=self.scihdr).writeto(self.savedir+\
+                    self.sub_dir_str+"/bp_{0}.fits".format(slc), \
+                    overwrite=True)
+            except: AttributeError
+                
 
         # default save to text files
         np.savetxt(self.savedir+self.sub_dir_str + \
@@ -379,23 +386,3 @@ def fit_fringes_single_integration(args):
     self.save_output(slc, nrm)
     self.nrm = nrm # store  extracted values here
     return None
-
-'''
-class Calibrate:
-
-    def _from_gpi_header(fitsfiles):
-        """
-        Things I think are important. Average the parang measurements
-        """
-        parang=[]
-        pa = []
-        for fitsfile in fitsfiles:
-            f = fits.open(fitsfile)
-            hdr = f[0].header
-            f.close()
-            ra = hdr['RA']
-            dec = hdr['DEC']
-            parang.append(hdr['PAR_ANG'] - 1.00) # degree pa offset from 2014 SPIE +/- 0.03
-            pa.append(hdr['PA'])
-        return ra, dec, np.mean(parang), np.mean(pa)
-'''

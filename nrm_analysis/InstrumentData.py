@@ -367,6 +367,7 @@ class NIRISS:
                        affine2d=None, 
                        bandpass=None,
                        nbadpix=4,
+                       usebp = True,
                        firstfew = None,
                        **kwargs):
         """
@@ -386,6 +387,7 @@ class NIRISS:
         firstfew: None or the number of slices to truncate input cube to in memory,
                   the latter for fast developmpent
         nbadpix:  Number of good pixels to use when fixing bad pixels
+        usebp:    True (default) use DQ array from input MAST data.  False: do not utilize DQ array.
         """
         
         if "verbose" in kwargs:
@@ -397,12 +399,14 @@ class NIRISS:
         self.nbadpix = 4
 
         if chooseholes:
-            print("    **** InstrumentData.NIRISS: ", chooseholes)
+            print("InstrumentData.NIRISS: ", chooseholes)
         self.chooseholes = chooseholes
 
+        self.usebp = usebp
+        print("InstrumentData.NIRISS: use bad pixel DQ extension data", usebp)
 
         self.firstfew = firstfew
-        if firstfew is not None: print("InstrumentData: analysing firstfew={:d} slices".format(firstfew))
+        if firstfew is not None: print("InstrumentData.NIRISS: analysing firstfew={:d} slices".format(firstfew))
 
         self.objname = objname
 
@@ -421,7 +425,7 @@ class NIRISS:
             self.throughput = utils.trim_webbpsf_filter(self.filt, specbin=self.lam_bin[self.filt])
         except:
             self.throughput = utils.tophatfilter(self.lam_c[self.filt], self.lam_w[self.filt], npoints=11)
-            print("InstrumentData: ", "*** WARNING *** InstrumentData: Top Hat filter being used")
+            print("InstrumentData.NIRISS: ", "*** WARNING *** InstrumentData: Top Hat filter being used")
 
         # Nominal
         """self.lam_c = {"F277W": 2.77e-6,  # central wavelength (SI)
@@ -451,9 +455,9 @@ class NIRISS:
             self.lam_c = {"F277W":cw, "F380M": cw, "F430M": cw, "F480M": cw,}
             self.lam_w = {"F277W": beta, "F380M": beta, "F430M": beta, "F480M": beta} 
             self.throughput = bandpass
-        if self.verbose: print("InstrumentData: ", self.filt, 
+        if self.verbose: print("InstrumentData.NIRISS: ", self.filt, 
               ": central wavelength {:.4e} microns, ".format(self.lam_c[self.filt]/um), end="")
-        if self.verbose: print("InstrumentData: ", "fractional bandpass {:.3f}".format(self.lam_w[self.filt]))
+        if self.verbose: print("InstrumentData.NIRISS: ", "fractional bandpass {:.3f}".format(self.lam_w[self.filt]))
 
         try:
             self.wls = [utils.combine_transmission(self.throughput, src), ]
@@ -520,13 +524,19 @@ class NIRISS:
         # but send bad pixel array down to where fringes are fit so they can be ignored.
         fitsfile = fits.open(fn)
         scidata=fitsfile[1].data
+        
         # usually DQ in MAST file... make it non-fatal DQ missing
         try:
             bpdata=fitsfile['DQ'].data # bad pixel extension
             self.bpexist = True
+            # If calling driver wants to skip using DQ info even if DQ array in data,
+            # force the bpexist flag to False here.
+            if self.usebp == False: 
+                self.bpexist = False
+                print('InstrumentData.NIRISS.read_data: skipping use of DQ array')
         except:
-            print("InstrumentData: no DQ exension found in", fn)
-            print("InstrumentData: assuming all pixels are good.", fn)
+            print("InstrumentData.NIRISS: no DQ exension found in", fn)
+            print("InstrumentData.NIRISS: assuming all pixels are good.", fn)
             self.bpexist = False
 
         if scidata.ndim == 3:  #len(scidata.shape)==3:
@@ -550,20 +560,32 @@ class NIRISS:
 
         # fix pix using bad pixel map - runs now.  Need to sanity-check.
         if self.bpexist:
+            # refpix removal by trimming to match image trim
             bpdata = bpdata[:,4:, :]     # refpix removal by trimming to match image trim
+            bpd = np.zeros(bpdata.shape, np.uint8) # zero or 1 bad pix marker array
+            bpd[bpdata!=0] = 1
+            bpdata = bpd.copy()
+
             print('Refpix-trimmed off bpdata ', bpdata.shape)
-            for slc in range(bpdata.shape[0]):
-                if slc == 10000000:
+
+            #
+            print('InstrumentData.NIRISS.read_data: debugging output hardcoded first three slices - delete after checking')
+            for slc in range(bpdata.shape[0]):  # all input slices
+
+                if slc < 0:  # debug before fixing bps
                     scia = scidata[slc,:,:]
                     fits.PrimaryHDU(data=scidata[slc,:,:]).writeto(
-                        '/Users/anand/data/implaneia/NAP019data/scia.fits', overwrite=True)
+                        f'/Users/anand/data/implaneia/NAP019data/bptest/prebpfix_{slc:d}.fits', overwrite=True)
+
+                # fix the pixel values using self.nbadpix neighboring values
                 scidata[slc,:,:] = lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
-                if slc == 10000000:
+
+                if slc < 0:  # debug after fixing bps
                     scib = scidata[slc,:,:]
                     fits.PrimaryHDU(data=scib).writeto(
-                        '/Users/anand/data/implaneia/NAP019data/scib.fits', overwrite=True)
-                    fits.PrimaryHDU(data=bpdata[slc,:,:]).writeto(
-                        '/Users/anand/data/implaneia/NAP019data/bpd.fits', overwrite=True)
+                        f'/Users/anand/data/implaneia/NAP019data/bptest/postbpfix_{slc:d}.fits', overwrite=True)
+                    fits.PrimaryHDU(data=bpd[slc,:,:]).writeto(
+                        f'/Users/anand/data/implaneia/NAP019data/bptest/bpd_{slc:d}.fits', overwrite=True)
     
         prihdr=fitsfile[0].header
         scihdr=fitsfile[1].header
@@ -656,7 +678,7 @@ class NIRISS:
             return phdr['CDELT1'], phdr['CDELT2']
             print("Used CDDELT[12] for pixel scales")
         else:
-            print('InstrumentData: Warning: NIRISS pixel scales not in header.  Using 65.6 mas in deg/pix')
+            print('InstrumentData.NIRISS: Warning: NIRISS pixel scales not in header.  Using 65.6 mas in deg/pix')
             return 65.6/(60.0*60.0*1000), 65.6/(60.0*60.0*1000)
 
     
@@ -753,7 +775,7 @@ class NIRISS:
 
     # rather than calling InstrumentData in the niriss example just to reset just call this routine
     def reset_nwav(self, nwav):
-        print("InstrumentData: ", "Resetting InstrumentData instantiation's nwave to", nwav)
+        print("InstrumentData.NIRISS: ", "Resetting InstrumentData instantiation's nwave to", nwav)
         self.nwav = nwav
 
     # Delete if this is not8 called from anywhere!
