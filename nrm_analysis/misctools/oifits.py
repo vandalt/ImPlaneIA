@@ -262,6 +262,10 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
         staxy = dic['info']['STAXY'] # these are the mask hole xy-coords as built (ctrs_inst)
     except KeyError:
         staxy = dic['OI_ARRAY']['STAXY']
+    try:
+        ctrs_eqt = dic['info']['CTRS_EQT']
+    except KeyError:
+        ctrs_eqt = dic['OI_ARRAY']['CTRS_EQT']
 
     N_ap = len(staxy)
 
@@ -275,7 +279,7 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
         line = [a[0], a[1], 0]
         staxyz.append(line)
 
-    ctrs_eqt = dic['info']['CTRS_EQT']
+
 
     sta_index = np.arange(N_ap) + 1
 
