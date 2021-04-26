@@ -259,7 +259,7 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     if verbose:
         print('-> Including OI Array table...')
     try:
-        staxy = dic['info']['STAXY'] # these are the mask hole xy-coords
+        staxy = dic['info']['STAXY'] # these are the mask hole xy-coords as built (ctrs_inst)
     except KeyError:
         staxy = dic['OI_ARRAY']['STAXY']
 
@@ -274,6 +274,8 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
         a = list(x)
         line = [a[0], a[1], 0]
         staxyz.append(line)
+
+    ctrs_eqt = dic['info']['CTRS_EQT']
 
     sta_index = np.arange(N_ap) + 1
 
@@ -290,8 +292,9 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     col5 = fits.Column(name='STAXYZ', unit='METERS', format='3D', array=staxyz)
     col6 = fits.Column(name='FOV', unit='ARCSEC', format='1D', array=fov)
     col7 = fits.Column(name='FOVTYPE', format='6A', array=fovtype)
+    col8 = fits.Column(name='CTRS_EQT', unit='METERS', format='2D', array=ctrs_eqt) # for debugging
 
-    coldefs = fits.ColDefs([col1, col2, col3, col4, col5, col6, col7])
+    coldefs = fits.ColDefs([col1, col2, col3, col4, col5, col6, col7, col8])
     hdu = fits.BinTableHDU.from_columns(coldefs)
 
     hdu.header['EXTNAME'] = 'OI_ARRAY'
@@ -545,11 +548,13 @@ def load(filename, target=None, ins=None, mask=None, include_vis=True):
                 dic['info']['ISZ'] = hdu.header['ISZ']
             except KeyError:
                 continue
+
             # make staxy from staxyz array (remove last column)
             staxyz = hdu.data['STAXYZ']
             staxy = np.delete(staxyz, -1, 1)
             dic['OI_ARRAY'] = {'STAXYZ': staxyz,
-                               'STAXY': staxy
+                               'STAXY': staxy,
+                               'CTRS_EQT': hdu.data['CTRS_EQT']
                                }
 
         if hdu.header['EXTNAME'] == 'OI_WAVELENGTH':
@@ -629,7 +634,7 @@ def load(filename, target=None, ins=None, mask=None, include_vis=True):
                             'INT_TIME': hdu.data['INT_TIME'],
                             }
             try:
-                dic['OI_T3']['BL'] = hdu.data['FREQ']
+                dic['OI_T3']['BL'] = hdu.data['FREQ'] # why?
             except KeyError:
                 dic['OI_T3']['BL'] = bl_cp
     fitsHandler.close()

@@ -112,7 +112,7 @@ class ObservablesFromText():
         """ returns int array of quad hole indices (0-based), 
             and float array of three uvw vectors in all quads
         """
-        nholes = self.ctrs.shape[0]
+        nholes = self.ctrs_eqt.shape[0]
         qlist = []
         for i in range(nholes):
             for j in range(nholes):
@@ -131,9 +131,9 @@ class ObservablesFromText():
                 quad[0], quad[1], quad[2], quad[3]))
             if self.verbose:
                 print('quad:', quad, qname[-1])
-            uvwlist.append((self.ctrs[quad[0]] - self.ctrs[quad[1]],
-                            self.ctrs[quad[1]] - self.ctrs[quad[2]],
-                            self.ctrs[quad[2]] - self.ctrs[quad[3]]))
+            uvwlist.append((self.ctrs_eqt[quad[0]] - self.ctrs_eqt[quad[1]],
+                            self.ctrs_eqt[quad[1]] - self.ctrs_eqt[quad[2]],
+                            self.ctrs_eqt[quad[2]] - self.ctrs_eqt[quad[3]]))
         if self.verbose:
             print(qarray.shape, np.array(uvwlist).shape)
         return qarray, np.array(uvwlist)
@@ -142,7 +142,7 @@ class ObservablesFromText():
         """ returns int array of triple hole indices (0-based), 
             and float array of two uv vectors in all triangles
         """
-        nholes = self.ctrs.shape[0]
+        nholes = self.ctrs_eqt.shape[0]
         tlist = []
         for i in range(nholes):
             for j in range(nholes):
@@ -161,8 +161,8 @@ class ObservablesFromText():
                 triple[0], triple[1], triple[2]))
             if self.verbose:
                 print('triple:', triple, tname[-1])
-            uvlist.append((self.ctrs[triple[0]] - self.ctrs[triple[1]],
-                           self.ctrs[triple[1]] - self.ctrs[triple[2]]))
+            uvlist.append((self.ctrs_eqt[triple[0]] - self.ctrs_eqt[triple[1]],
+                           self.ctrs_eqt[triple[1]] - self.ctrs_eqt[triple[2]]))
         # print(len(uvlist), "uvlist", uvlist)
         if self.verbose:
             print(tarray.shape, np.array(uvlist).shape)
@@ -170,11 +170,11 @@ class ObservablesFromText():
 
     def _makebaselines(self):
         """
-        ctrs (nh,2) in m
+        ctrs_eqt (nh,2) in m
         returns np arrays of eg 21 baselinenames ('0_1',...), eg (21,2) baselinevectors (2-floats)
         in the same numbering as implaneia
         """
-        nholes = self.ctrs.shape[0]
+        nholes = self.ctrs_eqt.shape[0]
         blist = []
         for i in range(nholes):
             for j in range(nholes):
@@ -185,7 +185,7 @@ class ObservablesFromText():
         bllist = []
         for basepair in blist:
             # blname.append("{0:d}_{1:d}".format(basepair[0],basepair[1]))
-            baseline = self.ctrs[basepair[0]] - self.ctrs[basepair[1]]
+            baseline = self.ctrs_eqt[basepair[0]] - self.ctrs_eqt[basepair[1]]
             bllist.append(baseline)
         return barray, np.array(bllist)
 
@@ -210,7 +210,7 @@ class ObservablesFromText():
         if len(self.observables) == 4:
             print(self.ca.shape, "ca:\n", self.ca, "\n")
 
-        print("hole centers array shape:", self.ctrs.shape)
+        print("hole centers array shape:", self.ctrs_eqt.shape)
 
         print(len(self.bholes), "baseline hole indices\n", self.bholes)
         print(self.bls.shape, "baselines:\n", self.bls)
@@ -255,7 +255,8 @@ class ObservablesFromText():
             for key in self.info4oif_dict.keys():
                 print(key)
         pfd.close()
-        self.ctrs = self.info4oif_dict['ctrs']
+        self.ctrs_eqt = self.info4oif_dict['ctrs_eqt'] # mask centers in equatorial coordinates
+        self.ctrs_inst = self.info4oif_dict['ctrs_inst'] # as-built instrument mask centers
         self.pa = self.info4oif_dict['pa']
 
         """   seexyz.py
@@ -668,7 +669,7 @@ def populate_NRM(nrm_t, method='med'):
 #                         'OBSERVER': 'UNKNOWN',
 #                         'INSMODE': info['pupil'],
 #                         'PSCALE': info['pscale_mas'],
-#                         'STAXY': info['ctrs'],
+#                         'STAXY': info['ctrs_inst'], #?
 #                         'ISZ': 77,  # size of the image needed (or fov)
 #                         'NFILE': 0}
 #                }
@@ -687,7 +688,7 @@ def observable2dict(nrm, multi=False, display=False):
     """
 
     info4oif = nrm.info4oif_dict
-    ctrs = info4oif['ctrs']
+    ctrs_inst = info4oif['ctrs_inst']
     t = Time('%s-%s-%s' %
              (info4oif['year'], info4oif['month'], info4oif['day']), format='fits')
     ins = info4oif['telname']
@@ -796,10 +797,11 @@ def observable2dict(nrm, multi=False, display=False):
                     'OBSERVER': 'UNKNOWN',
                     'INSMODE': info4oif['pupil'],
                     'PSCALE': info4oif['pscale_mas'],
-                    'STAXY': info4oif['ctrs'],
+                    'STAXY': info4oif['ctrs_inst'], # as-built mask hole coords
                     'ISZ': 77,  # size of the image needed (or fov)
                     'NFILE': 0,
-                    'PA': info4oif['pa']
+                    'PA': info4oif['pa'],
+                    'CTRS_EQT':info4oif['ctrs_eqt'] # mask hole coords rotated to equatotial
                     }
            }
 
