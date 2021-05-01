@@ -753,7 +753,6 @@ class NIRISS:
 
         np.set_printoptions(precision=5, suppress=True, linewidth=160, 
                             formatter={'float': lambda x: "%10.5f," % x})
-        self.vparity = sh['VPARITY']  # Relative sense of rotation between Ideal xy and V2V3
         self.v3i_yang = sh['V3I_YANG']  # Angle from V3 axis to Ideal y axis (deg)
         #print("self.mask.ctrs: \n", self.mask.ctrs)
         # rotate mask hole center coords by PAV3 # RAC 2021
@@ -863,31 +862,30 @@ class NIRISS:
     def mast2sky(self):
         """
         Rotate hole center coordinates:
-            Clockwise by the V3 position angle + V3I_YANG from north in degrees if VPARITY = 1
-            Counterclockwise by the V3 position angle + V3I_YANG from north in degrees if VPARITY = -1
+            Clockwise by the V3 position angle - V3I_YANG from north in degrees if VPARITY = -1
+            Counterclockwise by the V3 position angle - V3I_YANG from north in degrees if VPARITY = 1
         Hole center coords are in the V2, V3 plane in meters.
         Return rotated coordinates to be put in info4oif_dict.
         implane2oifits.ObservablesFromText uses these to calculate baselines.
         """
         pa = self.pa
         mask_ctrs = self.mask.ctrs
-        vpar = self.vparity
+        vpar = self.vparity # Relative sense of rotation between Ideal xy and V2V3
         v3iyang = self.v3i_yang
-        rot_ang = pa + v3iyang
-        if pa != 0.0: # do we want this? or always rotate by the half-degree??
+        rot_ang = pa - v3iyang # subject to change!
+        if pa != 0.0:
             v2 = mask_ctrs[:,0]
             v3 = mask_ctrs[:,1]
             if vpar == -1:
                 # clockwise rotation, usually the case for NIRISS?
+                print('Rotating instrument ctrs %.3f clockwise' % rot_ang)
                 v2_rot = v3*np.cos(np.deg2rad(rot_ang)) + v2*np.sin(np.deg2rad(rot_ang))
                 v3_rot = -v3*np.sin(np.deg2rad(rot_ang)) + v2*np.cos(np.deg2rad(rot_ang))
             else:
                 #counter-clockwise rotation
+                print('Rotating instrument ctrs %.3f counterclockwise' % rot_ang)
                 v2_rot = v3 * np.cos(np.deg2rad(rot_ang)) - v2 * np.sin(np.deg2rad(rot_ang))
                 v3_rot = v3 * np.sin(np.deg2rad(rot_ang)) + v2 * np.cos(np.deg2rad(rot_ang))
-            # clockwise rotation.  Because AMI data always has VPARITY=-1 in science header.
-            v2_rot = v3*np.cos(np.deg2rad(pa)) + v2*np.sin(np.deg2rad(pa))
-            v3_rot = -v3*np.sin(np.deg2rad(pa)) + v2*np.cos(np.deg2rad(pa))
             ctrs_rot = np.zeros(mask_ctrs.shape)
             ctrs_rot[:,0] = v2_rot
             ctrs_rot[:,1] = v3_rot
