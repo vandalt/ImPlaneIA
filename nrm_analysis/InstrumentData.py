@@ -595,7 +595,7 @@ class NIRISS:
         # create subdirectory name into which to write txt & oifits observables' files
         # This is a subdirectory where the data was found, named for fits input root name
         self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
-
+        fitsfile.close()
         return prihdr, scihdr, scidata, bpdata
 
 
