@@ -259,9 +259,13 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     if verbose:
         print('-> Including OI Array table...')
     try:
-        staxy = dic['info']['STAXY'] # these are the mask hole xy-coords
+        staxy = dic['info']['STAXY'] # these are the mask hole xy-coords as built (ctrs_inst)
     except KeyError:
         staxy = dic['OI_ARRAY']['STAXY']
+    try:
+        ctrs_eqt = dic['info']['CTRS_EQT']
+    except KeyError:
+        ctrs_eqt = dic['OI_ARRAY']['CTRS_EQT']
 
     N_ap = len(staxy)
 
@@ -274,6 +278,8 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
         a = list(x)
         line = [a[0], a[1], 0]
         staxyz.append(line)
+
+
 
     sta_index = np.arange(N_ap) + 1
 
@@ -290,8 +296,9 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     col5 = fits.Column(name='STAXYZ', unit='METERS', format='3D', array=staxyz)
     col6 = fits.Column(name='FOV', unit='ARCSEC', format='1D', array=fov)
     col7 = fits.Column(name='FOVTYPE', format='6A', array=fovtype)
+    col8 = fits.Column(name='CTRS_EQT', unit='METERS', format='2D', array=ctrs_eqt) # for debugging
 
-    coldefs = fits.ColDefs([col1, col2, col3, col4, col5, col6, col7])
+    coldefs = fits.ColDefs([col1, col2, col3, col4, col5, col6, col7, col8])
     hdu = fits.BinTableHDU.from_columns(coldefs)
 
     hdu.header['EXTNAME'] = 'OI_ARRAY'
@@ -326,7 +333,10 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                     data[akey] = data[akey][0]
         except TypeError:
             pass
-
+    if len(data['VISAMP'].shape) == 1: # figure out if it's multi-slice or not
+        nslice = 1
+    else:
+        nslice = data['VISAMP'].shape[1] # this would cause an error if not multi-slice
     col1 = fits.Column(name='TARGET_ID', format='1I',
                     array=[data['TARGET_ID']]*npts)
     col2 = fits.Column(name='TIME', format='1D', unit='SECONDS',
@@ -335,11 +345,11 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                     array=[data['MJD']]*npts)
     col4 = fits.Column(name='INT_TIME', format='1D', unit='SECONDS',
                     array=[data['INT_TIME']]*npts)
-    col5 = fits.Column(name='VISAMP', format='1D', array=data['VISAMP'])
-    col6 = fits.Column(name='VISAMPERR', format='1D', array=data['VISAMPERR'])
-    col7 = fits.Column(name='VISPHI', format='1D', unit='DEGREES',
+    col5 = fits.Column(name='VISAMP', format='%dD'%nslice, array=data['VISAMP'])
+    col6 = fits.Column(name='VISAMPERR', format='%dD'%nslice, array=data['VISAMPERR'])
+    col7 = fits.Column(name='VISPHI', format='%dD'%nslice, unit='DEGREES',
                     array=data['VISPHI'])
-    col8 = fits.Column(name='VISPHIERR', format='1D', unit='DEGREES',
+    col8 = fits.Column(name='VISPHIERR', format='%dD'%nslice, unit='DEGREES',
                     array=data['VISPHIERR'])
     col9 = fits.Column(name='UCOORD', format='1D',
                     unit='METERS', array=data['UCOORD'])
@@ -377,7 +387,6 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                     data[akey] = data[akey][0]
         except TypeError:
             pass
-
     col1 = fits.Column(name='TARGET_ID', format='1I',
                     array=[data['TARGET_ID']]*npts)
     col2 = fits.Column(name='TIME', format='1D', unit='SECONDS',
@@ -386,8 +395,8 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                     array=[data['MJD']]*npts)
     col4 = fits.Column(name='INT_TIME', format='1D', unit='SECONDS',
                     array=[data['INT_TIME']]*npts)
-    col5 = fits.Column(name='VIS2DATA', format='1D', array=data['VIS2DATA'])
-    col6 = fits.Column(name='VIS2ERR', format='1D', array=data['VIS2ERR'])
+    col5 = fits.Column(name='VIS2DATA', format='%dD'%nslice, array=data['VIS2DATA'])
+    col6 = fits.Column(name='VIS2ERR', format='%dD'%nslice, array=data['VIS2ERR'])
     col7 = fits.Column(name='UCOORD', format='1D',
                     unit='METERS', array=data['UCOORD'])
     col8 = fits.Column(name='VCOORD', format='1D',
@@ -432,11 +441,11 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                     array=[data['MJD']]*npts)
     col4 = fits.Column(name='INT_TIME', format='1D', unit='SECONDS',
                     array=[data['INT_TIME']]*npts)
-    col5 = fits.Column(name='T3AMP', format='1D', array=data['T3AMP'])
-    col6 = fits.Column(name='T3AMPERR', format='1D', array=data['T3AMPERR'])
-    col7 = fits.Column(name='T3PHI', format='1D', unit='DEGREES',
+    col5 = fits.Column(name='T3AMP', format='%dD'%nslice, array=data['T3AMP'])
+    col6 = fits.Column(name='T3AMPERR', format='%dD'%nslice, array=data['T3AMPERR'])
+    col7 = fits.Column(name='T3PHI', format='%dD'%nslice, unit='DEGREES',
                     array=data['T3PHI'])
-    col8 = fits.Column(name='T3PHIERR', format='1D', unit='DEGREES',
+    col8 = fits.Column(name='T3PHIERR', format='%dD'%nslice, unit='DEGREES',
                     array=data['T3PHIERR'])
     col9 = fits.Column(name='U1COORD', format='1D',
                     unit='METERS', array=data['U1COORD'])
@@ -543,11 +552,13 @@ def load(filename, target=None, ins=None, mask=None, include_vis=True):
                 dic['info']['ISZ'] = hdu.header['ISZ']
             except KeyError:
                 continue
+
             # make staxy from staxyz array (remove last column)
             staxyz = hdu.data['STAXYZ']
             staxy = np.delete(staxyz, -1, 1)
             dic['OI_ARRAY'] = {'STAXYZ': staxyz,
-                               'STAXY': staxy
+                               'STAXY': staxy,
+                               'CTRS_EQT': hdu.data['CTRS_EQT']
                                }
 
         if hdu.header['EXTNAME'] == 'OI_WAVELENGTH':
@@ -627,7 +638,7 @@ def load(filename, target=None, ins=None, mask=None, include_vis=True):
                             'INT_TIME': hdu.data['INT_TIME'],
                             }
             try:
-                dic['OI_T3']['BL'] = hdu.data['FREQ']
+                dic['OI_T3']['BL'] = hdu.data['FREQ'] # why?
             except KeyError:
                 dic['OI_T3']['BL'] = bl_cp
     fitsHandler.close()
