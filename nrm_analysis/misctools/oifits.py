@@ -132,13 +132,13 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     if type(filename) != str:
         try:
             if len(dic['info']['MJD']) > 1:
-                filename = '%s_%s_%s_%s_%s.0f.oifits' % (dic['info']['TARGET'].replace(' ', ''),
+                filename = '%s_%s_%s_%s_%s.oifits' % (dic['info']['TARGET'].replace(' ', ''),
                                                              dic['info']['INSTRUME'],
                                                              dic['info']['MASK'],
                                                              dic['info']['FILT'],
                                                              dic['info']['MJD'][0]) # if loaded from oifits it is a list
         except TypeError:
-            filename = '%s_%s_%s_%s_%s.0f.oifits' % (dic['info']['TARGET'].replace(' ', ''),
+            filename = '%s_%s_%s_%s_%s.oifits' % (dic['info']['TARGET'].replace(' ', ''),
                                                      dic['info']['INSTRUME'],
                                                      dic['info']['MASK'],
                                                      dic['info']['FILT'],
@@ -155,7 +155,7 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     hdu = fits.PrimaryHDU()
     hdu.header['DATE'] = datetime.datetime.now().strftime(
         format='%F')  # , 'Creation date'
-    hdu.header['ORIGIN'] = 'Sydney University'
+    hdu.header['ORIGIN'] = 'STScI'
     hdu.header['DATE-OBS'] = dic['info']['DATE-OBS']
     hdu.header['CONTENT'] = 'OIFITS2'
     hdu.header['TELESCOP'] = dic['info']['TELESCOP']
@@ -474,7 +474,9 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     # ------------------------------
     hdulist.writeto(os.path.join(datadir,filename), overwrite=True)
     cprint('\n\n### OIFITS CREATED (%s).' % filename, 'cyan')
-
+    del(hdu)
+    del(hdulist)
+    print('oifits.save: DELETING FITS OBJECT')
 
 
 def load(filename, target=None, ins=None, mask=None, include_vis=True):
@@ -642,6 +644,8 @@ def load(filename, target=None, ins=None, mask=None, include_vis=True):
             except KeyError:
                 dic['OI_T3']['BL'] = bl_cp
     fitsHandler.close()
+    del(fitsHandler)
+    print('oifits.load: DELETING FITS OBJECT')
     return dic
 
 

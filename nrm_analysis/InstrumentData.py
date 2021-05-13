@@ -522,80 +522,85 @@ class NIRISS:
         # for utr data, need to read as 3D (ngroup, npix, npix)
         # fix bad pixels using DQ extension and LPL local averaging, 
         # but send bad pixel array down to where fringes are fit so they can be ignored.
-        fitsfile = fits.open(fn)
-        scidata=fitsfile[1].data
-        
-        # usually DQ in MAST file... make it non-fatal DQ missing
-        try:
-            bpdata=fitsfile['DQ'].data # bad pixel extension
-            self.bpexist = True
-            # If calling driver wants to skip using DQ info even if DQ array in data,
-            # force the bpexist flag to False here.
-            if self.usebp == False: 
+        with fits.open(fn) as fitsfile:
+            scidata=fitsfile[1].data.copy()
+
+            # usually DQ in MAST file... make it non-fatal DQ missing
+            try:
+                bpdata=fitsfile['DQ'].data.copy() # bad pixel extension
+                self.bpexist = True
+                # If calling driver wants to skip using DQ info even if DQ array in data,
+                # force the bpexist flag to False here.
+                if self.usebp == False:
+                    self.bpexist = False
+                    print('InstrumentData.NIRISS.read_data: skipping use of DQ array')
+            except:
+                print("InstrumentData.NIRISS: no DQ exension found in", fn)
+                print("InstrumentData.NIRISS: assuming all pixels are good.", fn)
                 self.bpexist = False
-                print('InstrumentData.NIRISS.read_data: skipping use of DQ array')
-        except:
-            print("InstrumentData.NIRISS: no DQ exension found in", fn)
-            print("InstrumentData.NIRISS: assuming all pixels are good.", fn)
-            self.bpexist = False
 
-        if scidata.ndim == 3:  #len(scidata.shape)==3:
-            print("input: 3D cube")
-            # truncate all but the first few slices for rapid development
-            if self.firstfew is not None:
-                if scidata.shape[0] > self.firstfew:  
-                    scidata = scidata[:self.firstfew, :, :]
-                    bpdata = bpdata[:self.firstfew, :, :]
-            self.nwav=scidata.shape[0]
-            [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
-        elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
-            print("input: 2D data array convering to 3D one-slice cube")
-            scidata = np.array([scidata,])
-        else:
-            sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
+            if scidata.ndim == 3:  #len(scidata.shape)==3:
+                print("input: 3D cube")
+                # truncate all but the first few slices for rapid development
+                if self.firstfew is not None:
+                    if scidata.shape[0] > self.firstfew:
+                        scidata = scidata[:self.firstfew, :, :]
+                        bpdata = bpdata[:self.firstfew, :, :]
+                self.nwav=scidata.shape[0]
+                [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
+            elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
+                print("input: 2D data array convering to 3D one-slice cube")
+                scidata = np.array([scidata,])
+            else:
+                sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
 
-        # refpix removal by trimming
-        scidata = scidata[:,4:, :] # [all slices, imaxis[0], imaxis[1]]
-        print('Refpix-trimmed off scidata', scidata.shape)
+            # refpix removal by trimming
+            scidata = scidata[:,4:, :] # [all slices, imaxis[0], imaxis[1]]
+            print('Refpix-trimmed off scidata', scidata.shape)
 
-        # fix pix using bad pixel map - runs now.  Need to sanity-check.
-        if self.bpexist:
-            # refpix removal by trimming to match image trim
-            bpdata = bpdata[:,4:, :]     # refpix removal by trimming to match image trim
-            bpd = np.zeros(bpdata.shape, np.uint8) # zero or 1 bad pix marker array
-            bpd[bpdata!=0] = 1
-            bpdata = bpd.copy()
+            # fix pix using bad pixel map - runs now.  Need to sanity-check.
+            if self.bpexist:
+                # refpix removal by trimming to match image trim
+                bpdata = bpdata[:,4:, :]     # refpix removal by trimming to match image trim
+                bpd = np.zeros(bpdata.shape, np.uint8) # zero or 1 bad pix marker array
+                bpd[bpdata!=0] = 1
+                bpdata = bpd.copy()
 
-            print('Refpix-trimmed off bpdata ', bpdata.shape)
+                print('Refpix-trimmed off bpdata ', bpdata.shape)
 
-            #
-            print('InstrumentData.NIRISS.read_data: debugging output hardcoded first three slices - delete after checking')
-            for slc in range(bpdata.shape[0]):  # all input slices
+                #
+                print('InstrumentData.NIRISS.read_data: debugging output hardcoded first three slices - delete after checking')
+                for slc in range(bpdata.shape[0]):  # all input slices
 
-                if slc < 0:  # debug before fixing bps
-                    scia = scidata[slc,:,:]
-                    fits.PrimaryHDU(data=scidata[slc,:,:]).writeto(
-                        f'/Users/anand/data/implaneia/NAP019data/bptest/prebpfix_{slc:d}.fits', overwrite=True)
+                    if slc < 0:  # debug before fixing bps
+                        scia = scidata[slc,:,:]
+                        fits.PrimaryHDU(data=scidata[slc,:,:]).writeto(
+                            f'/Users/anand/data/implaneia/NAP019data/bptest/prebpfix_{slc:d}.fits', overwrite=True)
 
-                # fix the pixel values using self.nbadpix neighboring values
-                scidata[slc,:,:] = lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
+                    # fix the pixel values using self.nbadpix neighboring values
+                    scidata[slc,:,:] = lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
 
-                if slc < 0:  # debug after fixing bps
-                    scib = scidata[slc,:,:]
-                    fits.PrimaryHDU(data=scib).writeto(
-                        f'/Users/anand/data/implaneia/NAP019data/bptest/postbpfix_{slc:d}.fits', overwrite=True)
-                    fits.PrimaryHDU(data=bpd[slc,:,:]).writeto(
-                        f'/Users/anand/data/implaneia/NAP019data/bptest/bpd_{slc:d}.fits', overwrite=True)
-    
-        prihdr=fitsfile[0].header
-        scihdr=fitsfile[1].header
+                    if slc < 0:  # debug after fixing bps
+                        scib = scidata[slc,:,:]
+                        fits.PrimaryHDU(data=scib).writeto(
+                            f'/Users/anand/data/implaneia/NAP019data/bptest/postbpfix_{slc:d}.fits', overwrite=True)
+                        fits.PrimaryHDU(data=bpd[slc,:,:]).writeto(
+                            f'/Users/anand/data/implaneia/NAP019data/bptest/bpd_{slc:d}.fits', overwrite=True)
+
+            prihdr=fitsfile[0].header.copy()
+            scihdr=fitsfile[1].header.copy()
+
+            del fitsfile[1].data
+            del fitsfile[2].data
+            del fitsfile
+            print('manually closing fits file')
         # MAST header or similar kwds info for oifits writer:
         self.updatewithheaderinfo(prihdr, scihdr)
 
         # create subdirectory name into which to write txt & oifits observables' files
         # This is a subdirectory where the data was found, named for fits input root name
         self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
-        fitsfile.close()
+
         return prihdr, scihdr, scidata, bpdata
 
 
@@ -697,7 +702,7 @@ class NIRISS:
         info4oif_dict['lam_bin'] = self.lam_bin
 
         # Target information
-        self.objname =  ph["TARGNAME"]
+        self.objname = ph["TARGNAME"]
         # 'ABDor' or 'AB Dor' work. Do not use '-' in aptx proposal name
         # self.objname =  "ABDor"; info4oif_dict['objname'] = self.objname 
         self.objname = self.objname.replace('-',''); info4oif_dict['objname'] = self.objname
