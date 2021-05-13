@@ -696,11 +696,15 @@ class NIRISS:
         info4oif_dict['lam_w'] = self.lam_w
         info4oif_dict['lam_bin'] = self.lam_bin
 
-        # Target information
-        self.objname =  ph["TARGNAME"]
-        # 'ABDor' or 'AB Dor' work. Do not use '-' in aptx proposal name
-        # self.objname =  "ABDor"; info4oif_dict['objname'] = self.objname 
-        self.objname = self.objname.replace('-',''); info4oif_dict['objname'] = self.objname
+        # Target information - 5/21 targname UNKNOWN in nis019 rehearsal data
+        # Name in the proposal always non-trivial, targname still UNKNOWN...:
+        if ph["TARGNAME"] == 'UNKNOWN': objname = ph['TARGPROP']
+        else: objname = ph['TARGNAME'] # allegedly apt name for archive, standard form
+        #
+        # if target name has confusing-to-astroquery dash
+        self.objname =  objname.replace('-', ' '); info4oif_dict['objname'] = self.objname
+        # AB Dor, ab dor, AB DOR,  ab  dor are all acceptable.
+        #
         self.ra = ph["TARG_RA"]; info4oif_dict['ra'] = self.ra
         self.dec = ph["TARG_DEC"]; info4oif_dict['dec'] = self.dec
 
