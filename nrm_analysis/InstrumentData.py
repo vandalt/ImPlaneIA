@@ -47,8 +47,7 @@ def set_cvsupport_threshold(instr, k, v):
 class NIRISS:
     def __init__(self, filt, 
                        objname="obj", 
-                       src="A0V", 
-                       out_dir='', 
+                       src='A0V', 
                        chooseholes=None, 
                        affine2d=None, 
                        bandpass=None,
@@ -188,8 +187,6 @@ class NIRISS:
         if self.verbose: show_cvsupport_threshold(self)
         self.threshold = self.cvsupport_threshold[filt]
 
-        self.ref_imgs_dir = os.path.join(out_dir,"refimgs_"+self.filt+"/")
-
 
     def set_pscale(self, pscalex_deg=None, pscaley_deg=None):
         """
@@ -208,7 +205,7 @@ class NIRISS:
         # for utr data, need to read as 3D (ngroup, npix, npix)
         # fix bad pixels using DQ extension and LPL local averaging, 
         # but send bad pixel array down to where fringes are fit so they can be ignored.
-        fitsfile = fits.open(fn)
+        fitsfile = fits.open(fn) # presumably full or relative paths ok...
         scidata=fitsfile[1].data
         
         # usually DQ in MAST file... make it non-fatal DQ missing
@@ -255,29 +252,9 @@ class NIRISS:
 
             print('Refpix-trimmed off bpdata ', bpdata.shape)
 
-            #
             for slc in range(bpdata.shape[0]):  # all input slices
-
-                """
-                if slc < 0:  # debug before fixing bps
-                    scia = scidata[slc,:,:]
-                    fits.PrimaryHDU(data=scidata[slc,:,:]).writeto(
-                        f'/Users/anand/data/implaneia/NAP019data/bptest/prebpfix_{slc:d}.fits', overwrite=True)
-                """
-
                 # fix the pixel values using self.nbadpix neighboring values
                 scidata[slc,:,:] = lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
-
-                """
-                if slc < 0:  # debug after fixing bps
-                    scib = scidata[slc,:,:]
-                    fits.PrimaryHDU(data=scib).writeto(
-                        f'/Users/anand/data/implaneia/NAP019data/bptest/postbpfix_{slc:d}.fits', overwrite=True)
-                    fits.PrimaryHDU(data=bpd[slc,:,:]).writeto(
-                        f'/Users/anand/data/implaneia/NAP019data/bptest/bpd_{slc:d}.fits', overwrite=True)
-                """
-            #
-            ####
     
         prihdr=fitsfile[0].header
         scihdr=fitsfile[1].header
@@ -288,7 +265,8 @@ class NIRISS:
         # The full path of input fits image or cube of images is used to create the output 
         # text&fits dir, using the data file's root name as the directory name: for example,
         # /abc/.../imdir/xyz_calints.fits  results in a directory /abc/.../imdir/xyz_calints/
-        self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
+        self.outdir =  fn.split('/')[-1].replace('.fits', '')
+        print("InstrumentData.NIRISS.outdir", self.outdir)
         fitsfile.close()
         return prihdr, scihdr, scidata, bpdata
 

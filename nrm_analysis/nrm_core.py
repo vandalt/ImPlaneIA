@@ -58,8 +58,8 @@ class FringeFitter:
         oversample - model oversampling (also how fine to measure the centering)
         psf_offset - If you already know the subpixel centering of your data, give it here
                      (not recommended except when debugging with perfectly know image placement))
-        savedir - Where do you want to save the new files to? Default is working directory.
-        #datadir - Where is your data? Default is working directory.
+        outdir - Where text observables, derived fits files will get saved.  Default is working directory.
+        oifdir - Where raw oifits files will get saved.  Default is working directory.
         npix - How many pixels of your data do you want to use? 
                Default is the shape of a data [slice or frame].  Typically odd?
         debug - will plot the FT of your data next to the FT of a reference PSF.
@@ -93,10 +93,14 @@ class FringeFitter:
             self.psf_offset_ff = kwargs["psf_offset_ff"]         
         else:
             self.psf_offset_ff = None #find center of image in data
-        if "savedir" in kwargs:
-            self.savedir = kwargs["savedir"]
+        if "outdir" in kwargs:  # where text observables, derived fits images will get saved
+            self.outdir = kwargs["outdir"]
         else:
-            self.savedir = os.getcwd()
+            self.outdir = os.getcwd()
+        if "oifdir" in kwargs:  # where oifits raw files will get saved
+            self.oifdir = kwargs["oifdir"]
+        else:
+            self.oifdir = os.getcwd()
         if "npix" in kwargs:
             self.npix = kwargs["npix"]
         else:
@@ -131,15 +135,15 @@ class FringeFitter:
         #######################################################################
         # Create directories if they don't already exist
         try:
-            os.mkdir(self.savedir)
+            os.mkdir(self.outdir)
         except:
             if self.interactive is True:
-                print(self.savedir+" Already exists, rewrite its contents? (y/n)")
+                print(self.outdir+" Already exists, rewrite its contents? (y/n)")
                 ans = input()
                 if ans == "y":
                     pass
                 elif ans == "n":
-                    sys.exit("use alternative save directory with kwarg 'savedir' when calling FringeFitter")
+                    sys.exit("use alternative save directory with kwarg 'outdir' when calling FringeFitter")
                 else:
                     sys.exit("Invalid answer. Stopping.")
             else:
@@ -166,13 +170,15 @@ class FringeFitter:
         print("Parallel with {0} threads took {1:.2f}s to fit all fringes".format(\
                threads, t3-t2))
 
-        print("nrm_core: output directory:", self.instrument_data.sub_dir_str)
+        print("nrm_core: output directory:", self.instrument_data.outdir)
         # Read in all relevant text observables and save to oifits file...
-        dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.savedir+self.instrument_data.sub_dir_str+'/' ,
+        dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.outdir+self.instrument_data.outdir+'/' ,
                                              oifprefix=self.oifprefix,
-                                             datadir=self.savedir+'/',
+                                             datadir=self.oifdir+'/',
                                              verbose=self.verbose,
                                              )
+        print("oitxtdir=self.outdir+self.instrument_data.outdir+'/'", self.outdir+self.instrument_data.outdir+'/')
+        print("oifdir", self.oifdir)
 
 
     def save_output(self, slc, nrm):
@@ -181,70 +187,70 @@ class FringeFitter:
         #TBD: Keep only n_*.fits files after testing is done and before doing ImPlaneIA delivery
         if self.save_txt_only == False:
             fits.PrimaryHDU(data=self.ctrd, \
-                    header=self.scihdr).writeto(self.savedir+\
+                    header=self.scihdr).writeto(self.outdir+\
                     self.sub_dir_str+"/centered_{0}.fits".format(slc), \
                     overwrite=True)
             fits.PrimaryHDU(data=self.ctrd/self.datapeak, \
-                    header=self.scihdr).writeto(self.savedir+\
+                    header=self.scihdr).writeto(self.outdir+\
                     self.sub_dir_str+"/n_centered_{0}.fits".format(slc), \
                     overwrite=True)
 
             model, modelhdu = nrm.plot_model(fits_true=1)
             # save to fits files
-            fits.PrimaryHDU(data=nrm.residual).writeto(self.savedir+\
+            fits.PrimaryHDU(data=nrm.residual).writeto(self.outdir+\
                         self.sub_dir_str+"/residual_{0:02d}.fits".format(slc), \
                         overwrite=True)
-            fits.PrimaryHDU(data=nrm.residual/self.datapeak).writeto(self.savedir+\
+            fits.PrimaryHDU(data=nrm.residual/self.datapeak).writeto(self.outdir+\
                         self.sub_dir_str+"/n_residual_{0:02d}.fits".format(slc), \
                         overwrite=True)
-            modelhdu.writeto(self.savedir+\
+            modelhdu.writeto(self.outdir+\
                         self.sub_dir_str+"/modelsolution_{0:02d}.fits".format(slc),\
                         overwrite=True)
             fits.PrimaryHDU(data=model/self.datapeak, \
-                    header=modelhdu.header).writeto(self.savedir+\
+                    header=modelhdu.header).writeto(self.outdir+\
                     self.sub_dir_str+"/n_modelsolution_{0:02d}.fits".format(slc), \
                     overwrite=True)
             try: # if there's an appropriately trimmed bad pixel map write it out
                 fits.PrimaryHDU(data=self.ctrb, \
-                    header=self.scihdr).writeto(self.savedir+\
+                    header=self.scihdr).writeto(self.outdir+\
                     self.sub_dir_str+"/bp_{0}.fits".format(slc), \
                     overwrite=True)
             except: AttributeError
                 
 
         # default save to text files
-        np.savetxt(self.savedir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.sub_dir_str + \
                    "/solutions_{0:02d}.txt".format(slc), nrm.soln)
-        np.savetxt(self.savedir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.sub_dir_str + \
                    "/phases_{0:02d}.txt".format(slc), nrm.fringephase)
-        np.savetxt(self.savedir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.sub_dir_str + \
                    "/amplitudes_{0:02d}.txt".format(slc), nrm.fringeamp)
-        np.savetxt(self.savedir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.sub_dir_str + \
                    "/CPs_{0:02d}.txt".format(slc), nrm.redundant_cps)
-        np.savetxt(self.savedir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.sub_dir_str + \
                    "/CAs_{0:02d}.txt".format(slc), nrm.redundant_cas)
-        np.savetxt(self.savedir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.sub_dir_str + \
                   "/fringepistons_{0:02d}.txt".format(slc), nrm.fringepistons)
 
         # write info that oifits wants only when writing out first slice.
         # this will relevant to all slices... so no slice number here.
         if slc == 0:
-            pfn = self.savedir+self.sub_dir_str + "/info4oif_dict.pkl"
+            pfn = self.outdir+self.sub_dir_str + "/info4oif_dict.pkl"
             pfd = open(pfn, 'wb')
             pickle.dump(self.instrument_data.info4oif_dict, pfd)
             pfd.close()
 
         # optional save outputs
         if self.verbose_save:
-            np.savetxt(self.savedir+self.sub_dir_str+\
+            np.savetxt(self.outdir+self.sub_dir_str+\
                        "/condition_{0:02d}.txt".format(slc), nrm.cond)
-            np.savetxt(self.savedir+self.sub_dir_str+\
+            np.savetxt(self.outdir+self.sub_dir_str+\
                        "/flux_{0:02d}.txt".format(slc), nrm.flux)
           
         #print(nrm.linfit_result)
         if nrm.linfit_result is not None:          
             # save linearfit results to pickle file
-            myPickleFile = os.path.join(self.savedir+self.sub_dir_str,
+            myPickleFile = os.path.join(self.outdir+self.sub_dir_str,
                                         "linearfit_result_{0:02d}.pkl".format(slc))
             with open( myPickleFile , "wb" ) as f:
                 pickle.dump((nrm.linfit_result), f) 
@@ -261,7 +267,7 @@ class FringeFitter:
                         nrm.corrs[-1], linestyles='--', color='r')
             plt.text(nrm.rots[1], nrm.corrs[1], 
                      "best fit at {0}".format(nrm.rot_measured))
-            plt.savefig(self.savedir+self.sub_dir_str+\
+            plt.savefig(self.outdir+self.sub_dir_str+\
                         "/rotationcorrelation_{0:02d}.png".format(slc))
 
 def fit_fringes_parallel(args, threads):
@@ -269,9 +275,9 @@ def fit_fringes_parallel(args, threads):
     filename = args['file']
     id_tag = args['id']
     self.prihdr, self.scihdr, self.scidata, self.bpdata = self.instrument_data.read_data(filename)
-    self.sub_dir_str = self.instrument_data.sub_dir_str
+    self.sub_dir_str = self.instrument_data.outdir
     try:
-        os.mkdir(self.savedir+self.sub_dir_str)
+        os.mkdir(self.outdir+self.sub_dir_str)
     except:
         pass
 
