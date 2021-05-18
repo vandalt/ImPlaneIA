@@ -4,12 +4,8 @@
 InstrumentData Class -- defines data format, wavelength info, mask geometry
 
 Instruments/masks supported:
-GPI NRM
 NIRISS AMI
-VISIR SAM
-** we like acronyms **
-
-
+GPI, VISIR, NIRC2 removed - too much changed for the JWST NIRISS class
 """
 
 # Standard Imports
@@ -47,316 +43,6 @@ def set_cvsupport_threshold(instr, k, v):
     print("InstrumentData: ", "New cvsupport_threshold is: ", instr.cvsupport_threshold)
 
 
-class GPI:
-
-    def __init__(self, reffile, **kwargs):
-        """
-        Initialize GPI class
-
-        ARGUMENTS:
-
-        reffile - one or a list of reference fits files 
-                  gpi-pipeline reduced containing useful header info
-        
-        optionally: 'gpifilterpath'
-                - Point to a directory which contains GPI filter files
-                  code will read in the relevant file and pick out a 
-                  sample of wavelengths and transmissions that span the
-                  list, to be used later to generate the model.
-        """
-
-        # only one NRM on GPI:
-        self.arrname = "gpi_g10s40"
-        self.pscale_mas = 14.1667 #14.27 looks like a better match March 2019
-        self.pscale_rad = utils.mas2rad(self.pscale_mas)
-        self.mask = NRM_mask_definitions(maskname=self.arrname)
-        self.mask.ctrs = np.array(self.mask.ctrs)
-        # Hard code -1.5 deg rotation in data (April 2016)
-        # (can be moved to NRM_mask_definitions later)
-        self.mask.ctrs = utils.rotate2dccw(self.mask.ctrs, (-3.7)*np.pi/180.)
-        # Add in hole/baseline properties ?
-        self.holeshape="circ"
-        affine2d = kwargs.get( 'affine2d', None)
-        if affine2d is None:
-            self.affine2d = utils.Affine2d(mx=1.0,my=1.0, 
-                                           sx=0.0,sy=0.0, 
-                                           xo=0.0,yo=0.0, name="Ideal")
-        else:
-            self.affine2d = affine2d
-
-        # Get info from reference file 
-        self.hdr0 = []
-        self.hdr1 = []
-        self.refdata = []
-        if type(reffile)==str:
-            reffile = [reffile,]
-        for fn in reffile:
-            reffits = fits.open(fn)
-            self.hdr0.append(reffits[0].header)
-            self.hdr1.append(reffits[1].header)
-            self.refdata.append(reffits[1].data)
-            reffits.close()
-        # instrument settings
-        self.mode = self.hdr0[0]["DISPERSR"]
-        self.obsmode = self.hdr0[0]["OBSMODE"]
-        self.band = self.obsmode[-1] # K1 is two letters
-        self.ref_imgs_dir = "refimgs_"+self.band+"/"
-
-        # finding centroid from phase slope only considered cv_phase data 
-        # when cv_abs data exceeds this cvsupport_threshold.  
-        # Absolute value of cv data normalized to unity maximum
-        # for the threshold application.
-        # Data reduction gurus: tweak the threshold value with experience...
-        self.cvsupport_threshold = {"Y":0.02, "J":0.02, "H":0.02, "1":0.02, "2":0.02}
-        self.threshold = self.cvsupport_threshold[self.band]
-
-
-        # Special mode for collapsed data
-        if self.hdr1[0]["NAXIS3"]==1:
-            # This is just a way handle data that is manually collapsed.
-            # Not a standard data format for GPI.
-            if self.verbose: print("InstrumentData: ", "No NAXIS3 keyword. This is probably collapsed data.")
-            if self.verbose: print("InstrumentData: ", "Going to fake some stuff now")
-            self.mode = "WOLLASTON_FAKEOUT"
-
-        # wavelength info: spect mode or pol more
-        if "PRISM" in self.mode:
-            # GPI's spectral mode
-            self.nwav = self.hdr1[0]["NAXIS3"]
-            self.wls = np.linspace(self.hdr1[0]["CRVAL3"], \
-                                   self.hdr1[0]["CRVAL3"]+\
-                                   self.hdr1[0]['CD3_3']*self.nwav,\
-                                   self.nwav)*um
-            self.eff_band = um*np.ones(self.nwav)*(self.wls[-1] - \
-                                       self.wls[0])/self.nwav
-        elif "WOLLASTON" in self.mode:
-            # GPI's pol mode. Will define this for the DIFFERENTIAL VISIBILITIES
-            # diff vis: two channels 0/45 and 22/67
-
-            self.nwav = 2
-
-            # Define the bands in case we use a tophat filter
-            band_ctrs = {"Y":(1.14+0.95)*um/2., "J":(1.35+1.12)*um/2., \
-                         "H":(1.80+1.50)*um/2., "1":(2.19+1.9)*um/2., \
-                         "2":(2.4+2.13)*um/2.0}
-            band_wdth = {"Y":(1.14-0.95)*um, "J":(1.35-1.12)*um, "H":(1.80-1.50)*um, \
-                         "1":(2.19-1.9)*um, "2":(2.4-2.13)*um}
-            wghts = np.ones(15)
-            wavls = np.linspace(band_ctrs[self.band]-band_wdth[self.band]/2.0, \
-                                band_ctrs[self.band]+band_wdth[self.band]/2.0, num=15)
-
-            if 'gpifilterpath' in kwargs:
-                if self.verbose: print("InstrumentData: ", "Using GPI filter file ", end='')
-                if self.band=="Y":
-                    filterfile = kwargs["gpifilterpath"]+"GPI-filter-Y.fits"
-                    if self.verbose: print("InstrumentData: ", kwargs["gpifilterpath"]+"GPI-filter-Y.fits")
-                    cutoff=0.7
-                if self.band=="J":
-                    filterfile = kwargs["gpifilterpath"]+"GPI-filter-J.fits"
-                    if self.verbose: print("InstrumentData: ", kwargs["gpifilterpath"]+"GPI-filter-J.fits")
-                    cutoff=0.7
-                if self.band=="H":
-                    filterfile = kwargs["gpifilterpath"]+"GPI-filter-H.fits"
-                    if self.verbose: print("InstrumentData: ", kwargs["gpifilterpath"]+"GPI-filter-H.fits")
-                    cutoff=0.7
-                if self.band=="1":
-                    filterfile = kwargs["gpifilterpath"]+"GPI-filter-K1.fits"
-                    if self.verbose: print("InstrumentData: ", kwargs["gpifilterpath"]+"GPI-filter-K1.fits")
-                    cutoff=0.94
-                if self.band=="2":
-                    filterfile = kwargs["gpifilterpath"]+"GPI-filter-K2.fits"
-                    if self.verbose: print("InstrumentData: ", kwargs["gpifilterpath"]+"GPI-filter-K2.fits")
-                    cutoff=0.94 
-                # Read in gpi filter file
-                fitsfilter = fits.open(filterfile)[1].data
-                wavls = []
-                wghts = []
-                # Sample the filter file so the filter is only 50 elements long
-                skip = len(fitsfilter[0][0]) / 50
-                for ii in range(len(fitsfilter[0][0])/skip):
-                    if fitsfilter[0][1][skip*ii]>cutoff:
-                        wavls.append(fitsfilter[0][0][skip*ii]*1.0e-6)
-                        wghts.append(fitsfilter[0][1][skip*ii])
-
-            lam_c = band_ctrs[self.band]
-            lam_w = band_wdth[self.band]
-
-            transmission = np.array([[wghts[f], wavls[f]] for f in range(len(wghts))])
-            if "FAKEOUT" in self.mode:
-                self.nwav=1
-                self.wls = [transmission, ]
-                self.eff_band = np.array([lam_w, ])
-            else:
-                self.wls = [transmission, transmission]
-                self.eff_band = np.array([lam_w, lam_w])
-        else:
-            sys.exit("Check your reference file header. "+\
-                    "Keywork DISPERSR='{0}' not understood".format(self.mode))
-
-        # For OIFits structure
-        self.wavextension = (self.wls, self.eff_band)
-        if "FAKEOUT" in self.mode:
-            self.wavextension = ([lam_c,], [lam_w,])  
-
-        # Observation info
-        self.telname= "GEMINI"
-        self.ra, self.dec = self.hdr0[0]["RA"], self.hdr0[0]["DEC"]
-        try:
-            self.date = self.hdr0[0]["DATE"]
-        except:
-            self.date = self.hdr0[0]["DATE-OBS"]
-        self.month = self.date[-5:-3]
-        self.day = self.date[-2:]
-        self.year = self.date[:4]
-        #self.parang = self.hdr0["PAR_ANG"]
-        # AVPARANG added Aug 2 2016
-        self.parangs = []
-        self.itime = []
-        self.crpa = []
-        for ii in range(len(reffile)):
-            self.parangs.append(self.hdr1[ii]["AVPARANG"])
-            self.itime.append(self.hdr1[ii]["ITIME"])
-            if "CRPA" in self.hdr0[ii]:
-                self.crpa.append(self.hdr0[ii]["CRPA"])
-        self.avparang = np.mean(self.parangs)
-        if len(self.crpa)>0:
-            self.avcassang = np.mean(self.crpa)
-        else:
-            self.avcassang = 0.0
-        self.parang_range = abs(self.parangs[-1] - self.parangs[0])
-        self.totalinttime = np.sum(self.itime)
-        try:
-            self.pa = self.hdr0[0]["PA"]
-        except:
-            self.pa = 0.0
-        try:
-            self.objname = self.hdr0[0]["OBJECT"]
-        except:
-            self.objname = "Unknown"
-
-        # Look for additional keyword arguments ?
-    def read_data(self, fn):
-
-        fitsfile = fits.open(fn)
-        sci=fitsfile[1].data
-        hdr=fitsfile[1].header
-        fitsfile.close()
-        #fitshdr = fitsfile[0].header
-        if 'distorcorr' in fn:
-            self.sub_dir_str = fn[-32:-21]
-        else:
-            self.sub_dir_str = fn[-21:-10]
-
-        return sci, hdr
-
-class VISIR:
-    def __init__(self, objname="obj", band="11.3", src = "A0V",
-                 affine2d=None):
-        """
-        Initialize VISIR class
-
-        ARGUMENTS:
-        objname - string w/name of object observed
-        src - if pysynphot is installed, can provide a guess at the stellar spectrum
-        """
-        self.band = band
-
-        self.objname = objname
-
-        self.arrname = "visir_sam"
-        self.pscale_mas = 45
-        self.pscale_rad = utils.mas2rad(self.pscale_mas)
-        self.mask = NRM_mask_definitions(maskname=self.arrname)
-        self.mask.ctrs = np.array(self.mask.ctrs)
-        #self.mask.ctrs[:,1]*=-1
-        self.holeshape="hex"
-        #self.mask.ctrs = utils.rotate2dccw(self.mask.ctrs, 7.5*np.pi/180.)
-
-        if affine2d is None:
-            self.affine2d = utils.Affine2d(mx=1.0,my=1.0, 
-                                           sx=0.0,sy=0.0, 
-                                           xo=0.0,yo=0.0, name="Ideal")
-        else:
-            self.affine2d = affine2d
-
-        # tophat filter
-        # this can be swapped with an actual filter file
-        if self.band=="11.3":
-            self.lam_c = 11.3*1e-6 # 11.3 microns
-            self.lam_w = 0.6/11.3 # 0.6 micron bandpass
-        elif self.band=="10.5":
-            self.lam_c = 10.6*1e-6 # 11.3 microns
-            self.lam_w = 0.1/10.5 # 0.6 micron bandpass
-        else:
-            raise ValueError("options for band are '11.3' or '10.5' \n{0} not supported".format(band))
-        self.filt = utils.tophatfilter(self.lam_c, self.lam_w, npoints=10)
-        try:
-            self.wls = [utils.combine_transmission(self.filt, src), ]
-        except:
-            self.wls = [self.filt, ]
-        #self.wavextension = (self.lam_c, self.lam_w)
-        #self.wavextension = (self.lam_c*np.ones(self.nexp), \
-        #                     self.lam_w*np.ones(self.nexp))
-        self.wavextension = ([self.lam_c,], [self.lam_w,])
-        self.nwav=1
-
-        # finding centroid from phase slope only considered cv_phase data when cv_abs data exceeds this.  
-        # absolute value of cv data normalized to unity maximum for the threshold application.
-        self.cvsupport_threshold = {"10.5":0.02, "11.3":0.02} # Gurus: tweak with use...
-        self.threshold = self.cvsupport_threshold[self.band]
-
-        self.ref_imgs_dir = "refimgs/"
-
-        #############################
-        # Observation info - I don't know yet how JWST data headers will be structured
-        self.telname= "VLT"
-        try:
-            self.ra, self.dec = self.hdr0["RA"], self.hdr0["DEC"]
-        except:
-            self.ra, self.dec = 00, 00
-        try:
-            self.date = self.hdr0["DATE"]
-            self.month = self.date[-5:-3]
-            self.day = self.date[-2:]
-            self.year = self.date[:4]
-        except:
-            lt = time.localtime()
-            self.date = "{0}{1:02d}{2:02d}".format(lt[0],lt[1],lt[2])
-            self.month = lt[1]
-            self.day = lt[2]
-            self.year = lt[0]
-        try:
-            self.parang = self.hdr0["PAR_ANG"]
-        except:
-            self.parang = 00
-        try:
-            self.pa = self.hdr0["PA"]
-        except:
-            self.pa = 00
-        try:
-            self.itime = self.hdr1["ITIME"]
-        except:
-            self.itime = 00
-        #############################
-
-    def read_data(self, fn):
-        # for datacube of exposures, need to read as 3D (nexp, npix, npix)
-        fitsfile = fits.open(fn)
-        scidata=fitsfile[0].data
-        hdr=fitsfile[0].header
-        #self.sub_dir_str = self.filt+"_"+objname
-        self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
-        #self.nexp = scidata.shape[0]
-        # rewrite wavextension to be same length as nexp
-        if len(scidata.shape)==3:
-            self.nwav=scidata.shape[0]
-            [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
-            return scidata, hdr
-        elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
-            return np.array([scidata,]), hdr
-        else:
-            sys.exit("invalid data dimensions for VISIR. Should have dimensionality of 2 or 3.")
-        return scidata, hdr
 
 class NIRISS:
     def __init__(self, filt, 
@@ -529,7 +215,7 @@ class NIRISS:
         try:
             bpdata=fitsfile['DQ'].data # bad pixel extension
             self.bpexist = True
-            # If calling driver wants to skip using DQ info even if DQ array in data,
+            # If calling driver wants to skip using DQ info even if DQ array exists in data,
             # force the bpexist flag to False here.
             if self.usebp == False: 
                 self.bpexist = False
@@ -558,7 +244,8 @@ class NIRISS:
         scidata = scidata[:,4:, :] # [all slices, imaxis[0], imaxis[1]]
         print('Refpix-trimmed off scidata', scidata.shape)
 
-        # fix pix using bad pixel map - runs now.  Need to sanity-check.
+        #### fix pix using bad pixel map - runs now.  Need to sanity-check.
+        #
         if self.bpexist:
             # refpix removal by trimming to match image trim
             bpdata = bpdata[:,4:, :]     # refpix removal by trimming to match image trim
@@ -569,31 +256,38 @@ class NIRISS:
             print('Refpix-trimmed off bpdata ', bpdata.shape)
 
             #
-            print('InstrumentData.NIRISS.read_data: debugging output hardcoded first three slices - delete after checking')
             for slc in range(bpdata.shape[0]):  # all input slices
 
+                """
                 if slc < 0:  # debug before fixing bps
                     scia = scidata[slc,:,:]
                     fits.PrimaryHDU(data=scidata[slc,:,:]).writeto(
                         f'/Users/anand/data/implaneia/NAP019data/bptest/prebpfix_{slc:d}.fits', overwrite=True)
+                """
 
                 # fix the pixel values using self.nbadpix neighboring values
                 scidata[slc,:,:] = lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
 
+                """
                 if slc < 0:  # debug after fixing bps
                     scib = scidata[slc,:,:]
                     fits.PrimaryHDU(data=scib).writeto(
                         f'/Users/anand/data/implaneia/NAP019data/bptest/postbpfix_{slc:d}.fits', overwrite=True)
                     fits.PrimaryHDU(data=bpd[slc,:,:]).writeto(
                         f'/Users/anand/data/implaneia/NAP019data/bptest/bpd_{slc:d}.fits', overwrite=True)
+                """
+            #
+            ####
     
         prihdr=fitsfile[0].header
         scihdr=fitsfile[1].header
         # MAST header or similar kwds info for oifits writer:
         self.updatewithheaderinfo(prihdr, scihdr)
 
-        # create subdirectory name into which to write txt & oifits observables' files
-        # This is a subdirectory where the data was found, named for fits input root name
+        # Directory name into which to write txt observables & optional fits diagnostic files
+        # The full path of input fits image or cube of images is used to create the output 
+        # text&fits dir, using the data file's root name as the directory name: for example,
+        # /abc/.../imdir/xyz_calints.fits  results in a directory /abc/.../imdir/xyz_calints/
         self.sub_dir_str = '/' + fn.split('/')[-1].replace('.fits', '')
         fitsfile.close()
         return prihdr, scihdr, scidata, bpdata
@@ -896,194 +590,3 @@ class NIRISS:
         else:
             ctrs_rot = mask_ctrs
         return ctrs_rot
-
-
-class NIRC2:
-    def __init__(self, reffile, **kwargs):
-        """
-        Initialize NIRC2 class
-
-        ARGUMENTS:
-        objname - string w/name of object observed
-        src - if pysynphot is installed, can provide a guess at the stellar spectrum
-
-        IFU simulation option set IFU = True
-        """
-
-        if "IFU" in kwargs:
-            if kwargs["IFU"]==True:
-                self.mode = "PRISM"
-            else:
-                self.mode = "BROADBAND"
-        else:
-            self.mode = "BROADBAND"
-        if "src" in kwargs:
-            src = kwargs["src"]
-        else:
-            pass
-        affine2d = kwargs.get( 'affine2d', None )
-        if affine2d is None:
-            self.affine2d = utils.Affine2d(mx=1.0,my=1.0, 
-                                           sx=0.0,sy=0.0, 
-                                           xo=0.0,yo=0.0, name="Ideal")
-        else:
-            self.affine2d = affine2d
-
-        self.arrname = "NIRC2_9NRM"
-        self.pscale_mas = 9.952 # mas
-        self.pscale_rad = utils.mas2rad(self.pscale_mas)
-        self.mask = NRM_mask_definitions(maskname=self.arrname)
-        self.mask.ctrs = np.array(self.mask.ctrs)
-        # Hard code -1.5 deg rotation in data (April 2016)
-        # (can be moved to NRM_mask_definitions later)
-        self.mask.ctrs = utils.rotate2dccw(self.mask.ctrs, 1.0*np.pi/180.0)#, np.pi/10.)
-        # Add in hole/baseline properties ?
-        self.holeshape="circ"
-
-        self.threshold = 0.02
-
-        # Get info from reference file 
-        self.hdr = []
-        #self.refdata = []
-        if type(reffile)==str:
-            reffile = [reffile,]
-        for fn in reffile:
-            reffits = fits.open(fn)
-            self.hdr.append(reffits[0].header)
-            reffits.close()
-        # instrument settings
-        self.band = self.hdr[0]["FWINAME"]
-
-        self.objname = self.hdr[0]["OBJECT"]
-
-        # tophat filter
-        # this can be swapped with an actual filter file
-        #band_ctrs = {"Kp":1.633*um/2.0,"Lp":3.1*um}
-        band_ctrs = {"J":1.248*um, "H":1.633*um, "CH4_short":1.5923*um,"Kp":2.2*um,"Lp":3.1*um}
-        band_wdth = {"J":0.163*um, "H":0.296*um, "CH4_short":(0.1257)*um,"Kp":(0.3)*um, "Lp":(4.126 - 3.426)*um}
-
-        lam_c = band_ctrs[self.band]
-        lam_w = band_wdth[self.band]
-
-        # wavelength info: spect mode or pol more
-        if "PRISM" in self.mode:
-            # GPI's spectral mode
-            self.nwav = 36 #self.hdr1[0]["NAXIS3"]
-            self.wls = np.linspace(lam_c - lam_w/2.0, lam_c+lam_w/2.0, num=36)*1e-6
-            self.eff_band = um*np.ones(self.nwav)*(self.wls[-1] - self.wls[0])/self.nwav
-            # For OIFits structure
-            self.wavextension = (self.wls, self.eff_band)
-        elif "BROADBAND" in self.mode:
-            # Copied from GPI's pol mode.
-
-            self.nwav=1
-
-            # Define the bands in case we use a tophat filter
-            wghts = np.ones(11)
-            wavls = np.linspace(lam_c-lam_w/2.0, \
-                                lam_c+lam_w/2.0, num=len(wghts))
-
-
-            transmission = np.array([[wghts[f], wavls[f]] for f in range(len(wghts))])
-            self.wls = [transmission, ]
-            #self.wls = [np.sum(wghts*wavls) /float(len(wavls)), ]
-            self.eff_band = np.array([lam_w, ])
-            # For OIFits structure
-            self.wavextension = ([lam_c,], [lam_w,])
-
-
-
-        try:
-            self.wls = [utils.combine_transmission(transmission, src), ]
-        except:
-            self.wls = [transmission, ]
-        #self.wavextension = (lam_c, lam_w)
-        self.nwav=1
-
-        # finding centroid from phase slope only considered cv_phase data when cv_abs data exceeds this.  
-        # absolute value of cv data normalized to unity maximum for the threshold application.
-        self.cvsupport_threshold = {"threshold":0.02} # Gurus: tweak with use...
-
-        self.ref_imgs_dir = "refimgs/"
-
-        #############################
-        # Observation info - I don't know yet how JWST data headers will be structured
-        self.telname= "Keck"
-        try:
-            self.ra, self.dec = self.hdr[0]["RA"], self.hdr[0]["DEC"]
-        except:
-            self.ra, self.dec = 00, 00
-        try:
-            self.date = self.hdr[0]["DATE"]
-            self.month = self.date[8:10]
-            self.day = self.date[5:7]
-            self.year = self.date[:4]
-        except:
-            lt = time.localtime()
-            self.date = "{0}{1:02d}{2:02d}".format(lt[0],lt[1],lt[2])
-            self.month = lt[1]
-            self.day = lt[2]
-            self.year = lt[0]
-
-
-        self.parangs = []
-        self.itime = []
-        self.crpa = []
-        self.rotposns = []
-        self.instangs = []
-        self.derotangs = []
-        for ii in range(len(reffile)):
-            self.parangs.append(self.hdr[ii]["PARANG"])
-            self.rotposns.append(self.hdr[ii]["ROTPOSN"])
-            self.instangs.append(self.hdr[ii]["INSTANGL"])
-            # From Tom Esposito:
-            # PARANG + ROTPOSN - INSTANGL - 0.262 
-            self.derotangs.append(self.hdr[ii]["PARANG"]+self.hdr[ii]["ROTPOSN"] \
-                                  -self.hdr[ii]["INSTANGL"]-0.262)
-            self.itime.append(self.hdr[ii]["ITIME"])
-            if "CRPA" in self.hdr[ii]:
-                self.crpa.append(self.hdr[ii]["CRPA"])
-        self.avderotang = np.mean(self.derotangs)
-        self.avparang = np.mean(self.parangs)
-        if len(self.crpa)>0:
-            self.avcassang = np.mean(self.crpa)
-        else:
-            self.avcassang = 0.0
-        self.parang_range = abs(self.parangs[-1] - self.parangs[0])
-        self.totalinttime = np.sum(self.itime)
-
-
-        try:
-            self.pa = self.hdr0["PA"]
-        except:
-            self.pa = 00
-
-        #############################:w
-        self.parang_range = abs(self.parangs[-1] - self.parangs[0])
-        self.totalinttime = np.sum(self.itime)
-        self.ref_imgs_dir = "refimgs/"
-
-    def read_data(self, fn):
-
-        fitsfile = fits.open(fn)
-        sci=fitsfile[0].data
-        hdr=fitsfile[0].header
-        fitsfile.close()
-        #fitshdr = fitsfile[0].header
-        self.sub_dir_str = fn.split("/")[-1][:-5]
-
-        if len(sci.shape)==3:
-            if self.mode=="PRISM":
-                return sci, hdr
-            elif self.mode=="BROADBAND":
-                self.nwav=sci.shape[0]
-                [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
-                return sci, hdr
-        elif len(sci.shape)==2:
-            if self.mode=="BROADBAND":
-                return np.array([sci,]), hdr
-        else:
-            sys.exit("invalid data dimensions for NIRC2. Should have dimensionality of 2 or 3.")
-
-        return sci, hdr
-
