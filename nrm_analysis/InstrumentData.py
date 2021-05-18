@@ -301,9 +301,9 @@ class NIRISS:
         return np.array((cd11*vec[0] + cd12*vec[1], cd21*vec[0] + cd22*vec[1]))
 
 
-    def degrees_per_pixel(self, phdr):
+    def degrees_per_pixel(self, hdr):
         """
-        input: phdr:  fits data file's header with or without CDELT1, CDELT2 (degrees per pixel)
+        input: hdr:  fits data file's header with or without CDELT1, CDELT2 (degrees per pixel)
         returns: cdelt1, cdelt2: tuple, degrees per pixel along axes 1, 2
                          EITHER: read from header CDELT[12] keywords 
                              OR: calculated using CD matrix (Jacobian of RA-TAN, DEC-TAN degrees
@@ -354,12 +354,12 @@ class NIRISS:
             I hope this answers your question.
         """
 
-        if 'CD1_1' in phdr.keys() and 'CD1_2' in phdr.keys() and  \
-             'CD2_1' in phdr.keys() and 'CD2_2' in phdr.keys():
-            cd11 = phdr['CD1_1']
-            cd12 = phdr['CD1_2']
-            cd21 = phdr['CD2_1']
-            cd22 = phdr['CD2_2']
+        if 'CD1_1' in hdr.keys() and 'CD1_2' in hdr.keys() and  \
+             'CD2_1' in hdr.keys() and 'CD2_2' in hdr.keys():
+            cd11 = hdr['CD1_1']
+            cd12 = hdr['CD1_2']
+            cd21 = hdr['CD2_1']
+            cd22 = hdr['CD2_2']
             # Create unit vectors in detector pixel X and Y directions, units: detector pixels
             dxpix  =  np.array((1.0, 0.0)) # axis 1 step
             dypix  =  np.array((0.0, 1.0)) # axis 2 step
@@ -368,8 +368,8 @@ class NIRISS:
             dysky = self.cdmatrix_to_sky(dypix, cd11, cd12, cd21, cd22)
             print("Used CD matrix for pixel scales")
             return np.linalg.norm(dxsky, ord=2), np.linalg.norm(dysky, ord=2)
-        elif 'CDELT1' in phdr.keys() and 'CDELT2' in phdr.keys():
-            return phdr['CDELT1'], phdr['CDELT2']
+        elif 'CDELT1' in hdr.keys() and 'CDELT2' in hdr.keys():
+            return hdr['CDELT1'], hdr['CDELT2']
             print("Used CDDELT[12] for pixel scales")
         else:
             print('InstrumentData.NIRISS: Warning: NIRISS pixel scales not in header.  Using 65.6 mas in deg/pix')
@@ -452,21 +452,15 @@ class NIRISS:
         np.set_printoptions(precision=5, suppress=True, linewidth=160, 
                             formatter={'float': lambda x: "%10.5f," % x})
         self.v3i_yang = sh['V3I_YANG']  # Angle from V3 axis to Ideal y axis (deg)
-        #print("self.mask.ctrs: \n", self.mask.ctrs)
         # rotate mask hole center coords by PAV3 # RAC 2021
         ctrs_sky = self.mast2sky()
-        #print("new ctrs: \n", ctrs_sky)
-        # Sydney oif coords switch... slow but sure this time!  (I hope...)
         stax_oif = ctrs_sky[:,1].copy() * -1
         stay_oif = ctrs_sky[:,0].copy() * -1
-        # print("stax_oif: ", stax_oif)
-        # print("stay_oif: ", stay_oif)
         oifctrs = np.zeros(self.mask.ctrs.shape)
         oifctrs[:,0] = stax_oif
         oifctrs[:,1] = stay_oif
         info4oif_dict['ctrs_eqt'] = oifctrs # mask centers rotated by PAV3 (equatorial coords)
         info4oif_dict['ctrs_inst'] = self.mask.ctrs # as-built instrument mask centers
-        # print("info4oif ctrs : \n", info4oif_dict['ctrs'])
         info4oif_dict['hdia'] = self.mask.hdia
         info4oif_dict['nslices'] = self.nwav # nwav: number of image slices or IFU cube slices - AMI is imager
         self.info4oif_dict = info4oif_dict # save it when writing extracted observables txt
@@ -477,10 +471,6 @@ class NIRISS:
         print("InstrumentData.NIRISS: ", "Resetting InstrumentData instantiation's nwave to", nwav)
         self.nwav = nwav
 
-    # Delete if this is not8 called from anywhere!
-    #  def _generate_filter_files():
-    #      """Either from WEBBPSF, or tophat, etc. A set of filter files will also be provided"""
-    #      return None
 
     def jwst_dqflags(self):
         """ 
