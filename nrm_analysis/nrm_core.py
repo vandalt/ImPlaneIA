@@ -79,22 +79,18 @@ class FringeFitter:
 
         #######################################################################
         # Options
+        self.oversample = 3
         if "oversample" in kwargs:
             self.oversample = kwargs["oversample"]
-        else:
-            #default oversampling is 3
-            self.oversample = 3
 
+        self.find_rotation = False
         if "find_rotation" in kwargs:
             # can be True/False or 1/0
             self.find_rotation = kwargs["find_rotation"]
-        else:
-            self.find_rotation = False
 
+        self.psf_offset_ff = None #find center of image in data
         if "psf_offset_ff" in kwargs: # if so do not find center of image in data
             self.psf_offset_ff = kwargs["psf_offset_ff"]         
-        else:
-            self.psf_offset_ff = None #find center of image in data
 
         if "outdir" in kwargs:  # write OI text files here, [diagnostic images fits]. Was 'savedir'
             self.outdir = kwargs["outdir"]
@@ -105,7 +101,6 @@ class FringeFitter:
             print(   "nrm_core.FringeFitter: Fatal:  must specify outdir.")
             sys.exit("nrm_core.FringeFitter:         outdir: directory for text output OI files & diagnostic fits images.")
         if self.outdir[-1] != '/': self.outdir = self.outdir + '/'
-        print("\tnrm_core.FF:                   self.outdir ", self.outdir)
 
         if "oifdir" in kwargs:  # where oifits raw files will get saved
             self.oifdir = kwargs["oifdir"]
@@ -113,37 +108,30 @@ class FringeFitter:
             print(   "nrm_core.FringeFitter: Fatal:  must specify oifdir.")
             sys.exit("nrm_core.FringeFitter:         oifdir: directory for oifits files.")
         if self.oifdir[-1] != '/': self.oifdir = self.oifdir + '/'
-        print("\tnrm_core.FF:                   self.oifdir ", self.oifdir)
 
+        self.npix = 'default'
         if "npix" in kwargs:
             self.npix = kwargs["npix"]
-        else:
-            self.npix = 'default'
 
+        self.debug=False
         if "debug" in kwargs:
             self.debug=kwargs["debug"]
-        else:
-            self.debug=False
 
+        self.verbose_save = False
         if "verbose_save" in kwargs:
             self.verbose_save = kwargs["verbose_save"]
-        else:
-            self.verbose_save = False
 
+        self.interactive = True
         if 'interactive' in kwargs:
             self.interactive = kwargs['interactive']
-        else:
-            self.interactive = True
 
+        self.save_txt_only = False
         if "save_txt_only" in kwargs:
             self.save_txt_only = kwargs["save_txt_only"]
-        else:
-            self.save_txt_only = False
 
+        self.verbose = False
         if "verbose" in kwargs:
             self.verbose = kwargs["verbose"]
-        else:
-            self.verbose = False
         #######################################################################
 
 
