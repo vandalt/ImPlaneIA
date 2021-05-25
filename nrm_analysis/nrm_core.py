@@ -84,47 +84,62 @@ class FringeFitter:
         else:
             #default oversampling is 3
             self.oversample = 3
+
         if "find_rotation" in kwargs:
             # can be True/False or 1/0
             self.find_rotation = kwargs["find_rotation"]
         else:
             self.find_rotation = False
+
         if "psf_offset_ff" in kwargs: # if so do not find center of image in data
             self.psf_offset_ff = kwargs["psf_offset_ff"]         
         else:
             self.psf_offset_ff = None #find center of image in data
-        if "outdir" in kwargs:  # where text observables, derived fits images will get saved
+
+        if "outdir" in kwargs:  # write OI text files here, [diagnostic images fits]. Was 'savedir'
             self.outdir = kwargs["outdir"]
+        elif 'savedir' in kwargs:
+            self.outdir = kwargs["savedir"]
+            print("nrm_core.FringeFitter: savedir deprecated but will be used for outdir variable.")
         else:
-            self.outdir = os.getcwd()
+            print(   "nrm_core.FringeFitter: Fatal:  must specify outdir.")
+            sys.exit("nrm_core.FringeFitter:         outdir: directory for text output OI files & diagnostic fits images.")
+        if self.outdir[-1] != '/': self.outdir = self.outdir + '/'
+        print("\tnrm_core.FF:                   self.outdir ", self.outdir)
+
         if "oifdir" in kwargs:  # where oifits raw files will get saved
             self.oifdir = kwargs["oifdir"]
         else:
-            self.oifdir = os.getcwd()
+            print(   "nrm_core.FringeFitter: Fatal:  must specify oifdir.")
+            sys.exit("nrm_core.FringeFitter:         oifdir: directory for oifits files.")
+        if self.oifdir[-1] != '/': self.oifdir = self.oifdir + '/'
+        print("\tnrm_core.FF:                   self.oifdir ", self.oifdir)
+
         if "npix" in kwargs:
             self.npix = kwargs["npix"]
         else:
             self.npix = 'default'
+
         if "debug" in kwargs:
             self.debug=kwargs["debug"]
         else:
             self.debug=False
+
         if "verbose_save" in kwargs:
             self.verbose_save = kwargs["verbose_save"]
         else:
             self.verbose_save = False
+
         if 'interactive' in kwargs:
             self.interactive = kwargs['interactive']
         else:
             self.interactive = True
+
         if "save_txt_only" in kwargs:
             self.save_txt_only = kwargs["save_txt_only"]
         else:
             self.save_txt_only = False
-        if "oifprefix" in kwargs:
-            self.oifprefix = kwargs["oifprefix"]
-        else:
-            self.oifprefix = "oifprefix_"
+
         if "verbose" in kwargs:
             self.verbose = kwargs["verbose"]
         else:
@@ -170,15 +185,15 @@ class FringeFitter:
         print("Parallel with {0} threads took {1:.2f}s to fit all fringes".format(\
                threads, t3-t2))
 
-        print("nrm_core: output directory:", self.instrument_data.outdir)
+        print("\tnrm_core.ff(): self.instrument_data.outdir:", self.instrument_data.outdir)
+        print("\tnrm_core.ff():                 self.outdir:", self.outdir)
+        print("\tnrm_core.ff:                   self.oifdir ", self.oifdir)
+        print("\tnrm_core.ff():                    oitxtdir:", self.outdir+self.instrument_data.outdir)
         # Read in all relevant text observables and save to oifits file...
         dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.outdir+self.instrument_data.outdir+'/' ,
-                                             oifprefix=self.oifprefix,
-                                             datadir=self.oifdir+'/',
+                                             oifdir=self.oifdir,
                                              verbose=self.verbose,
                                              )
-        print("oitxtdir=self.outdir+self.instrument_data.outdir+'/'", self.outdir+self.instrument_data.outdir+'/')
-        print("oifdir", self.oifdir)
 
 
     def save_output(self, slc, nrm):
@@ -376,19 +391,6 @@ def fit_fringes_single_integration(args):
     For jwst_g7s6 cropped-to-match-data bad pixel array 'ctrb' is also stored
     """
 
-    if self.debug==True:
-        import matplotlib.pyplot as plt
-        import poppy.matrixDFT as mft
-        dataft = mft.matrix_dft(self.ctrd, 256, 512)
-        refft = mft.matrix_dft(self.refpsf, 256, 512)
-        plt.figure()
-        plt.title("Data")
-        plt.imshow(np.sqrt(abs(dataft)), cmap = "bone")
-        plt.figure()
-        plt.title("Reference")
-        plt.imshow(np.sqrt(abs(refft)), cmap="bone")
-        plt.show()
-    
     self.save_output(slc, nrm)
     self.nrm = nrm # store  extracted values here
     return None
