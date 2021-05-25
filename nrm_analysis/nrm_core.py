@@ -58,14 +58,14 @@ class FringeFitter:
         oversample - model oversampling (also how fine to measure the centering)
         psf_offset - If you already know the subpixel centering of your data, give it here
                      (not recommended except when debugging with perfectly know image placement))
-        outdir - Where text observables, derived fits files will get saved.  Default is working directory.
-        oifdir - Where raw oifits files will get saved.  Default is working directory.
+        outdir - Where text observables, derived fits files will get saved.  No default.
+        oifdir - Where raw oifits files will get saved.  No default.
         npix - How many pixels of your data do you want to use? 
                Default is the shape of a data [slice or frame].  Typically odd?
         debug - will plot the FT of your data next to the FT of a reference PSF.
                 Needs poppy package to run
         verbose_save - saves more than the standard files
-        interactive - default True, prompts user to overwrite/create fresh directory.  
+        interactive - default True, prompts user to overwrite/create directory.  
                       False will overwrite files where necessary.
         find_rotation - will find the best pupil rotation that matches the data
         verbose - T/F
@@ -173,12 +173,12 @@ class FringeFitter:
         print("Parallel with {0} threads took {1:.2f}s to fit all fringes".format(\
                threads, t3-t2))
 
-        print("\tnrm_core.ff(): self.instrument_data.outdir:", self.instrument_data.outdir)
+        print("\tnrm_core.ff(): self.instrument_data.rootfn:", self.instrument_data.rootfn)
         print("\tnrm_core.ff():                 self.outdir:", self.outdir)
         print("\tnrm_core.ff:                   self.oifdir ", self.oifdir)
-        print("\tnrm_core.ff():                    oitxtdir:", self.outdir+self.instrument_data.outdir)
+        print("\tnrm_core.ff():                    oitxtdir:", self.outdir+self.instrument_data.rootfn)
         # Read in all relevant text observables and save to oifits file...
-        dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.outdir+self.instrument_data.outdir+'/' ,
+        dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.outdir+self.instrument_data.rootfn+'/' ,
                                              oifdir=self.oifdir,
                                              verbose=self.verbose,
                                              )
@@ -191,69 +191,69 @@ class FringeFitter:
         if self.save_txt_only == False:
             fits.PrimaryHDU(data=self.ctrd, \
                     header=self.scihdr).writeto(self.outdir+\
-                    self.sub_dir_str+"/centered_{0}.fits".format(slc), \
+                    self.instrument_data.rootfn+"/centered_{0}.fits".format(slc), \
                     overwrite=True)
             fits.PrimaryHDU(data=self.ctrd/self.datapeak, \
                     header=self.scihdr).writeto(self.outdir+\
-                    self.sub_dir_str+"/n_centered_{0}.fits".format(slc), \
+                    self.instrument_data.rootfn+"/n_centered_{0}.fits".format(slc), \
                     overwrite=True)
 
             model, modelhdu = nrm.plot_model(fits_true=1)
             # save to fits files
             fits.PrimaryHDU(data=nrm.residual).writeto(self.outdir+\
-                        self.sub_dir_str+"/residual_{0:02d}.fits".format(slc), \
+                        self.instrument_data.rootfn+"/residual_{0:02d}.fits".format(slc), \
                         overwrite=True)
             fits.PrimaryHDU(data=nrm.residual/self.datapeak).writeto(self.outdir+\
-                        self.sub_dir_str+"/n_residual_{0:02d}.fits".format(slc), \
+                        self.instrument_data.rootfn+"/n_residual_{0:02d}.fits".format(slc), \
                         overwrite=True)
             modelhdu.writeto(self.outdir+\
-                        self.sub_dir_str+"/modelsolution_{0:02d}.fits".format(slc),\
+                        self.instrument_data.rootfn+"/modelsolution_{0:02d}.fits".format(slc),\
                         overwrite=True)
             fits.PrimaryHDU(data=model/self.datapeak, \
                     header=modelhdu.header).writeto(self.outdir+\
-                    self.sub_dir_str+"/n_modelsolution_{0:02d}.fits".format(slc), \
+                    self.instrument_data.rootfn+"/n_modelsolution_{0:02d}.fits".format(slc), \
                     overwrite=True)
             try: # if there's an appropriately trimmed bad pixel map write it out
                 fits.PrimaryHDU(data=self.ctrb, \
                     header=self.scihdr).writeto(self.outdir+\
-                    self.sub_dir_str+"/bp_{0}.fits".format(slc), \
+                    self.instrument_data.rootfn+"/bp_{0}.fits".format(slc), \
                     overwrite=True)
             except: AttributeError
                 
 
         # default save to text files
-        np.savetxt(self.outdir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.instrument_data.rootfn + \
                    "/solutions_{0:02d}.txt".format(slc), nrm.soln)
-        np.savetxt(self.outdir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.instrument_data.rootfn + \
                    "/phases_{0:02d}.txt".format(slc), nrm.fringephase)
-        np.savetxt(self.outdir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.instrument_data.rootfn + \
                    "/amplitudes_{0:02d}.txt".format(slc), nrm.fringeamp)
-        np.savetxt(self.outdir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.instrument_data.rootfn + \
                    "/CPs_{0:02d}.txt".format(slc), nrm.redundant_cps)
-        np.savetxt(self.outdir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.instrument_data.rootfn + \
                    "/CAs_{0:02d}.txt".format(slc), nrm.redundant_cas)
-        np.savetxt(self.outdir+self.sub_dir_str + \
+        np.savetxt(self.outdir+self.instrument_data.rootfn + \
                   "/fringepistons_{0:02d}.txt".format(slc), nrm.fringepistons)
 
         # write info that oifits wants only when writing out first slice.
         # this will relevant to all slices... so no slice number here.
         if slc == 0:
-            pfn = self.outdir+self.sub_dir_str + "/info4oif_dict.pkl"
+            pfn = self.outdir+self.instrument_data.rootfn + "/info4oif_dict.pkl"
             pfd = open(pfn, 'wb')
             pickle.dump(self.instrument_data.info4oif_dict, pfd)
             pfd.close()
 
         # optional save outputs
         if self.verbose_save:
-            np.savetxt(self.outdir+self.sub_dir_str+\
+            np.savetxt(self.outdir+self.instrument_data.rootfn+\
                        "/condition_{0:02d}.txt".format(slc), nrm.cond)
-            np.savetxt(self.outdir+self.sub_dir_str+\
+            np.savetxt(self.outdir+self.instrument_data.rootfn+\
                        "/flux_{0:02d}.txt".format(slc), nrm.flux)
           
         #print(nrm.linfit_result)
         if nrm.linfit_result is not None:          
             # save linearfit results to pickle file
-            myPickleFile = os.path.join(self.outdir+self.sub_dir_str,
+            myPickleFile = os.path.join(self.outdir+self.instrument_data.rootfn,
                                         "linearfit_result_{0:02d}.pkl".format(slc))
             with open( myPickleFile , "wb" ) as f:
                 pickle.dump((nrm.linfit_result), f) 
@@ -270,7 +270,7 @@ class FringeFitter:
                         nrm.corrs[-1], linestyles='--', color='r')
             plt.text(nrm.rots[1], nrm.corrs[1], 
                      "best fit at {0}".format(nrm.rot_measured))
-            plt.savefig(self.outdir+self.sub_dir_str+\
+            plt.savefig(self.outdir+self.instrument_data.rootfn+\
                         "/rotationcorrelation_{0:02d}.png".format(slc))
 
 def fit_fringes_parallel(args, threads):
@@ -278,9 +278,10 @@ def fit_fringes_parallel(args, threads):
     filename = args['file']
     id_tag = args['id']
     self.prihdr, self.scihdr, self.scidata, self.bpdata = self.instrument_data.read_data(filename)
-    self.sub_dir_str = self.instrument_data.outdir
+    #self.sub_dir_str = self.instrument_data.outdir
+    print("\tnrm_core.ffp():                 self.instrument_data.rootfn", self.instrument_data.rootfn)
     try:
-        os.mkdir(self.outdir+self.sub_dir_str)
+        os.mkdir(self.outdir+self.instrument_data.rootfn)
     except:
         pass
 

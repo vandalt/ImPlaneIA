@@ -75,10 +75,9 @@ class NIRISS:
         usebp:    True (default) use DQ array from input MAST data.  False: do not utilize DQ array.
         """
         
+        self.verbose=False
         if "verbose" in kwargs:
             self.verbose=kwargs["verbose"]
-        else:
-            self.verbose=False
 
         # self.bpexist set True/False if  DQ fits image extension exists/doesn't
         self.nbadpix = 4
@@ -265,8 +264,8 @@ class NIRISS:
         # The full path of input fits image or cube of images is used to create the output 
         # text&fits dir, using the data file's root name as the directory name: for example,
         # /abc/.../imdir/xyz_calints.fits  results in a directory /abc/.../imdir/xyz_calints/
-        self.outdir =  fn.split('/')[-1].replace('.fits', '')
-        print("InstrumentData.NIRISS.outdir", self.outdir)
+        self.rootfn =  fn.split('/')[-1].replace('.fits', '')
+        print("InstrumentData.NIRISS.rootfn", self.rootfn)
         fitsfile.close()
         return prihdr, scihdr, scidata, bpdata
 

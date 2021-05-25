@@ -70,7 +70,6 @@ def analyze_data(fitsfn=None, fitsimdir=None, affine2d=None,
                                    )
 
     
-    print("analyze_data(): ov{:d}_OIFDIR<<<".format(oversample))
     ff = nrm_core.FringeFitter(niriss, 
                                  outdir=fitsimdir, # write OI text files here, and diagnostic images if desired
                                  oversample=oversample,
