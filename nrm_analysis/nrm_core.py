@@ -136,7 +136,7 @@ class FringeFitter:
 
 
         #######################################################################
-        # Create directories if they don't already exist
+        # Create OI text & oifits directories if they don't already exist
         try:
             os.mkdir(self.outdir)
         except:
@@ -151,6 +151,10 @@ class FringeFitter:
                     sys.exit("Invalid answer. Stopping.")
             else:
                 pass
+        try:
+            os.mkdir(self.oifdir)
+        except FileExistsError:
+            pass
 
     ###
     # May 2017 J Sahlmann updates: parallelized fringe-fitting
@@ -173,16 +177,14 @@ class FringeFitter:
         print("Parallel with {0} threads took {1:.2f}s to fit all fringes".format(\
                threads, t3-t2))
 
-        print("\tnrm_core.ff(): self.instrument_data.rootfn:", self.instrument_data.rootfn)
-        print("\tnrm_core.ff():                 self.outdir:", self.outdir)
-        print("\tnrm_core.ff:                   self.oifdir ", self.oifdir)
-        print("\tnrm_core.ff():                    oitxtdir:", self.outdir+self.instrument_data.rootfn)
         # Read in all relevant text observables and save to oifits file...
-        dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.outdir+self.instrument_data.rootfn+'/' ,
+        dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.outdir+self.instrument_data.rootfn+'/',
+                                             oifn=self.instrument_data.rootfn+'.oifits',
                                              oifdir=self.oifdir,
                                              verbose=self.verbose,
                                              )
 
+        
 
     def save_output(self, slc, nrm):
         # cropped & centered PSF
@@ -278,8 +280,6 @@ def fit_fringes_parallel(args, threads):
     filename = args['file']
     id_tag = args['id']
     self.prihdr, self.scihdr, self.scidata, self.bpdata = self.instrument_data.read_data(filename)
-    #self.sub_dir_str = self.instrument_data.outdir
-    print("\tnrm_core.ffp():                 self.instrument_data.rootfn", self.instrument_data.rootfn)
     try:
         os.mkdir(self.outdir+self.instrument_data.rootfn)
     except:

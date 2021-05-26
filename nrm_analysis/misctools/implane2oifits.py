@@ -847,7 +847,7 @@ def oitxt2oif(nh=None, oitxtdir=None, oifn='', oifdir=None, verbose=False):
                        02d format numbers, 00 start, number the slices in  the 
                        image 3D datacube processed by implaneia.
         oifn (str)     oifits file root name specified bt the driver (eg FitFringes.fringefitter())
-        datadir (str)  Directory to write the oifits file in
+        oifdir (str)   Directory to write the oifits file in
 
         Typically the dir names are full path ("/User/.../"
 
@@ -860,12 +860,11 @@ def oitxt2oif(nh=None, oitxtdir=None, oifn='', oifdir=None, verbose=False):
     nrm = ObservablesFromText(nh, oitxtdir, verbose=verbose) # read in the nrm observables
     dct = observable2dict(nrm, display=False) # populate Anthony's dictionary suitable for oifits.py
                                              # nrm_c defaults to false: do not calibrate, no cal star given
-    print(oifdir, oifn)
+    print('\noifits directory {0:s}'.format(oifdir))
     oifits.save(dct, filename=oifn, datadir=oifdir, verbose=False)
     # save multi-slice fits
     dct_multi = observable2dict(nrm, multi=True, display=False)
-    oifits.save(dct_multi, oifn=oifn+'multi_', datadir=datadir, verbose=False)
-    print('in directory {0:s}'.format(datadir))
+    oifits.save(dct_multi, filename='multi_'+oifn, datadir=oifdir, verbose=False)
     return dct
 
 def calib_dicts(dct_t, dct_c):

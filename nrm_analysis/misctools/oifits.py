@@ -469,9 +469,9 @@ def save(dic, filename=None, datadir=None, verbose=False):
     # ------------------------------
     #          Save file
     # ------------------------------
-    print(os.path.join(datadir,filename), datadir, filename)
+    #print(os.path.join(datadir,filename))
     hdulist.writeto(os.path.join(datadir,filename), overwrite=True)
-    cprint('\n\n### OIFITS CREATED (%s).' % filename, 'cyan')
+    cprint('### OIFITS CREATED (%s).' % filename, 'cyan')
 
 
 

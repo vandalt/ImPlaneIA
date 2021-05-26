@@ -261,11 +261,10 @@ class NIRISS:
         self.updatewithheaderinfo(prihdr, scihdr)
 
         # Directory name into which to write txt observables & optional fits diagnostic files
-        # The full path of input fits image or cube of images is used to create the output 
+        # The input fits image or cube of images file rootname is used to create the output 
         # text&fits dir, using the data file's root name as the directory name: for example,
         # /abc/.../imdir/xyz_calints.fits  results in a directory /abc/.../imdir/xyz_calints/
         self.rootfn =  fn.split('/')[-1].replace('.fits', '')
-        print("InstrumentData.NIRISS.rootfn", self.rootfn)
         fitsfile.close()
         return prihdr, scihdr, scidata, bpdata
 
