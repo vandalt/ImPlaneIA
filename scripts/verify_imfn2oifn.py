@@ -43,7 +43,7 @@ def examine_residuals(ff, trim=36):
     utils.default_printoptions()
 
 
-def analyze_data(fitsfn=None, fitsimdir=None, outdir=None, oifdir=None, affine2d=None,
+def analyze_data(fitsfn=None, fitsimdir=None, oitdir=None, oifdir=None, affine2d=None,
                          psf_offset_find_rotation = (0.0,0.0),
                          psf_offset_ff = None, 
                          rotsearch_d=None,
@@ -71,7 +71,7 @@ def analyze_data(fitsfn=None, fitsimdir=None, outdir=None, oifdir=None, affine2d
 
     
     ff = nrm_core.FringeFitter(niriss, 
-                                 outdir=outdir, # write OI text files here, and diagnostic images if desired
+                                 oitdir=oitdir, # write OI text files here, and diagnostic images if desired
                                  oifdir=oifdir, # write OI fits files here
                                  oversample=oversample,
                                  interactive=False,
@@ -86,11 +86,13 @@ def analyze_data(fitsfn=None, fitsimdir=None, outdir=None, oifdir=None, affine2d
     return affine2d, psf_offset_find_rotation, ff.nrm.psf_offset, ff.nrm.fringepistons
 
 
-def main(fitsimdir=None, outdir=None, oifdir=None, ifn=None, oversample=3, firstfew=None, verbose=False):
+def main(fitsimdir=None, oitdir=None, oifdir=None, ifn=None, oversample=3, firstfew=None, verbose=False):
              
     """ 
     fitsimdir: string: dir containing data file
-    ifn: str inout file name
+    ifn: str input fits imagre or cube of images file name
+    oitdir: where implaneia writes text output & diag. fits files
+    oifdir: where implaneia writes averaged or multi oifits files
 
     """
     np.set_printoptions(formatter={'float': lambda x: '{:+.2e}'.format(x)}, linewidth=80)
@@ -100,7 +102,7 @@ def main(fitsimdir=None, outdir=None, oifdir=None, ifn=None, oversample=3, first
 
     aff, psf_offset_r, psf_offset_ff, fringepistons = analyze_data(fitsfn=ifn, 
                                                                    fitsimdir=fitsimdir, 
-                                                                   outdir=outdir,
+                                                                   oitdir=oitdir,
                                                                    oifdir=oifdir,
                                                                    oversample=oversample,
                                                                    firstfew=firstfew,
@@ -119,7 +121,8 @@ if __name__ == "__main__":
 
     FIRSTFEW = None # eg 5, or None to analyze all slices
     FIRSTFEW = 3 # eg 5, or None to analyze all slices
-    OVERSAMPLE = 1
+    FIRSTFEW = 25 # eg 5, or None to analyze all slices
+    OVERSAMPLE = 3
     print('FIRSTFEW', FIRSTFEW, 'OVERSAMPLE', OVERSAMPLE)
 
     datadir = os.path.expanduser('~') + '/data/nis_019/mir_sim/'
@@ -133,7 +136,7 @@ if __name__ == "__main__":
         print(hdr['TARGPROP'])
         # next line for convenient use in oifits writer which looks up target online
         main(fitsimdir=datadir,
-             outdir = os.path.expanduser('~') + '/data/Saveoit/',
+             oitdir = os.path.expanduser('~') + '/data/Saveoit/',
              oifdir = os.path.expanduser('~') + '/data/Saveoif/',
              ifn=fn, 
              oversample=OVERSAMPLE, 
