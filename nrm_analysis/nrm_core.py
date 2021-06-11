@@ -92,22 +92,30 @@ class FringeFitter:
         if "psf_offset_ff" in kwargs: # if so do not find center of image in data
             self.psf_offset_ff = kwargs["psf_offset_ff"]         
 
+        ###############################
+        # restructured output directories, with backward compatibility
+        #
         if "oitdir" in kwargs:  # write OI text files here, [diagnostic images fits]. Was 'savedir'
             self.oitdir = kwargs["oitdir"]
         elif 'savedir' in kwargs:
             self.oitdir = kwargs["savedir"]
             print("nrm_core.FringeFitter: savedir deprecated but will be used for oitdir variable.")
         else:
-            print(   "nrm_core.FringeFitter: Fatal:  must specify oitdir.")
-            sys.exit("nrm_core.FringeFitter:         oitdir: directory for text output OI files & diagnostic fits images.")
+            sys.exit("FringeFitter: Fatal: no oitdir (or deprecated savedir) specified.")
+
         if self.oitdir[-1] != '/': self.oitdir = self.oitdir + '/'
 
-        if "oifdir" in kwargs:  # where oifits raw files will get saved
+        if "oifdir" in kwargs:  # write OIFITS files here.  New parameter 2021/05
             self.oifdir = kwargs["oifdir"]
+        elif 'savedir' in kwargs:
+            self.oifdir = kwargs["savedir"]
+            print("nrm_core.FringeFitter: savedir deprecated, but oifdir wil be set to savedir")
+            print("nrm_core.FringeFitter: new drivers should initialize with oifdir")
         else:
-            print(   "nrm_core.FringeFitter: Fatal:  must specify oifdir.")
-            sys.exit("nrm_core.FringeFitter:         oifdir: directory for oifits files.")
+            sys.exit("FringeFitter: Fatal: no oifdir (or deprecated savedir) specified.")
         if self.oifdir[-1] != '/': self.oifdir = self.oifdir + '/'
+        #
+        ###############################
 
         self.npix = 'default'
         if "npix" in kwargs:
