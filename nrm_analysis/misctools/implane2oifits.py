@@ -927,7 +927,7 @@ def calibrate_oifits(oif_t, oif_c, oifprefix='',datadir=None):
         calibrated (dict): dict containing calibrated OIFITS information
     """
     if datadir is None:
-        datadir = 'calib_oifits/'
+        datadir = './'
     # load in the nrm observables dict from each oifits
     targ = oifits.load(oif_t)
     calb = oifits.load(oif_c)

@@ -522,8 +522,8 @@ class NIRISS:
         # for utr data, need to read as 3D (ngroup, npix, npix)
         # fix bad pixels using DQ extension and LPL local averaging, 
         # but send bad pixel array down to where fringes are fit so they can be ignored.
-        with fits.open(fn) as fitsfile:
-            scidata=fitsfile[1].data.copy()
+        with fits.open(fn, memmap=False) as fitsfile:
+            scidata=fitsfile[1].data.deepcopy()
 
             # usually DQ in MAST file... make it non-fatal DQ missing
             try:
@@ -587,13 +587,11 @@ class NIRISS:
                         fits.PrimaryHDU(data=bpd[slc,:,:]).writeto(
                             f'/Users/anand/data/implaneia/NAP019data/bptest/bpd_{slc:d}.fits', overwrite=True)
 
-            prihdr=fitsfile[0].header.copy()
-            scihdr=fitsfile[1].header.copy()
+                prihdr=fitsfile[0].header.deepcopy()
+                scihdr=fitsfile[1].header.deepcopy()
 
-            del fitsfile[1].data
-            del fitsfile[2].data
             del fitsfile
-            print('manually closing fits file')
+            #print('manually closing fits file')
         # MAST header or similar kwds info for oifits writer:
         self.updatewithheaderinfo(prihdr, scihdr)
 
