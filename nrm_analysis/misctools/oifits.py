@@ -102,7 +102,7 @@ def ApplyFlag(data, unit='arcsec'):
     return U, V, bmax, V2, e_V2, cp, e_cp, sp_freq_vis, sp_freq_cp, wl, data['info']['FILT']
 
 
-def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
+def save(dic, filename=None, datadir=None, verbose=False):
     """
     Save dictionnary formatted data into a proper OIFITS (version 2) format file.
 
@@ -113,8 +113,6 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
         Dictionnary containing all extracted data (keys: 'OI_VIS2', 'OI_VIS', 'OI_T3', 'OI_WAVELENGTH', 'info'),\n
     `filename` {str}:
         By default None, the filename is constructed using informations included in the input dictionnary ('info'),\n
-    `oifprefix` {str / None}:
-        Mnemonic prefix added to filename (eg ov_7).
     """
     if dic is None:
         cprint('\nError save oifits : Wrong data format!', on_color='on_red')
@@ -143,7 +141,6 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
                                                      dic['info']['MASK'],
                                                      dic['info']['FILT'],
                                                      dic['info']['MJD'])
-        filename = oifprefix + filename
 
     # ------------------------------
     #       Creation OIFITS
@@ -472,11 +469,12 @@ def save(dic, filename=None, oifprefix=None, datadir=None, verbose=False):
     # ------------------------------
     #          Save file
     # ------------------------------
+    #print(os.path.join(datadir,filename))
     hdulist.writeto(os.path.join(datadir,filename), overwrite=True)
     cprint('\n\n### OIFITS CREATED (%s).' % filename, 'cyan')
     del(hdu)
     del(hdulist)
-    print('oifits.save: DELETING FITS OBJECT')
+
 
 
 def load(filename, target=None, ins=None, mask=None, include_vis=True):

@@ -838,7 +838,7 @@ def observable2dict(nrm, multi=False, display=False):
     return dct
 
 
-def oitxt2oif(nh=None, oitxtdir=None, oifprefix='', datadir=None, verbose=False):
+def oitxt2oif(nh=None, oitxtdir=None, oifn='', oifdir=None, verbose=False):
     """
     The interface routine called by implaneia's fit_fringes.
     Input: 
@@ -846,10 +846,8 @@ def oitxt2oif(nh=None, oitxtdir=None, oifprefix='', datadir=None, verbose=False)
                        observable files are named: CPs_nn.txt, amplitudes_nn.txt, and so on
                        02d format numbers, 00 start, number the slices in  the 
                        image 3D datacube processed by implaneia.
-        oifprefix (str) Mnemonic prefix added to the output oifits filename (eg "ov6_")
-                       The oifits filename is constructed from fields in the pickled dictionary
-                       written by implaneia into oitxtdir directory.
-        datadir (str)  Directory to write the oifits file in
+        oifn (str)     oifits file root name specified bt the driver (eg FitFringes.fringefitter())
+        oifdir (str)   Directory to write the oifits file in
 
         Typically the dir names are full path ("/User/.../"
 
@@ -862,11 +860,11 @@ def oitxt2oif(nh=None, oitxtdir=None, oifprefix='', datadir=None, verbose=False)
     nrm = ObservablesFromText(nh, oitxtdir, verbose=verbose) # read in the nrm observables
     dct = observable2dict(nrm, display=False) # populate Anthony's dictionary suitable for oifits.py
                                              # nrm_c defaults to false: do not calibrate, no cal star given
-    oifits.save(dct, oifprefix=oifprefix, datadir=datadir, verbose=False)
+    oifits.save(dct, filename=oifn, datadir=oifdir, verbose=False)
     # save multi-slice fits
     dct_multi = observable2dict(nrm, multi=True, display=False)
-    oifits.save(dct_multi, oifprefix=oifprefix+'multi_', datadir=datadir, verbose=False)
-    print('in directory {0:s}'.format(datadir))
+    oifits.save(dct_multi, filename='multi_'+oifn, datadir=oifdir, verbose=False)
+    print('\n in oifits directory {0:s}'.format(oifdir))
     return dct
 
 def calib_dicts(dct_t, dct_c):
@@ -914,20 +912,25 @@ def calib_dicts(dct_t, dct_c):
 
 
 
-def calibrate_oifits(oif_t, oif_c, oifprefix='',datadir=None):
+def calibrate_oifits(oif_t, oif_c, oifn=None, oifdir=None):
     """
     Take an OIFITS file of the target and an OIFITS file of the calibrator and
     produce a single normalized OIFITS file.
     Input:
         oif_t (str): file name of the target OIFITS file
         oif_c (str): file name of the calibrator OIFITS file
-        oifprefix (str): Prefix added to the output oifits filename
-        datadir (str): Directory to write the oifits file in
+        oifn (str): oifits root name, often the image data file root or similar
+        oifdir (str): Directory to write the oifits file in
     Returns:
         calibrated (dict): dict containing calibrated OIFITS information
     """
-    if datadir is None:
-        datadir = './'
+    if oifdir is None:
+        oifdir = './'
+    # construct an output filename from the input names if none is provided
+    if oifn is None:
+        bn_t = os.path.basename(oif_t).split('.oifits')[0]
+        bn_c = os.path.basename(oif_c).split('.oifits')[0]
+        oifn = bn_t+'_cal_'+bn_c+'.oifits'
     # load in the nrm observables dict from each oifits
     targ = oifits.load(oif_t)
     calb = oifits.load(oif_c)
@@ -935,8 +938,8 @@ def calibrate_oifits(oif_t, oif_c, oifprefix='',datadir=None):
     # this produces a single calibrated nrm dict
     calibrated = calib_dicts(targ, calb)
 
-    oifits.save(calibrated, oifprefix=oifprefix, datadir=datadir)
-    print('in directory %s' % datadir)
+    oifits.save(calibrated, filename=oifn, datadir=oifdir)
+    print('\n in oifits directory {0:s}'.format(oifdir))
     return calibrated
 
 
@@ -946,25 +949,25 @@ if __name__ == "__main__":
     moduledir = os.path.expanduser('~') + '/gitsrc/ImPlaneIA/'  # dirname of where you work
 
     # convert one file...
-    oifprefix_t = "t_ov{:d}_".format(ov_main) # mnemonic supplied by driver... 
+    oifn_t = "t_ov{:d}_".format(ov_main) # mnemonic supplied by driver... 
                                               # if you explore different ov's you can 
                                               # put 'ov%d' in prefix, and save to a directory of your choice.
     oitxtdir_t = moduledir + "/example_data/example_niriss/bin_tgt_oitxt/" # implaneia observables txt dir
     oifdir_t =  oitxtdir_t # could add a subdir but this writes the oifits into text output dir.
     dct = oitxt2oif(nh=7, oitxtdir=oitxtdir_t, 
-                          oifprefix=oifprefix_t,
+                          oifn=oifn_t,
                           datadir=oifdir_t)
     # oifits.show(dct, diffWl=True)
     # plt.show()
 
     if 0:
         # then convert another file...
-        oifprefix_c = "c_ov{:d}_".format(ov_main)
+        oifn_c = "c_ov{:d}_".format(ov_main)
         oitxtdir_c = moduledir + "/example_data/example_niriss/bin_cal_oitxt"
         oifdir_c =  oitxtdir_c + '/Saveoifits/'
         # Convert all txt observables in oitxtdir to oifits file
         dct = oitxt2oif(nh=7, oitxtdir=oitxtdir_c, 
-                              oifprefix=oifprefix_c,
+                              oifn=oifn_c,
                               datadir=oifdir_c)
         oifits.show(dct, diffWl=True)
         #plt.show()
