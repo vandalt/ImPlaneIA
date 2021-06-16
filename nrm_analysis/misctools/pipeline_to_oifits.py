@@ -67,7 +67,7 @@ class ObservablesFromFITSTable():
         """ returns int array of quad hole indices (0-based),
             and float array of three uvw vectors in all quads
         """
-        nholes = self.ctrs.shape[0]
+        nholes = self.ctrs_eqt.shape[0]
         qlist = []
         for i in range(nholes):
             for j in range(nholes):
@@ -86,9 +86,9 @@ class ObservablesFromFITSTable():
                 quad[0], quad[1], quad[2], quad[3]))
             if self.verbose:
                 print('quad:', quad, qname[-1])
-            uvwlist.append((self.ctrs[quad[0]] - self.ctrs[quad[1]],
-                            self.ctrs[quad[1]] - self.ctrs[quad[2]],
-                            self.ctrs[quad[2]] - self.ctrs[quad[3]]))
+            uvwlist.append((self.ctrs_eqt[quad[0]] - self.ctrs_eqt[quad[1]],
+                            self.ctrs_eqt[quad[1]] - self.ctrs_eqt[quad[2]],
+                            self.ctrs_eqt[quad[2]] - self.ctrs_eqt[quad[3]]))
         if self.verbose:
             print(qarray.shape, np.array(uvwlist).shape)
         return qarray, np.array(uvwlist)
@@ -97,7 +97,7 @@ class ObservablesFromFITSTable():
         """ returns int array of triple hole indices (0-based),
             and float array of two uv vectors in all triangles
         """
-        nholes = self.ctrs.shape[0]
+        nholes = self.ctrs_eqt.shape[0]
         tlist = []
         for i in range(nholes):
             for j in range(nholes):
@@ -116,8 +116,8 @@ class ObservablesFromFITSTable():
                 triple[0], triple[1], triple[2]))
             if self.verbose:
                 print('triple:', triple, tname[-1])
-            uvlist.append((self.ctrs[triple[0]] - self.ctrs[triple[1]],
-                           self.ctrs[triple[1]] - self.ctrs[triple[2]]))
+            uvlist.append((self.ctrs_eqt[triple[0]] - self.ctrs_eqt[triple[1]],
+                           self.ctrs_eqt[triple[1]] - self.ctrs_eqt[triple[2]]))
         # print(len(uvlist), "uvlist", uvlist)
         if self.verbose:
             print(tarray.shape, np.array(uvlist).shape)
@@ -129,7 +129,7 @@ class ObservablesFromFITSTable():
         returns np arrays of eg 21 baselinenames ('0_1',...), eg (21,2) baselinevectors (2-floats)
         in the same numbering as implaneia
         """
-        nholes = self.ctrs.shape[0]
+        nholes = self.ctrs_eqt.shape[0]
         blist = []
         for i in range(nholes):
             for j in range(nholes):
@@ -140,7 +140,7 @@ class ObservablesFromFITSTable():
         bllist = []
         for basepair in blist:
             # blname.append("{0:d}_{1:d}".format(basepair[0],basepair[1]))
-            baseline = self.ctrs[basepair[0]] - self.ctrs[basepair[1]]
+            baseline = self.ctrs_eqt[basepair[0]] - self.ctrs_eqt[basepair[1]]
             bllist.append(baseline)
         return barray, np.array(bllist)
 
@@ -166,7 +166,7 @@ class ObservablesFromFITSTable():
             print(self.ca.shape, "ca:\n", self.ca, "\n")
         # print("implane2oifits._showdata: self.info4oif_dict['objname']", self.info4oif_dict)
 
-        print("hole centers array shape:", self.ctrs.shape)
+        print("hole centers array shape:", self.ctrs_eqt.shape)
 
         print(len(self.bholes), "baseline hole indices\n", self.bholes)
         print(self.bls.shape, "baselines:\n", self.bls)
@@ -199,13 +199,14 @@ class ObservablesFromFITSTable():
         if self.verbose:
             for key in self.info4oif_dict.keys():
                 print(key)
-        self.ctrs = self.info4oif_dict['ctrs']
+        self.ctrs_eqt = self.info4oif_dict['ctrs_eqt']  # mask centers in equatorial coordinates
+        self.ctrs_inst = self.info4oif_dict['ctrs_inst']  # as-built instrument mask centers
         self.bholes, self.bls = self._makebaselines()
         self.tholes, self.tuv = self._maketriples_all()
         self.qholes, self.quvw = self._makequads_all()
 
 
-def table2oif(nh=None, oifinfo=None, fitsname=None, oifprefix='', datadir=None, verbose=False):
+def table2oif(nh=None, oifinfo=None, fitsname=None, oifprefix='', oifdir='./', verbose=False):
     """
     Input:
         oifinfo (str) Dict of info taken from raw file header, for use in oifits file
@@ -221,29 +222,33 @@ def table2oif(nh=None, oifinfo=None, fitsname=None, oifprefix='', datadir=None, 
     nrm = ObservablesFromFITSTable(nh, oifinfo, fitsname, verbose=verbose) # read in the nrm observables
     dct = observable2dict(nrm, display=False) # populate Anthony's dictionary suitable for oifits.py
                                              # nrm_c defaults to false: do not calibrate, no cal star given
-    oifits.save(dct, oifprefix=oifprefix, datadir=datadir, verbose=False)
-    print('in directory %s' % datadir)
+    oifits.save(dct, oifprefix=oifprefix, datadir=oifdir, verbose=False)
+    print('in directory %s' % oifdir)
     return dct
 
-def pipeline2oifits(main_fn, datadir, uncal_fn=None):
+def pipeline2oifits(main_fn, datadir, oifdir='./', uncal_fn=None):
     """
     This function saves a single oifits file made from a JWST pipeline ami3
     product. It requires information stored in the _uncal.fits pipeline
     product, in addition to the main file. The uncal file is assumed to be
-    in the same directory as the main file.
+    in the same directory as the main file, or it can have a path prepended.
 
     Input:
         main_fn (str): filename of the pipeline ami3 output file
         datadir (str): directory where file and uncal file are kept
+        outdir (str): directory to save output OIFITS file to (defualt cwd)
         uncal_fn (str): name of uncal file (level 1b product) used
                         to produce the ami3 product
     Returns:
         fulldict (dict): dictionary of all info required to save an oifits file
 
     """
-    fn_fullpath = os.path.join(datadir, main_fn)
+    if not os.path.exists(oifdir):
+        os.mkdir(oifdir)
+    fn_fullpath = os.path.join(oifdir, main_fn)
+
     if uncal_fn is None:
-        # try to find a matching )uncal file
+        # try to find a matching uncal file
         if 'psf' in main_fn:
             uncal_globname = os.path.join(datadir,(main_fn.split('_psf-amiavg')[0] + '*_uncal.fits').replace('001001', '002001'))
         else:
@@ -264,7 +269,7 @@ def pipeline2oifits(main_fn, datadir, uncal_fn=None):
     # Use header to make info4oif_dict
     instdata.updatewithheaderinfo(pri_hdr,sci_hdr)
     oifitsdict = instdata.info4oif_dict
-    #print(oifitsdict['ctrs'])
+    #print(oifitsdict['ctrs_eqt'])
     # since mirage file is not 2 or 3 dimensional, missed 'itime' keyword in dict.
     # skirting around that issue inelegantly for now...
     # take EFFEXPTM keyword from main file
@@ -272,11 +277,10 @@ def pipeline2oifits(main_fn, datadir, uncal_fn=None):
     oifitsdict['itime'] = main_hdr['EFFEXPTM'] # is this the right number to use here?
     numholes = 7
     pref = str(main_hdr['TARGPROP']+'_') # prefix to use with oifits filename
-    outdir = 'oifits_out/'
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
+
+
     # Do the converting to OIFITS
-    fulldict = table2oif(nh=numholes, oifinfo=oifitsdict, fitsname=fn_fullpath, oifprefix=pref, datadir=outdir)
+    fulldict = table2oif(nh=numholes, oifinfo=oifitsdict, fitsname=fn_fullpath, oifprefix=pref, oifdir=oifdir)
     return fulldict
 
 if __name__ == "__main__":

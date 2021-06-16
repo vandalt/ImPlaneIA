@@ -12,7 +12,7 @@ GPI, VISIR, NIRC2 removed - too much changed for the JWST NIRISS class
 import numpy as np
 from astropy.io import fits
 import os, sys, time
-
+import copy
 # Module imports
 # mask geometries, GPI, NIRISS, VISIR supported...
 from .misctools.mask_definitions import NRM_mask_definitions 
@@ -204,68 +204,68 @@ class NIRISS:
         # for utr data, need to read as 3D (ngroup, npix, npix)
         # fix bad pixels using DQ extension and LPL local averaging, 
         # but send bad pixel array down to where fringes are fit so they can be ignored.
-        fitsfile = fits.open(fn) # presumably full or relative paths ok...
-        scidata=fitsfile[1].data
+        with fits.open(fn, memmap=False) as fitsfile:
+            # use context manager, memmap=False, deepcopy to avoid memory leaks
+            scidata = copy.deepcopy(fitsfile[1].data)
         
-        # usually DQ in MAST file... make it non-fatal DQ missing
-        try:
-            bpdata=fitsfile['DQ'].data # bad pixel extension
-            self.bpexist = True
-            # If calling driver wants to skip using DQ info even if DQ array exists in data,
-            # force the bpexist flag to False here.
-            if self.usebp == False: 
+            # usually DQ in MAST file... make it non-fatal DQ missing
+            try:
+                bpdata=fitsfile['DQ'].data # bad pixel extension
+                self.bpexist = True
+                # If calling driver wants to skip using DQ info even if DQ array exists in data,
+                # force the bpexist flag to False here.
+                if self.usebp == False:
+                    self.bpexist = False
+                    print('InstrumentData.NIRISS.read_data: skipping use of DQ array')
+            except:
+                print("InstrumentData.NIRISS: no DQ exension found in", fn)
+                print("InstrumentData.NIRISS: assuming all pixels are good.", fn)
                 self.bpexist = False
-                print('InstrumentData.NIRISS.read_data: skipping use of DQ array')
-        except:
-            print("InstrumentData.NIRISS: no DQ exension found in", fn)
-            print("InstrumentData.NIRISS: assuming all pixels are good.", fn)
-            self.bpexist = False
 
-        if scidata.ndim == 3:  #len(scidata.shape)==3:
-            print("input: 3D cube")
-            # truncate all but the first few slices for rapid development
-            if self.firstfew is not None:
-                if scidata.shape[0] > self.firstfew:  
-                    scidata = scidata[:self.firstfew, :, :]
-                    bpdata = bpdata[:self.firstfew, :, :]
-            self.nwav=scidata.shape[0]
-            [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
-        elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
-            print("input: 2D data array convering to 3D one-slice cube")
-            scidata = np.array([scidata,])
-        else:
-            sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
+            if scidata.ndim == 3:  #len(scidata.shape)==3:
+                print("input: 3D cube")
+                # truncate all but the first few slices for rapid development
+                if self.firstfew is not None:
+                    if scidata.shape[0] > self.firstfew:
+                        scidata = scidata[:self.firstfew, :, :]
+                        bpdata = bpdata[:self.firstfew, :, :]
+                self.nwav=scidata.shape[0]
+                [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
+            elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
+                print("input: 2D data array convering to 3D one-slice cube")
+                scidata = np.array([scidata,])
+            else:
+                sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
 
-        # refpix removal by trimming
-        scidata = scidata[:,4:, :] # [all slices, imaxis[0], imaxis[1]]
-        print('Refpix-trimmed off scidata', scidata.shape)
+            # refpix removal by trimming
+            scidata = scidata[:,4:, :] # [all slices, imaxis[0], imaxis[1]]
+            print('Refpix-trimmed off scidata', scidata.shape)
 
-        #### fix pix using bad pixel map - runs now.  Need to sanity-check.
-        #
-        if self.bpexist:
-            # refpix removal by trimming to match image trim
-            bpdata = bpdata[:,4:, :]     # refpix removal by trimming to match image trim
-            bpd = np.zeros(bpdata.shape, np.uint8) # zero or 1 bad pix marker array
-            bpd[bpdata!=0] = 1
-            bpdata = bpd.copy()
+            #### fix pix using bad pixel map - runs now.  Need to sanity-check.
+            #
+            if self.bpexist:
+                # refpix removal by trimming to match image trim
+                bpdata = bpdata[:,4:, :]     # refpix removal by trimming to match image trim
+                bpd = np.zeros(bpdata.shape, np.uint8) # zero or 1 bad pix marker array
+                bpd[bpdata!=0] = 1
+                bpdata = copy.deepcopy(bpd)
 
-            print('Refpix-trimmed off bpdata ', bpdata.shape)
+                print('Refpix-trimmed off bpdata ', bpdata.shape)
 
-            for slc in range(bpdata.shape[0]):  # all input slices
-                # fix the pixel values using self.nbadpix neighboring values
-                scidata[slc,:,:] = lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
-    
-        prihdr=fitsfile[0].header
-        scihdr=fitsfile[1].header
-        # MAST header or similar kwds info for oifits writer:
-        self.updatewithheaderinfo(prihdr, scihdr)
+                for slc in range(bpdata.shape[0]):  # all input slices
+                    # fix the pixel values using self.nbadpix neighboring values
+                    scidata[slc,:,:] = lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
 
-        # Directory name into which to write txt observables & optional fits diagnostic files
-        # The input fits image or cube of images file rootname is used to create the output 
-        # text&fits dir, using the data file's root name as the directory name: for example,
-        # /abc/.../imdir/xyz_calints.fits  results in a directory /abc/.../imdir/xyz_calints/
-        self.rootfn =  fn.split('/')[-1].replace('.fits', '')
-        fitsfile.close()
+            prihdr=fitsfile[0].header
+            scihdr=fitsfile[1].header
+            # MAST header or similar kwds info for oifits writer:
+            self.updatewithheaderinfo(prihdr, scihdr)
+
+            # Directory name into which to write txt observables & optional fits diagnostic files
+            # The input fits image or cube of images file rootname is used to create the output
+            # text&fits dir, using the data file's root name as the directory name: for example,
+            # /abc/.../imdir/xyz_calints.fits  results in a directory /abc/.../imdir/xyz_calints/
+            self.rootfn =  fn.split('/')[-1].replace('.fits', '')
         return prihdr, scihdr, scidata, bpdata
 
 
@@ -365,6 +365,7 @@ class NIRISS:
         info4oif_dict['lam_c'] = self.lam_c
         info4oif_dict['lam_w'] = self.lam_w
         info4oif_dict['lam_bin'] = self.lam_bin
+
 
         # Target information - 5/21 targname UNKNOWN in nis019 rehearsal data
         # Name in the proposal always non-trivial, targname still UNKNOWN...:

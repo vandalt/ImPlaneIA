@@ -860,11 +860,11 @@ def oitxt2oif(nh=None, oitxtdir=None, oifn='', oifdir=None, verbose=False):
     nrm = ObservablesFromText(nh, oitxtdir, verbose=verbose) # read in the nrm observables
     dct = observable2dict(nrm, display=False) # populate Anthony's dictionary suitable for oifits.py
                                              # nrm_c defaults to false: do not calibrate, no cal star given
-    print('\noifits directory {0:s}'.format(oifdir))
     oifits.save(dct, filename=oifn, datadir=oifdir, verbose=False)
     # save multi-slice fits
     dct_multi = observable2dict(nrm, multi=True, display=False)
     oifits.save(dct_multi, filename='multi_'+oifn, datadir=oifdir, verbose=False)
+    print('\n in oifits directory {0:s}'.format(oifdir))
     return dct
 
 def calib_dicts(dct_t, dct_c):
@@ -912,7 +912,7 @@ def calib_dicts(dct_t, dct_c):
 
 
 
-def calibrate_oifits(oif_t, oif_c, oifn='',datadir=None):
+def calibrate_oifits(oif_t, oif_c, oifn=None, oifdir=None):
     """
     Take an OIFITS file of the target and an OIFITS file of the calibrator and
     produce a single normalized OIFITS file.
@@ -920,12 +920,17 @@ def calibrate_oifits(oif_t, oif_c, oifn='',datadir=None):
         oif_t (str): file name of the target OIFITS file
         oif_c (str): file name of the calibrator OIFITS file
         oifn (str): oifits root name, often the image data file root or similar
-        datadir (str): Directory to write the oifits file in
+        oifdir (str): Directory to write the oifits file in
     Returns:
         calibrated (dict): dict containing calibrated OIFITS information
     """
-    if datadir is None:
-        datadir = 'calib_oifits/'
+    if oifdir is None:
+        oifdir = './'
+    # construct an output filename from the input names if none is provided
+    if oifn is None:
+        bn_t = os.path.basename(oif_t).split('.oifits')[0]
+        bn_c = os.path.basename(oif_c).split('.oifits')[0]
+        oifn = bn_t+'_cal_'+bn_c+'.oifits'
     # load in the nrm observables dict from each oifits
     targ = oifits.load(oif_t)
     calb = oifits.load(oif_c)
@@ -933,8 +938,8 @@ def calibrate_oifits(oif_t, oif_c, oifn='',datadir=None):
     # this produces a single calibrated nrm dict
     calibrated = calib_dicts(targ, calb)
 
-    oifits.save(calibrated, oifn=oifn, datadir=datadir)
-    print('in directory %s' % datadir)
+    oifits.save(calibrated, filename=oifn, datadir=oifdir)
+    print('\n in oifits directory {0:s}'.format(oifdir))
     return calibrated
 
 

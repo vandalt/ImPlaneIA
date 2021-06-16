@@ -15,7 +15,7 @@ OIFITS related function.
 
 import datetime
 import os
-
+import copy
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -130,13 +130,13 @@ def save(dic, filename=None, datadir=None, verbose=False):
     if type(filename) != str:
         try:
             if len(dic['info']['MJD']) > 1:
-                filename = '%s_%s_%s_%s_%s.0f.oifits' % (dic['info']['TARGET'].replace(' ', ''),
+                filename = '%s_%s_%s_%s_%s.oifits' % (dic['info']['TARGET'].replace(' ', ''),
                                                              dic['info']['INSTRUME'],
                                                              dic['info']['MASK'],
                                                              dic['info']['FILT'],
                                                              dic['info']['MJD'][0]) # if loaded from oifits it is a list
         except TypeError:
-            filename = '%s_%s_%s_%s_%s.0f.oifits' % (dic['info']['TARGET'].replace(' ', ''),
+            filename = '%s_%s_%s_%s_%s.oifits' % (dic['info']['TARGET'].replace(' ', ''),
                                                      dic['info']['INSTRUME'],
                                                      dic['info']['MASK'],
                                                      dic['info']['FILT'],
@@ -152,7 +152,7 @@ def save(dic, filename=None, datadir=None, verbose=False):
     hdu = fits.PrimaryHDU()
     hdu.header['DATE'] = datetime.datetime.now().strftime(
         format='%F')  # , 'Creation date'
-    hdu.header['ORIGIN'] = 'Sydney University'
+    hdu.header['ORIGIN'] = 'STScI'
     hdu.header['DATE-OBS'] = dic['info']['DATE-OBS']
     hdu.header['CONTENT'] = 'OIFITS2'
     hdu.header['TELESCOP'] = dic['info']['TELESCOP']
@@ -471,7 +471,9 @@ def save(dic, filename=None, datadir=None, verbose=False):
     # ------------------------------
     #print(os.path.join(datadir,filename))
     hdulist.writeto(os.path.join(datadir,filename), overwrite=True)
-    cprint('### OIFITS CREATED (%s).' % filename, 'cyan')
+    cprint('\n\n### OIFITS CREATED (%s).' % filename, 'cyan')
+    del(hdu)
+    del(hdulist)
 
 
 
@@ -491,155 +493,157 @@ def load(filename, target=None, ins=None, mask=None, include_vis=True):
     `include_vis` {boolean}:
         If True, include visibilities amplitude and phase in the oifits (default: True),\n
     """
-    fitsHandler = fits.open(filename, mode='readonly')
+    with fits.open(filename, mode='readonly', memmap=False) as hdulist:
+        fitsHandler = copy.deepcopy(hdulist)
 
-    hdr = fitsHandler[0].header
+        hdr = fitsHandler[0].header
 
-    dic = {}
-    dic['info'] = {}
-    try:
-        dic['info']['TARGET'] = hdr['OBJECT']
-    except KeyError:
-        dic['info']['TARGET'] = target
-    try:
-        dic['info']['OBJECT'] = hdr['OBJECT']
-    except KeyError:
-        dic['info']['OBJECT'] = None
-    try:
-        dic['info']['INSTRUME'] = hdr['INSTRUME']
-    except KeyError:
-        dic['info']['INSTRUME'] = ins
-    try:
-        dic['info']['MASK'] = hdr['MASK']
-    except KeyError:
-        dic['info']['MASK'] = mask
-    try:
-        dic['info']['FILT'] = hdr['FILT']
-    except KeyError:
-        dic['info']['FILT'] = None
-    try:
-        dic['info']['DATE-OBS'] = hdr['DATE-OBS']
-    except KeyError:
-        dic['info']['DATE-OBS'] = None
-    try:
-        dic['info']['TELESCOP'] = hdr['TELESCOP']
-    except KeyError:
-        dic['info']['TELESCOP'] = None  # try to get it from somewhere else?
-    try:
-        dic['info']['OBSERVER'] = hdr['OBSERVER']
-    except KeyError:
-        dic['info']['OBSERVER'] = None
-    try:
-        dic['info']['INSMODE'] = hdr['INSMODE']
-    except KeyError:
-        dic['info']['INSMODE'] = None
-    try:
-        dic['info']['PA'] = hdr['PA']
-    except KeyError:
-        dic['info']['PA'] = None
+        dic = {}
+        dic['info'] = {}
+        try:
+            dic['info']['TARGET'] = hdr['OBJECT']
+        except KeyError:
+            dic['info']['TARGET'] = target
+        try:
+            dic['info']['OBJECT'] = hdr['OBJECT']
+        except KeyError:
+            dic['info']['OBJECT'] = None
+        try:
+            dic['info']['INSTRUME'] = hdr['INSTRUME']
+        except KeyError:
+            dic['info']['INSTRUME'] = ins
+        try:
+            dic['info']['MASK'] = hdr['MASK']
+        except KeyError:
+            dic['info']['MASK'] = mask
+        try:
+            dic['info']['FILT'] = hdr['FILT']
+        except KeyError:
+            dic['info']['FILT'] = None
+        try:
+            dic['info']['DATE-OBS'] = hdr['DATE-OBS']
+        except KeyError:
+            dic['info']['DATE-OBS'] = None
+        try:
+            dic['info']['TELESCOP'] = hdr['TELESCOP']
+        except KeyError:
+            dic['info']['TELESCOP'] = None  # try to get it from somewhere else?
+        try:
+            dic['info']['OBSERVER'] = hdr['OBSERVER']
+        except KeyError:
+            dic['info']['OBSERVER'] = None
+        try:
+            dic['info']['INSMODE'] = hdr['INSMODE']
+        except KeyError:
+            dic['info']['INSMODE'] = None
+        try:
+            dic['info']['PA'] = hdr['PA']
+        except KeyError:
+            dic['info']['PA'] = None
 
-    for hdu in fitsHandler[1:]:
-        # RAC 9/2020
-        # try to read in info from the OI_ARRAY required for re-saving
-        if hdu.header['EXTNAME'] == 'OI_ARRAY':
-            try:
-                dic['info']['PSCALE'] = hdu.header['PSCALE']
-            except KeyError:
-                continue
-            try:
-                dic['info']['ISZ'] = hdu.header['ISZ']
-            except KeyError:
-                continue
+        for hdu in fitsHandler[1:]:
+            # RAC 9/2020
+            # try to read in info from the OI_ARRAY required for re-saving
+            if hdu.header['EXTNAME'] == 'OI_ARRAY':
+                try:
+                    dic['info']['PSCALE'] = hdu.header['PSCALE']
+                except KeyError:
+                    continue
+                try:
+                    dic['info']['ISZ'] = hdu.header['ISZ']
+                except KeyError:
+                    continue
 
-            # make staxy from staxyz array (remove last column)
-            staxyz = hdu.data['STAXYZ']
-            staxy = np.delete(staxyz, -1, 1)
-            dic['OI_ARRAY'] = {'STAXYZ': staxyz,
-                               'STAXY': staxy,
-                               'CTRS_EQT': hdu.data['CTRS_EQT']
-                               }
+                # make staxy from staxyz array (remove last column)
+                staxyz = hdu.data['STAXYZ']
+                staxy = np.delete(staxyz, -1, 1)
+                dic['OI_ARRAY'] = {'STAXYZ': staxyz,
+                                   'STAXY': staxy,
+                                   'CTRS_EQT': hdu.data['CTRS_EQT']
+                                   }
 
-        if hdu.header['EXTNAME'] == 'OI_WAVELENGTH':
-            dic['OI_WAVELENGTH'] = {'EFF_WAVE': hdu.data['EFF_WAVE'],
-                                    'EFF_BAND': hdu.data['EFF_BAND'],
-                                    }
+            if hdu.header['EXTNAME'] == 'OI_WAVELENGTH':
+                dic['OI_WAVELENGTH'] = {'EFF_WAVE': hdu.data['EFF_WAVE'],
+                                        'EFF_BAND': hdu.data['EFF_BAND'],
+                                        }
 
-        if hdu.header['EXTNAME'] == 'OI_VIS2':
-            dic['OI_VIS2'] = {'VIS2DATA': hdu.data['VIS2DATA'],
-                              'VIS2ERR': hdu.data['VIS2ERR'],
-                              'UCOORD': hdu.data['UCOORD'],
-                              'VCOORD': hdu.data['VCOORD'],
-                              'STA_INDEX': hdu.data['STA_INDEX'],
-                              'MJD': hdu.data['MJD'],
-                              'INT_TIME': hdu.data['INT_TIME'],
-                              'TIME': hdu.data['TIME'],
-                              'TARGET_ID': hdu.data['TARGET_ID'],
-                              'FLAG': np.array(hdu.data['FLAG']),
-                              }
-            # these are in every extension, but take them from here
-            dic['info']['MJD'] = hdu.data['MJD'][0]
-            dic['info']['ARRNAME'] = hdu.header['ARRNAME']
-            try:
-                dic['OI_VIS2']['BL'] = hdu.data['BL']
-            except KeyError:
-                dic['OI_VIS2']['BL'] = (
-                    hdu.data['UCOORD']**2 + hdu.data['VCOORD']**2)**0.5
+            if hdu.header['EXTNAME'] == 'OI_VIS2':
+                dic['OI_VIS2'] = {'VIS2DATA': hdu.data['VIS2DATA'],
+                                  'VIS2ERR': hdu.data['VIS2ERR'],
+                                  'UCOORD': hdu.data['UCOORD'],
+                                  'VCOORD': hdu.data['VCOORD'],
+                                  'STA_INDEX': hdu.data['STA_INDEX'],
+                                  'MJD': hdu.data['MJD'],
+                                  'INT_TIME': hdu.data['INT_TIME'],
+                                  'TIME': hdu.data['TIME'],
+                                  'TARGET_ID': hdu.data['TARGET_ID'],
+                                  'FLAG': np.array(hdu.data['FLAG']),
+                                  }
+                # these are in every extension, but take them from here
+                dic['info']['MJD'] = hdu.data['MJD'][0]
+                dic['info']['ARRNAME'] = hdu.header['ARRNAME']
+                try:
+                    dic['OI_VIS2']['BL'] = hdu.data['BL']
+                except KeyError:
+                    dic['OI_VIS2']['BL'] = (
+                        hdu.data['UCOORD']**2 + hdu.data['VCOORD']**2)**0.5
 
-        if hdu.header['EXTNAME'] == 'OI_VIS':
-            dic['OI_VIS'] = {'TARGET_ID': hdu.data['TARGET_ID'],
-                             'TIME': hdu.data['TIME'],
-                             'MJD': hdu.data['MJD'],
-                             'INT_TIME': hdu.data['INT_TIME'],
-                             'VISAMP': hdu.data['VISAMP'],
-                             'VISAMPERR': hdu.data['VISAMPERR'],
-                             'VISPHI': hdu.data['VISPHI'],
-                             'VISPHIERR': hdu.data['VISPHIERR'],
-                             'UCOORD': hdu.data['UCOORD'],
-                             'VCOORD': hdu.data['VCOORD'],
-                             'STA_INDEX': hdu.data['STA_INDEX'],
-                             'FLAG': hdu.data['FLAG'],
-                             }
-            try:
-                dic['OI_VIS']['BL'] = hdu.data['BL']
-            except KeyError:
-                dic['OI_VIS']['BL'] = (
-                    hdu.data['UCOORD']**2 + hdu.data['VCOORD']**2)**0.5
+            if hdu.header['EXTNAME'] == 'OI_VIS':
+                dic['OI_VIS'] = {'TARGET_ID': hdu.data['TARGET_ID'],
+                                 'TIME': hdu.data['TIME'],
+                                 'MJD': hdu.data['MJD'],
+                                 'INT_TIME': hdu.data['INT_TIME'],
+                                 'VISAMP': hdu.data['VISAMP'],
+                                 'VISAMPERR': hdu.data['VISAMPERR'],
+                                 'VISPHI': hdu.data['VISPHI'],
+                                 'VISPHIERR': hdu.data['VISPHIERR'],
+                                 'UCOORD': hdu.data['UCOORD'],
+                                 'VCOORD': hdu.data['VCOORD'],
+                                 'STA_INDEX': hdu.data['STA_INDEX'],
+                                 'FLAG': hdu.data['FLAG'],
+                                 }
+                try:
+                    dic['OI_VIS']['BL'] = hdu.data['BL']
+                except KeyError:
+                    dic['OI_VIS']['BL'] = (
+                        hdu.data['UCOORD']**2 + hdu.data['VCOORD']**2)**0.5
 
-        if hdu.header['EXTNAME'] == 'OI_T3':
-            u1 = hdu.data['U1COORD']
-            u2 = hdu.data['U2COORD']
-            v1 = hdu.data['V1COORD']
-            v2 = hdu.data['V2COORD']
-            u3 = -(u1+u2)
-            v3 = -(v1+v2)
-            bl_cp = []
-            for k in range(len(u1)):
-                B1 = np.sqrt(u1[k]**2+v1[k]**2)
-                B2 = np.sqrt(u2[k]**2+v2[k]**2)
-                B3 = np.sqrt(u3[k]**2+v3[k]**2)
-                bl_cp.append(np.max([B1, B2, B3]))  # rad-1
-            bl_cp = np.array(bl_cp)
+            if hdu.header['EXTNAME'] == 'OI_T3':
+                u1 = hdu.data['U1COORD']
+                u2 = hdu.data['U2COORD']
+                v1 = hdu.data['V1COORD']
+                v2 = hdu.data['V2COORD']
+                u3 = -(u1+u2)
+                v3 = -(v1+v2)
+                bl_cp = []
+                for k in range(len(u1)):
+                    B1 = np.sqrt(u1[k]**2+v1[k]**2)
+                    B2 = np.sqrt(u2[k]**2+v2[k]**2)
+                    B3 = np.sqrt(u3[k]**2+v3[k]**2)
+                    bl_cp.append(np.max([B1, B2, B3]))  # rad-1
+                bl_cp = np.array(bl_cp)
 
-            dic['OI_T3'] = {'T3PHI': hdu.data['T3PHI'],
-                            'T3PHIERR': hdu.data['T3PHIERR'],
-                            'T3AMP': hdu.data['T3AMP'],
-                            'T3AMPERR': hdu.data['T3AMPERR'],
-                            'U1COORD': hdu.data['U1COORD'],
-                            'V1COORD': hdu.data['V1COORD'],
-                            'U2COORD': hdu.data['U2COORD'],
-                            'V2COORD': hdu.data['V2COORD'],
-                            'STA_INDEX': hdu.data['STA_INDEX'],
-                            'MJD': hdu.data['MJD'],
-                            'FLAG': hdu.data['FLAG'],
-                            'TARGET_ID': hdu.data['TARGET_ID'],
-                            'TIME': hdu.data['TIME'],
-                            'INT_TIME': hdu.data['INT_TIME'],
-                            }
-            try:
-                dic['OI_T3']['BL'] = hdu.data['FREQ'] # why?
-            except KeyError:
-                dic['OI_T3']['BL'] = bl_cp
-    fitsHandler.close()
+                dic['OI_T3'] = {'T3PHI': hdu.data['T3PHI'],
+                                'T3PHIERR': hdu.data['T3PHIERR'],
+                                'T3AMP': hdu.data['T3AMP'],
+                                'T3AMPERR': hdu.data['T3AMPERR'],
+                                'U1COORD': hdu.data['U1COORD'],
+                                'V1COORD': hdu.data['V1COORD'],
+                                'U2COORD': hdu.data['U2COORD'],
+                                'V2COORD': hdu.data['V2COORD'],
+                                'STA_INDEX': hdu.data['STA_INDEX'],
+                                'MJD': hdu.data['MJD'],
+                                'FLAG': hdu.data['FLAG'],
+                                'TARGET_ID': hdu.data['TARGET_ID'],
+                                'TIME': hdu.data['TIME'],
+                                'INT_TIME': hdu.data['INT_TIME'],
+                                }
+                try:
+                    dic['OI_T3']['BL'] = hdu.data['FREQ'] # why?
+                except KeyError:
+                    dic['OI_T3']['BL'] = bl_cp
+    del(fitsHandler)
+
     return dic
 
 
