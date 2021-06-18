@@ -184,10 +184,13 @@ class FringeFitter:
         t3 = time.time()
         print("Parallel with {0} threads took {1:.2f}s to fit all fringes".format(\
                threads, t3-t2))
+        # If a JWST file name, strip the 'calints' suffix from it
+        # if it doesn't contain '_calints' nothing will happen
+        oifn_out = self.instrument_data.rootfn.split('_calints')[0]+'.oifits'
 
         # Read in all relevant text observables and save to oifits file...
         dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.oitdir+self.instrument_data.rootfn+'/',
-                                             oifn=self.instrument_data.rootfn+'.oifits',
+                                             oifn=oifn_out,
                                              oifdir=self.oifdir,
                                              verbose=self.verbose,
                                              )
