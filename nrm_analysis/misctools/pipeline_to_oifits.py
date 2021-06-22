@@ -206,15 +206,13 @@ class ObservablesFromFITSTable():
         self.qholes, self.quvw = self._makequads_all()
 
 
-def table2oif(nh=None, oifinfo=None, fitsname=None, oifprefix='', oifdir='./', verbose=False):
+def table2oif(nh=None, oifinfo=None, fitsname=None, oifn='', oifdir='./', verbose=False):
     """
     Input:
         oifinfo (str) Dict of info taken from raw file header, for use in oifits file
         fitsname (str) File name of FITS file containing table of observables
-        oifprefix (str) Mnemonic prefix added to the output oifits filename (eg "ov6_")
-                       The oifits filename is constructed from fields in the pickled dictionary
-                       written by implaneia into oitxtdir directory.
-        datadir (str)  Directory to write the oifits file in
+        oifn (str) Output filename for OIFITS file
+        oifdir (str)  Directory to write the oifits file in
 
         Typically the dir names are full path ("/User/.../"
 
@@ -222,7 +220,7 @@ def table2oif(nh=None, oifinfo=None, fitsname=None, oifprefix='', oifdir='./', v
     nrm = ObservablesFromFITSTable(nh, oifinfo, fitsname, verbose=verbose) # read in the nrm observables
     dct = observable2dict(nrm, display=False) # populate Anthony's dictionary suitable for oifits.py
                                              # nrm_c defaults to false: do not calibrate, no cal star given
-    oifits.save(dct, oifprefix=oifprefix, datadir=oifdir, verbose=False)
+    oifits.save(dct, filename=oifn, datadir=oifdir, verbose=False)
     print('in directory %s' % oifdir)
     return dct
 
@@ -236,7 +234,7 @@ def pipeline2oifits(main_fn, datadir, oifdir='./', uncal_fn=None):
     Input:
         main_fn (str): filename of the pipeline ami3 output file
         datadir (str): directory where file and uncal file are kept
-        outdir (str): directory to save output OIFITS file to (defualt cwd)
+        oifdir (str): directory to save output OIFITS file to (defualt cwd)
         uncal_fn (str): name of uncal file (level 1b product) used
                         to produce the ami3 product
     Returns:
@@ -276,11 +274,12 @@ def pipeline2oifits(main_fn, datadir, oifdir='./', uncal_fn=None):
     main_hdr = fits.getheader(fn_fullpath)
     oifitsdict['itime'] = main_hdr['EFFEXPTM'] # is this the right number to use here?
     numholes = 7
-    pref = str(main_hdr['TARGPROP']+'_') # prefix to use with oifits filename
+    # Use the input filename to make the output oifits name
+    oifn_out = os.path.basename(fn_fullpath).split('_ami')[0]+'.oifits'
 
 
     # Do the converting to OIFITS
-    fulldict = table2oif(nh=numholes, oifinfo=oifitsdict, fitsname=fn_fullpath, oifprefix=pref, oifdir=oifdir)
+    fulldict = table2oif(nh=numholes, oifinfo=oifitsdict, fitsname=fn_fullpath, oifn=oifn_out, oifdir=oifdir)
     return fulldict
 
 if __name__ == "__main__":

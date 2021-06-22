@@ -189,7 +189,7 @@ class FringeFitter:
         oifn_out = self.instrument_data.rootfn.split('_calints')[0]+'.oifits'
 
         # Read in all relevant text observables and save to oifits file...
-        dct = implane2oifits.oitxt2oif(nh=7, oitxtdir=self.oitdir+self.instrument_data.rootfn+'/',
+        dct = implane2oifits.oitxt2oif(nh=7, oitdir=self.oitdir+self.instrument_data.rootfn+'/',
                                              oifn=oifn_out,
                                              oifdir=self.oifdir,
                                              verbose=self.verbose,
