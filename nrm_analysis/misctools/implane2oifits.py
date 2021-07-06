@@ -912,25 +912,37 @@ def calib_dicts(dct_t, dct_c):
 
 
 
-def calibrate_oifits(oif_t, oif_c, oifn=None, oifdir=None):
+def calibrate_oifits(oif_t, oif_c, oifn=None, oifdir=None, **kwargs):
     """
     Take an OIFITS file of the target and an OIFITS file of the calibrator and
     produce a single normalized OIFITS file.
     Input:
         oif_t (str): file name of the target OIFITS file
         oif_c (str): file name of the calibrator OIFITS file
-        oifn (str): oifits root name, often the image data file root or similar
+        oifn (str): calibrated oifits output name
         oifdir (str): Directory to write the oifits file in (default cwd)
     Returns:
         calibrated (dict): dict containing calibrated OIFITS information
     """
-    if oifdir is None:
-        oifdir = './'
+    # housekeeping:
     # construct an output filename from the input names if none is provided
     if oifn is None:
         bn_t = os.path.basename(oif_t).split('.oifits')[0]
         bn_c = os.path.basename(oif_c).split('.oifits')[0]
-        oifn = bn_t+'_cal_'+bn_c+'.oifits'
+        oifn = bn_t + '_cal_' + bn_c + '.oifits'
+    # backwards compatibility with old kwargs:
+    if 'oifprefix' in kwargs:
+        oifn = kwargs['oifprefix']+oifn # use the prefix + fn constructed from input
+    if 'datadir' in kwargs:
+        oifdir = kwargs['datadir']
+    if oifdir is None:
+        oifdir = './'
+    # if name doesn't end in '.oifits', change it.
+    if oifn[-7:] != '.oifits':
+        if oifn[-5:] == '.fits':
+            oifn = oifn.replace('.fits', '.oifits')
+        else:
+            oifn = oifn + '.oifits'
     # load in the nrm observables dict from each oifits
     targ = oifits.load(oif_t)
     calb = oifits.load(oif_c)
