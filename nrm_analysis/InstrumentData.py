@@ -431,11 +431,9 @@ class NIRISS:
         self.v3i_yang = sh['V3I_YANG']  # Angle from V3 axis to Ideal y axis (deg)
         # rotate mask hole center coords by PAV3 # RAC 2021
         ctrs_sky = self.mast2sky()
-        stax_oif = ctrs_sky[:,1].copy() * -1
-        stay_oif = ctrs_sky[:,0].copy() * -1
         oifctrs = np.zeros(self.mask.ctrs.shape)
-        oifctrs[:,0] = stax_oif
-        oifctrs[:,1] = stay_oif
+        oifctrs[:,0] = ctrs_sky[:,1].copy() * -1
+        oifctrs[:,1] = ctrs_sky[:,0].copy() * -1
         info4oif_dict['ctrs_eqt'] = oifctrs # mask centers rotated by PAV3 (equatorial coords)
         info4oif_dict['ctrs_inst'] = self.mask.ctrs # as-built instrument mask centers
         info4oif_dict['hdia'] = self.mask.hdia
@@ -539,21 +537,20 @@ class NIRISS:
         v3iyang = self.v3i_yang
         rot_ang = pa - v3iyang # subject to change!
         if pa != 0.0:
-            v2 = mask_ctrs[:,0]
-            v3 = mask_ctrs[:,1]
+            # Using rotate2sccw, which rotates **vectors** CCW in a fixed coordinate system,
+            # so to rotate coord system CW, reverse sign of rotation angle.
             if vpar == -1:
-                # clockwise rotation, usually the case for NIRISS?
-                print('Rotating instrument ctrs %.3f clockwise' % rot_ang)
-                v2_rot = v3*np.cos(np.deg2rad(rot_ang)) + v2*np.sin(np.deg2rad(rot_ang))
-                v3_rot = -v3*np.sin(np.deg2rad(rot_ang)) + v2*np.cos(np.deg2rad(rot_ang))
+                # rotate clockwise
+                ctrs_rot = utils.rotate2dccw(mask_ctrs, np.deg2rad(-rot_ang))
             else:
-                #counter-clockwise rotation
-                print('Rotating instrument ctrs %.3f counterclockwise' % rot_ang)
-                v2_rot = v3 * np.cos(np.deg2rad(rot_ang)) - v2 * np.sin(np.deg2rad(rot_ang))
-                v3_rot = v3 * np.sin(np.deg2rad(rot_ang)) + v2 * np.cos(np.deg2rad(rot_ang))
-            ctrs_rot = np.zeros(mask_ctrs.shape)
-            ctrs_rot[:,0] = v2_rot
-            ctrs_rot[:,1] = v3_rot
+                # counterclockwise
+                ctrs_rot = utils.rotate2dccw(mask_ctrs, np.deg2rad(rot_ang))
+
         else:
             ctrs_rot = mask_ctrs
+        print('DEBUG: rotated mask ctrs')
+        print('ORIGINAL:')
+        print(mask_ctrs)
+        print('ROTATED:')
+        print(ctrs_rot)
         return ctrs_rot
