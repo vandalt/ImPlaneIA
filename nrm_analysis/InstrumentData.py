@@ -533,6 +533,10 @@ class NIRISS:
         """
         pa = self.pa
         mask_ctrs = self.mask.ctrs
+        # rotate by an extra 90 degrees (RAC 9/21)
+        # these coords are just used to orient output in OIFITS files
+        # NOT used for the fringe fitting itself
+        mask_ctrs = utils.rotate2dccw(mask_ctrs,np.pi/2.)
         vpar = self.vparity # Relative sense of rotation between Ideal xy and V2V3
         v3iyang = self.v3i_yang
         rot_ang = pa - v3iyang # subject to change!
@@ -542,15 +546,11 @@ class NIRISS:
             if vpar == -1:
                 # rotate clockwise
                 ctrs_rot = utils.rotate2dccw(mask_ctrs, np.deg2rad(-rot_ang))
+                print('Rotating mask hole centers clockwise by %f degrees' % rot_ang)
             else:
                 # counterclockwise
                 ctrs_rot = utils.rotate2dccw(mask_ctrs, np.deg2rad(rot_ang))
-
+                print('Rotating mask hole centers counterclockwise by %f degrees' % rot_ang)
         else:
             ctrs_rot = mask_ctrs
-        print('DEBUG: rotated mask ctrs')
-        print('ORIGINAL:')
-        print(mask_ctrs)
-        print('ROTATED:')
-        print(ctrs_rot)
         return ctrs_rot
