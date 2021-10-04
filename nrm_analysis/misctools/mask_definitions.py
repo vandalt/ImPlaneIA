@@ -532,10 +532,7 @@ def jwst_g7s6_centers_asbuilt(chooseholes=None):  # was jwst_g7s6_centers_asdesi
     # no affine2d transformations 8/2018 AS
     # LG++ The above aligns the hole patern with the hex analytic FT, 
     # flat top & bottom as seen in DMS data. 8/2018 AS
-    #ctrs_asbuilt = rotate2dccw(ctrs_asbuilt, np.pi/2.0) # overwrites attributes
-    ctrs_asbuilt = rotate2dccw(ctrs_asbuilt, np.pi)
-    # 9/7/21 RAC applied the above. Simulations produced by MIRAGE are already in DMS
-    # orientation. Rotate 180 degrees.
+    ctrs_asbuilt = rotate2dccw(ctrs_asbuilt, np.pi/2.0) # overwrites attributes
 
     # create 'live' hole centers in an ideal, orthogonal undistorted xy pupil space,
     return ctrs_asbuilt * m

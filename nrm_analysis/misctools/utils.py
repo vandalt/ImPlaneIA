@@ -1422,6 +1422,12 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt, verbose=False, trim2sub8
             print("      approx centering middle pixel (even/odd trouble?)")
         else:
             print("INFO: utils.amisim2mirage will not trim input image(s) to SUB80")
+        # make cube of bad pixel data to match size of science data. Really only necessary
+        # if ami_sim file has more ints than the example MIRAGE file, due to how DQ array
+        # is sliced to match science array in InstrumentData
+        # RAC 9/21
+        # already trimmed to N x 80 x 80 if required
+        mirobj['DQ'].data = np.zeros(mirobj[1].data.shape)
 
         # Transfer non-conflicting keywords from sim data to mirage file header
         mirkeys = list(mirobj[0].header.keys())
@@ -1431,7 +1437,7 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt, verbose=False, trim2sub8
                 try:
                     mirobj[0].header[kwd] = (fobj_sim[0].header[kwd], fobj_sim[0].header.comments[kwd])
                 except ValueError: # ignore keyword if contains non-ASCII characters. May cause breakage
-                    # usually a problem with HISTORY keywprds
+                    # usually a problem with HISTORY keywords
                     continue
        
         # change the example mirage header to the correct filter name
