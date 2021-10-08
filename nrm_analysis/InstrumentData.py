@@ -54,6 +54,7 @@ class NIRISS:
                        nbadpix=4,
                        usebp = True,
                        firstfew = None,
+                       usespecbin  = None,
                        **kwargs):
         """
         Initialize NIRISS class
@@ -99,6 +100,9 @@ class NIRISS:
         #############################
         self.lam_bin = {"F277W": 50, "F380M": 20, "F430M":40,  "F480M":30} # 12 waves in f430 - data analysis
                                                                            # use 150 for 3 waves ax f430m 
+        # change how many spectral pts get binned into  a single throughput value
+        if usespecbin: self.lam_bin[filt] = usespecbin    # f380 20 gets 21 wavelengths.  40 -> 10 wavelengths?
+
         self.lam_c = {"F277W": 2.77e-6,  # central wavelength (SI)
                       "F380M": 3.8e-6, 
                       "F430M": 4.28521033106325E-06,
