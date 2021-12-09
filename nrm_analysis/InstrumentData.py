@@ -72,8 +72,11 @@ class NIRISS:
                   the given bandpass, so you can simulate 21cm psfs through something called "F430M"!
         firstfew: None or the number of slices to truncate input cube to in memory,
                   the latter for fast developmpent
-        nbadpix:  Number of good pixels to use when fixing bad pixels
-        usebp:    True (default) use DQ array from input MAST data.  False: do not utilize DQ array.
+        nbadpix:  Number of good pixels to use when fixing bad pixels DEPRECATED
+        usebp:    Convert to usedq during initialization
+                    Internally this is changed to InstrumentData.usedq = usebp immediately for code clarity
+                    True (default) do not use DQ with DO_NOT_USE flag in input MAST data when fitting data with model.  
+                    False: Assume no bad pixels in input
         """
         
         self.verbose=False
@@ -81,14 +84,15 @@ class NIRISS:
             self.verbose=kwargs["verbose"]
 
         # self.bpexist set True/False if  DQ fits image extension exists/doesn't
-        self.nbadpix = 4
+        # self.nbadpix = 4
 
         if chooseholes:
             print("InstrumentData.NIRISS: ", chooseholes)
         self.chooseholes = chooseholes
 
-        self.usebp = usebp
-        print("InstrumentData.NIRISS: use bad pixel DQ extension data", usebp)
+        # USEBP is USEDQ in the rest of code - use
+        self.usedq = usebp
+        print("InstrumentData.NIRISS: avoid fitting DO_NOT_USE bad pixels flagged in DQ extension", self.usedq)
 
         self.firstfew = firstfew
         if firstfew is not None: print("InstrumentData.NIRISS: analysing firstfew={:d} slices".format(firstfew))
@@ -155,7 +159,8 @@ class NIRISS:
 
         # Wavelength info for NIRISS bands F277W, F380M, F430M, or F480M
         self.wavextension = ([self.lam_c[self.filt],], [self.lam_w[self.filt],])
-        self.nwav=1
+        self.nwav=1 # these are 'slices' if the data is pure imaging integrations - 
+        #             nwav is old nomenclature from GPI IFU data.  Refactor one day...
         #############################
 
         # only one NRM on JWST:
@@ -212,53 +217,45 @@ class NIRISS:
             # use context manager, memmap=False, deepcopy to avoid memory leaks
             scidata = copy.deepcopy(fitsfile[1].data)
         
-            # usually DQ in MAST file... make it non-fatal DQ missing
+            # usually DQ ext in MAST file... make it non-fatal for DQ to be missing
             try:
-                bpdata=fitsfile['DQ'].data # bad pixel extension
+                bpdata=copy.deepcopy(fitsfile['DQ'].data) # bad pixel extension
                 self.bpexist = True
-                # If calling driver wants to skip using DQ info even if DQ array exists in data,
+                dqmask = bpdata & self.bpval["DO_NOT_USE"] == DO_NOT_USE # array:True for do not use me locs
+                del bpdata # free memory
+
+                # True calling driver wants to skip using DO_NOT_USE DQ pixels in fit,
                 # force the bpexist flag to False here.
-                if self.usebp == False:
-                    self.bpexist = False
-                    print('InstrumentData.NIRISS.read_data: skipping use of DQ array')
+                if self.usedq == True:
+                    print('InstrumentData.NIRISS.read_data: skipping use of DO_NOT_USE DQ pixels in fit')
             except:
-                print("InstrumentData.NIRISS: no DQ exension found in", fn)
-                print("InstrumentData.NIRISS: assuming all pixels are good.", fn)
                 self.bpexist = False
 
             if scidata.ndim == 3:  #len(scidata.shape)==3:
                 print("input: 3D cube")
-                # truncate all but the first few slices for rapid development
+
+                # Truncate all but the first few slices for rapid development
                 if self.firstfew is not None:
                     if scidata.shape[0] > self.firstfew:
                         scidata = scidata[:self.firstfew, :, :]
-                        bpdata = bpdata[:self.firstfew, :, :]
                 self.nwav=scidata.shape[0]
                 [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
+
             elif len(scidata.shape)==2: # 'cast' 2d array to 3d with shape[0]=1
-                print("input: 2D data array convering to 3D one-slice cube")
+                print("'InstrumentData.NIRISS.read_data: 2D data array converting to 3D one-slice cube")
                 scidata = np.array([scidata,])
+                dqmask = np.array([dqmask,])
             else:
-                sys.exit("invalid data dimensions for NIRISS. Should have dimensionality of 2 or 3.")
+                sys.exit("InstrumentData.NIRISS.read_data: invalid data dimensions for NIRISS. \nShould have dimensionality of 2 or 3.")
 
             # refpix removal by trimming
             scidata = scidata[:,4:, :] # [all slices, imaxis[0], imaxis[1]]
-            print('Refpix-trimmed off scidata', scidata.shape)
-
+            print('Refpix-trimmed scidata:', scidata.shape)
             #### fix pix using bad pixel map - runs now.  Need to sanity-check.
-            #
             if self.bpexist:
                 # refpix removal by trimming to match image trim
-                bpdata = bpdata[:,4:, :]     # refpix removal by trimming to match image trim
-                bpd = np.zeros(bpdata.shape, np.uint8) # zero or 1 bad pix marker array
-                bpd[bpdata!=0] = 1
-                bpdata = copy.deepcopy(bpd)
-
-                print('Refpix-trimmed off bpdata ', bpdata.shape)
-
-                for slc in range(bpdata.shape[0]):  # all input slices
-                    # fix the pixel values using self.nbadpix neighboring values
-                    scidata[slc,:,:] = lpl_ianc.bfixpix(scidata[slc,:,:], bpdata[slc,:,:], self.nbadpix)
+                dqmask = dqmask[:,4:, :]     # dqmask bool array to match image trimmed shape
+                print('Refpix-trimmed dqmask:', dqmask.shape)
 
             prihdr=fitsfile[0].header
             scihdr=fitsfile[1].header
@@ -270,13 +267,13 @@ class NIRISS:
             # text&fits dir, using the data file's root name as the directory name: for example,
             # /abc/.../imdir/xyz_calints.fits  results in a directory /abc/.../imdir/xyz_calints/
             self.rootfn =  fn.split('/')[-1].replace('.fits', '')
-        return prihdr, scihdr, scidata, bpdata
+        return prihdr, scihdr, scidata, dqmask
 
 
     def cdmatrix_to_sky(self, vec, cd11, cd12, cd21, cd22):
         """ use the global header values explicitly, for clarity 
             vec is 2d, units of pixels
-            cdij is 2x4 array in units degrees/pixel
+            cdij 4 scalars, conceptually 2x2 array in units degrees/pixel
         """
         return np.array((cd11*vec[0] + cd12*vec[1], cd21*vec[0] + cd22*vec[1]))
 
@@ -476,6 +473,17 @@ class NIRISS:
         The data structure that stores bit flags is just the standard Python `int`,
         which provides 32 bits. Bits of an integer are most easily referred to using
         the formula `2**bit_number` where `bit_number` is the 0-index bit of interest.
+
+
+        Rachel uses:
+        from jwst.datamodels import dqflags
+
+        DO_NOT_USE = dqflags.pixel["DO_NOT_USE"]
+        dqmask = pxdq0 & DO_NOT_USE == DO_NOT_USE
+        pxdq = np.where(dqmask, pxdq0, 0)
+
+        Anand copied in the bpval array from "somewhere" (jdox?) - a fragility, but avoids 'import jwst'...
+        2**n is gauche but not everyone loves 1>>n
         """
 
         # Pixel-specific flags

@@ -416,10 +416,10 @@ class NRM_Model():
 
 
     def fit_image(self, image, reference=None, pixguess=None, rotguess=0, psf_offset=(0,0),
-                  modelin=None, savepsfs=False, bpd=None):
+                  modelin=None, savepsfs=False, dqm=None):
         """
         This works on 2D "centered" images fed to it.
-        bpd is optional 2D bad pixel array, same size as image.  Zero is OK pixel.
+        dqm is optional 2D bad pixel bool array, same size as image.  
         self.maskname is a maskdef object with property self.maskname.mask a string
         2021
         """
@@ -487,7 +487,7 @@ class NRM_Model():
             self.fittingmodel = modelin
             
         self.soln, self.residual, self.cond,self.linfit_result = \
-                leastsqnrm.matrix_operations(image, self.fittingmodel, verbose=False, bpd=bpd)
+                leastsqnrm.matrix_operations(image, self.fittingmodel, verbose=False, dqm=dqm)
 
         self.vprint(self, "NRM_Model Raw Soln:")
         self.vprint(self, self.soln)

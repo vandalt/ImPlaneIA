@@ -166,7 +166,7 @@ class FringeFitter:
 
     ###
     # May 2017 J Sahlmann updates: parallelized fringe-fitting
-    # Feb 2021 anand added bpdata to fringe fitting
+    # Feb 2021 Dec 2021 anand added dqmask to fringe fitting, removed bpdata use
     ###
 
     def fit_fringes(self, fns, threads = 0):
@@ -290,7 +290,7 @@ def fit_fringes_parallel(args, threads):
     self = args['object']
     filename = args['file']
     id_tag = args['id']
-    self.prihdr, self.scihdr, self.scidata, self.bpdata = self.instrument_data.read_data(filename)
+    self.prihdr, self.scihdr, self.scidata, self.dqmask = self.instrument_data.read_data(filename)
     try:
         os.mkdir(self.oitdir+self.instrument_data.rootfn)
     except:
@@ -333,15 +333,9 @@ def fit_fringes_single_integration(args):
     # AG 03-2019 -- is above comment still relevant?
     
     # Where appropriate, the slice under consideration is centered, and processed
-    if self.instrument_data.arrname=="NIRC2_9NRM":
-        self.ctrd = utils.center_imagepeak(self.scidata[slc,:,:], 
-                        r = (self.npix -1)//2 - 2, cntrimg=False)  
-    elif self.instrument_data.arrname=="gpi_g10s40":
-        self.ctrd = utils.center_imagepeak(self.scidata[slc,:,:], 
-                        r = (self.npix -1)//2 - 2, cntrimg=True)  
-    elif self.instrument_data.arrname=="jwst_g7s6c":
+    if self.instrument_data.arrname=="jwst_g7s6c":
         # get the cropped image and identically-cropped bad pixel data:
-        self.ctrd, self.ctrb = utils.center_imagepeak(self.scidata[slc,:,:], bpd=self.bpdata[slc,:,:]) 
+        self.ctrd, self.dqslice = utils.center_imagepeak(self.scidata[slc,:,:], dqm=self.dqmask[slc,:,:]) 
     else:
         self.ctrd = utils.center_imagepeak(self.scidata[slc,:,:])  
     
@@ -371,7 +365,7 @@ def fit_fringes_single_integration(args):
                    pixscale=nrm.pixel)
     # again, fit just one slice...
     if self.instrument_data.arrname=="jwst_g7s6c":
-        nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.psf_offset, bpd=self.ctrb)
+        nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.psf_offset, dqm=self.dqslice)
     else:
         nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.psf_offset)
 

@@ -34,21 +34,28 @@ def matrix_operations(img, model, flux = None, verbose=False, linfit=False, bpd=
 """
 
     
-def matrix_operations(img, model, flux = None, verbose=False, linfit=False, bpd=None):
+def matrix_operations(img, model, flux = None, verbose=False, linfit=False, dqm=None):
     # least squares matrix operations to solve A x = b, where A is the model,
     # b is the data (image), and x is the coefficient vector we are solving for.
     # In 2-D data x = inv(At.A).(At.b)
     #
-    # bpd an array of bad pixel locations, or None.  0=>good data
+    # dqm bool array of bad pixel locations, or  None (for all-good  good data)
 
     flatimg = img.reshape(np.shape(img)[0] * np.shape(img)[1])
+    flatdqm = dqm.reshape(np.shape(img)[0] * np.shape(img)[1])
 
     # Originally Alex had  nans coding bad pixels in the image.
     # Anand: re-use the nan terminology code but driven by bad pixel frame
-    if type(bpd is not bool): nanlist = np.where(np.isnan(flatimg))
-    else: nanlist = np.where(np.isnan(flatimg))
+    #        nanlist shoud get renamed eg donotuselist
+
+    if type(dqm is not bool): nanlist = np.where(dqm==True)  # where DO_NOT_USE up.
+    else: nanlist = (np.array(()), np.array((0))) # this shouldn't occur with MAST JWST data
+
+    print("fringefitting.leastsqnrm.matrix_operations:", len(nanlist[0]),
+          "bad pixels skipped in fringefitter")
 
     flatimg = np.delete(flatimg, nanlist)
+
     if flux is not None:
         flatimg = flux * flatimg / flatimg.sum()
 
@@ -74,7 +81,10 @@ def matrix_operations(img, model, flux = None, verbose=False, linfit=False, bpd=
 
     x = np.dot(inverse, data_vector)
     res = np.dot(flatmodel, x) - flatimg
+
+    # put bad pixels back
     naninsert = nanlist[0] - np.arange(len(nanlist[0]))
+    # calculate residuals with fixed but unused bad pixels as nans
     res = np.insert(res, naninsert, np.nan)
     res = res.reshape(img.shape[0], img.shape[1])
 
@@ -129,22 +139,38 @@ def matrix_operations(img, model, flux = None, verbose=False, linfit=False, bpd=
 
     return x, res, cond, linfit_result
 
-def weighted_operations(img, model, weights, verbose=False):
-    # least squares matrix operations to solve A x = b, where A is the model, b is the data (image), and x is the coefficient vector we are solving for. In 2-D data x = inv(At.A).(At.b) 
 
+def weighted_operations(img, model, weights, verbose=False, linfit=False, dqm=None):
+    # least squares matrix operations to solve A x = b, where 
+    #    A is the model, 
+    #    b is the data (image), 
+    #    x is the coefficient vector we are solving for. 
+    # In 2-D data x = inv(At.A).(At.b) 
+    #
+    # Possibly replace or campare with a MAD minimization using fast simplex
+
+    # Remove not-to-be-fit data from the flattened "img" data vector
     clist = weights.reshape(weights.shape[0]*weights.shape[1])**2
     flatimg = img.reshape(np.shape(img)[0] * np.shape(img)[1])
-    nanlist = np.where(np.isnan(flatimg))
+    flatdqm = dqm.reshape(np.shape(img)[0] * np.shape(img)[1])
+
+    if type(dqm is not bool): nanlist = np.where(dqm==True)  # where DO_NOT_USE up.
+    else: nanlist = (np.array(()), np.array((0))) # this shouldn't occur with MAST JWST data
     flatimg = np.delete(flatimg, nanlist)
     clist = np.delete(clist, nanlist)
+
+    print("fringefitting.leastsqnrm.weighted_operations:", len(nanlist[0]),
+          "bad pixels skipped in weighted fringefitter")
+
     # A
     flatmodel_nan = model.reshape(np.shape(model)[0] * np.shape(model)[1], np.shape(model)[2])
-    #flatmodel = model.reshape(np.shape(model)[0] * np.shape(model)[1], np.shape(model)[2])
     flatmodel = np.zeros((len(flatimg), np.shape(model)[2]))
     for fringe in range(np.shape(model)[2]):
         flatmodel[:,fringe] = np.delete(flatmodel_nan[:,fringe], nanlist)
+
     # At (A transpose)
     flatmodeltransp = flatmodel.transpose()
+
     # At.C.A (makes square matrix)
     CdotA = flatmodel.copy()
     for i in range(flatmodel.shape[1]):
@@ -153,13 +179,17 @@ def weighted_operations(img, model, weights, verbose=False):
     # At.C.b
     Cdotb = clist * flatimg
     data_vector = np.dot(flatmodeltransp, Cdotb)
+
     # inv(At.C.A)
     inverse = linalg.inv(modelproduct)
     cond = np.linalg.cond(inverse)
 
     x = np.dot(inverse, data_vector)
     res = np.dot(flatmodel, x) - flatimg
+
+    # put bad pixels back
     naninsert = nanlist[0] - np.arange(len(nanlist[0]))
+    # calculate residuals with fixed but unused bad pixels as nans
     res = np.insert(res, naninsert, np.nan)
     res = res.reshape(img.shape[0], img.shape[1])
 
@@ -170,7 +200,7 @@ def weighted_operations(img, model, weights, verbose=False):
         print("transpose * image data dimensions", np.shape(data_vector))
         print("flat img * transpose dimensions", np.shape(inverse))
     
-    return x, res,cond
+    return x, res, cond
 
 
 def deltapistons(pistons):
