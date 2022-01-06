@@ -348,8 +348,6 @@ def fit_fringes_single_integration(args):
         self.ctrd, self.dqslice = utils.center_imagepeak(
                                     self.scidata[slc,:,:], 
                                     dqm=self.dqmask[slc,:,:]) 
-        print(f'nrm_core.fit_fringes_single_integration(): ', end='')
-        print(f'\n\timarray {self.ctrd.shape:}\n\tdqarray {self.dqslice.shape:}')
     else:
         self.ctrd = utils.center_imagepeak(self.scidata[slc,:,:])  
     
