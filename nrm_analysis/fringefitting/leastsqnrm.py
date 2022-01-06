@@ -39,29 +39,46 @@ def matrix_operations(img, model, flux = None, verbose=False, linfit=False, dqm=
     # b is the data (image), and x is the coefficient vector we are solving for.
     # In 2-D data x = inv(At.A).(At.b)
     #
-    # dqm bool array of bad pixel locations, or  None (for all-good  good data)
+    # img 2d array of image data
+    # dqm 2d bool array of bad pixel locations (same shape as 2d img), or  None (for all-good  good data)
 
     flatimg = img.reshape(np.shape(img)[0] * np.shape(img)[1])
     flatdqm = dqm.reshape(np.shape(img)[0] * np.shape(img)[1])
+    print(f'fringefitting.leastsqnrm.matrix_operations(): ', end='')
+    print(f'\n\timg {img.shape:} \n\tdqm {dqm.shape:}', end='')
+    print(f'\n\tL x W = {img.shape[0]:d} x {img.shape[1]:d} = {img.shape[0] * img.shape[1]:d}', end='')
+    print(f'\n\tflatimg {flatimg.shape:}', end='')
+    print(f'\n\tflatdqm {flatdqm.shape:}', end='')
 
     # Originally Alex had  nans coding bad pixels in the image.
     # Anand: re-use the nan terminology code but driven by bad pixel frame
     #        nanlist shoud get renamed eg donotuselist
 
-    if type(dqm is not bool): nanlist = np.where(dqm==True)  # where DO_NOT_USE up.
-    else: nanlist = (np.array(()), np.array((0))) # this shouldn't occur with MAST JWST data
-
-    print("fringefitting.leastsqnrm.matrix_operations:", len(nanlist[0]),
-          "bad pixels skipped in fringefitter")
+    print('\n\ttype(dqm)', type(dqm), end='')
+    if dqm is not None: nanlist = np.where(flatdqm==True)  # where DO_NOT_USE up.
+    else: nanlist = (np.array(()), ) # shouldn't occur w/MAST JWST data
+    print(f'\n\ttype(nanlist) {type(nanlist):}, len={len(nanlist):}', end='')
+    print(f'\n\tnumber on nanlist pixels: {len(nanlist[0]):d} items', end='') 
+    print(f'\n\t{len(nanlist[0]):d} DO_NOT_USE pixels found in data slice',
+          end='')
 
     flatimg = np.delete(flatimg, nanlist)
+
+    print(f'\n\tflatimg {flatimg.shape:} after deleting {len(nanlist[0]):d}',
+          end='')
+
 
     if flux is not None:
         flatimg = flux * flatimg / flatimg.sum()
 
     # A
-    flatmodel_nan = model.reshape(np.shape(model)[0] * np.shape(model)[1], np.shape(model)[2])
+    flatmodel_nan = model.reshape(np.shape(model)[0] * np.shape(model)[1], 
+                                  np.shape(model)[2])
     flatmodel = np.zeros((len(flatimg), np.shape(model)[2]))
+    print(f'\n\tflatmodel_nan {flatmodel_nan.shape:}', end='')
+    print(f'\n\tflatmodel     {flatmodel.shape:}', end='')
+    print(f'\n\tdifference    {flatmodel_nan.shape[0] - flatmodel.shape[0]:}', end='')
+    print()
 
     if verbose:
         print("flat model dimensions ", np.shape(flatmodel))

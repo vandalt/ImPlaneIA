@@ -78,13 +78,10 @@ class NIRISS:
                     True (default) do not use DQ with DO_NOT_USE flag in input MAST data when fitting data with model.  
                     False: Assume no bad pixels in input
         """
-        
+
         self.verbose=False
         if "verbose" in kwargs:
             self.verbose=kwargs["verbose"]
-
-        # self.bpexist set True/False if  DQ fits image extension exists/doesn't
-        # self.nbadpix = 4
 
         if chooseholes:
             print("InstrumentData.NIRISS: ", chooseholes)
@@ -93,6 +90,9 @@ class NIRISS:
         # USEBP is USEDQ in the rest of code - use
         self.usedq = usebp
         print("InstrumentData.NIRISS: avoid fitting DO_NOT_USE bad pixels flagged in DQ extension", self.usedq)
+        self.jwst_dqflags() # creates dicts self.bpval, self.bpgroup
+        # self.bpexist set True/False if  DQ fits image extension exists/doesn't
+
 
         self.firstfew = firstfew
         if firstfew is not None: print("InstrumentData.NIRISS: analysing firstfew={:d} slices".format(firstfew))
@@ -213,6 +213,7 @@ class NIRISS:
         # for utr data, need to read as 3D (ngroup, npix, npix)
         # fix bad pixels using DQ extension and LPL local averaging, 
         # but send bad pixel array down to where fringes are fit so they can be ignored.
+        
         with fits.open(fn, memmap=False) as fitsfile:
             # use context manager, memmap=False, deepcopy to avoid memory leaks
             scidata = copy.deepcopy(fitsfile[1].data)
@@ -221,23 +222,25 @@ class NIRISS:
             try:
                 bpdata=copy.deepcopy(fitsfile['DQ'].data) # bad pixel extension
                 self.bpexist = True
-                dqmask = bpdata & self.bpval["DO_NOT_USE"] == DO_NOT_USE # array:True for do not use me locs
+                dqmask = bpdata & self.bpval["DO_NOT_USE"] == self.bpval["DO_NOT_USE"] #
                 del bpdata # free memory
 
                 # True calling driver wants to skip using DO_NOT_USE DQ pixels in fit,
                 # force the bpexist flag to False here.
                 if self.usedq == True:
-                    print('InstrumentData.NIRISS.read_data: skipping use of DO_NOT_USE DQ pixels in fit')
+                    print('InstrumentData.NIRISS.read_data: will not use DO_NOT_USE DQ pixels in fit')
             except:
                 self.bpexist = False
 
             if scidata.ndim == 3:  #len(scidata.shape)==3:
-                print("input: 3D cube")
+                print("read_data() input: 3D cube")
 
-                # Truncate all but the first few slices for rapid development
+                # Truncate all but the first few slices od data and DQ array for rapid development
                 if self.firstfew is not None:
                     if scidata.shape[0] > self.firstfew:
                         scidata = scidata[:self.firstfew, :, :]
+                        dqmask = dqmask[:self.firstfew, :, :]
+                # 'nwav' name (historical) is actually nuber of data slices in the 3Dimage cube
                 self.nwav=scidata.shape[0]
                 [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
 
@@ -250,12 +253,12 @@ class NIRISS:
 
             # refpix removal by trimming
             scidata = scidata[:,4:, :] # [all slices, imaxis[0], imaxis[1]]
-            print('Refpix-trimmed scidata:', scidata.shape)
+            print('\tRefpix-trimmed scidata:', scidata.shape)
             #### fix pix using bad pixel map - runs now.  Need to sanity-check.
             if self.bpexist:
                 # refpix removal by trimming to match image trim
                 dqmask = dqmask[:,4:, :]     # dqmask bool array to match image trimmed shape
-                print('Refpix-trimmed dqmask:', dqmask.shape)
+                print('\tRefpix-trimmed dqmask: ', dqmask.shape)
 
             prihdr=fitsfile[0].header
             scihdr=fitsfile[1].header
@@ -473,17 +476,15 @@ class NIRISS:
         The data structure that stores bit flags is just the standard Python `int`,
         which provides 32 bits. Bits of an integer are most easily referred to using
         the formula `2**bit_number` where `bit_number` is the 0-index bit of interest.
+        2**n is gauche but not everyone loves 1<<n
 
 
         Rachel uses:
         from jwst.datamodels import dqflags
-
         DO_NOT_USE = dqflags.pixel["DO_NOT_USE"]
         dqmask = pxdq0 & DO_NOT_USE == DO_NOT_USE
         pxdq = np.where(dqmask, pxdq0, 0)
 
-        Anand copied in the bpval array from "somewhere" (jdox?) - a fragility, but avoids 'import jwst'...
-        2**n is gauche but not everyone loves 1>>n
         """
 
         # Pixel-specific flags
@@ -552,17 +553,18 @@ class NIRISS:
         vpar = self.vparity # Relative sense of rotation between Ideal xy and V2V3
         v3iyang = self.v3i_yang
         rot_ang = pa - v3iyang # subject to change!
+
         if pa != 0.0:
             # Using rotate2sccw, which rotates **vectors** CCW in a fixed coordinate system,
-            # so to rotate coord system CW, reverse sign of rotation angle.
+            # so to rotate coord system CW instead of the vector, reverse sign of rotation angle.  Double-check comment
             if vpar == -1:
-                # rotate clockwise
+                # rotate clockwise  <rotate coords clockwise?>
                 ctrs_rot = utils.rotate2dccw(mask_ctrs, np.deg2rad(-rot_ang))
-                print('Rotating mask hole centers clockwise by %f degrees' % rot_ang)
+                print(f'InstrumentData.mast2sky: Rotating mask hole centers clockwise by {rot_ang:.3f} degrees')
             else:
-                # counterclockwise
+                # counterclockwise  <rotate coords counterclockwise?>
                 ctrs_rot = utils.rotate2dccw(mask_ctrs, np.deg2rad(rot_ang))
-                print('Rotating mask hole centers counterclockwise by %f degrees' % rot_ang)
+                print('InstrumentData.mast2sky: Rotating mask hole centers counterclockwise by {rot_ang:.3f} degrees')
         else:
             ctrs_rot = mask_ctrs
         return ctrs_rot

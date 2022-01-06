@@ -56,8 +56,9 @@ class FringeFitter:
 
         kwarg options:
         oversample - model oversampling (also how fine to measure the centering)
-        psf_offset - If you already know the subpixel centering of your data, give it here
-                     (not recommended except when debugging with perfectly know image placement))
+        psf_offset - If you already know the subpixel centering of your data, 
+                     give it here (not recommended except when debugging with
+                     perfectly known image placement))
         oitdir - Where text observables, derived fits files will get saved.  No default.
         oifdir - Where raw oifits files will get saved.  No default.
         npix - How many pixels of your data do you want to use? 
@@ -79,7 +80,10 @@ class FringeFitter:
 
         #######################################################################
         # Options
-        self.oversample = 3
+        # setting a default oversample value
+        # - fast, not necessarily  the most accurate... 
+        # ok to ~1e-3 binary contrast (given other systematic limits, 2021 end)??
+        self.oversample = 3  
         if "oversample" in kwargs:
             self.oversample = kwargs["oversample"]
 
@@ -95,7 +99,8 @@ class FringeFitter:
         ###############################
         # restructured output directories, with backward compatibility
         #
-        if "oitdir" in kwargs:  # write OI text files here, [diagnostic images fits]. Was 'savedir'
+        # write OI text files here, [diagnostic images fits]. Was 'savedir'
+        if "oitdir" in kwargs:
             self.oitdir = kwargs["oitdir"]
         elif 'savedir' in kwargs:
             self.oitdir = kwargs["savedir"]
@@ -112,7 +117,7 @@ class FringeFitter:
             print("nrm_core.FringeFitter: savedir deprecated, but oifdir wil be set to savedir")
             print("nrm_core.FringeFitter: new drivers should initialize with oifdir")
         else:
-            sys.exit("FringeFitter: Fatal: no oifdir (or deprecated savedir) specified.")
+            sys.exit("FringeFitter: Fatal: no oifdir / deprecated savedir) specified.")
         if self.oifdir[-1] != '/': self.oifdir = self.oifdir + '/'
         #
         ###############################
@@ -214,18 +219,22 @@ class FringeFitter:
             model, modelhdu = nrm.plot_model(fits_true=1)
             # save to fits files
             fits.PrimaryHDU(data=nrm.residual).writeto(self.oitdir+\
-                        self.instrument_data.rootfn+"/residual_{0:02d}.fits".format(slc), \
-                        overwrite=True)
+                            self.instrument_data.rootfn+\
+                            "/residual_{0:02d}.fits".format(slc), \
+                            overwrite=True)
             fits.PrimaryHDU(data=nrm.residual/self.datapeak).writeto(self.oitdir+\
-                        self.instrument_data.rootfn+"/n_residual_{0:02d}.fits".format(slc), \
-                        overwrite=True)
+                            self.instrument_data.rootfn+\
+                            "/n_residual_{0:02d}.fits".format(slc), \
+                            overwrite=True)
             modelhdu.writeto(self.oitdir+\
-                        self.instrument_data.rootfn+"/modelsolution_{0:02d}.fits".format(slc),\
-                        overwrite=True)
+                             self.instrument_data.rootfn+\
+                             "/modelsolution_{0:02d}.fits".format(slc),\
+                             overwrite=True)
             fits.PrimaryHDU(data=model/self.datapeak, \
-                    header=modelhdu.header).writeto(self.oitdir+\
-                    self.instrument_data.rootfn+"/n_modelsolution_{0:02d}.fits".format(slc), \
-                    overwrite=True)
+                            header=modelhdu.header).writeto(self.oitdir+\
+                            self.instrument_data.rootfn+\
+                            "/n_modelsolution_{0:02d}.fits".format(slc), \
+                            overwrite=True)
             try: # if there's an appropriately trimmed bad pixel map write it out
                 fits.PrimaryHDU(data=self.ctrb, \
                     header=self.scihdr).writeto(self.oitdir+\
@@ -290,7 +299,9 @@ def fit_fringes_parallel(args, threads):
     self = args['object']
     filename = args['file']
     id_tag = args['id']
-    self.prihdr, self.scihdr, self.scidata, self.dqmask = self.instrument_data.read_data(filename)
+    self.prihdr, self.scihdr, self.scidata, self.dqmask = \
+        self.instrument_data.read_data(filename)
+
     try:
         os.mkdir(self.oitdir+self.instrument_data.rootfn)
     except:
@@ -305,7 +316,6 @@ def fit_fringes_parallel(args, threads):
         pool.map(fit_fringes_single_integration, store_dict)
         pool.close()
         pool.join()
-
     else:
         for slc in range(self.instrument_data.nwav):
             fit_fringes_single_integration({"object":self, "slc":slc})
@@ -335,27 +345,37 @@ def fit_fringes_single_integration(args):
     # Where appropriate, the slice under consideration is centered, and processed
     if self.instrument_data.arrname=="jwst_g7s6c":
         # get the cropped image and identically-cropped bad pixel data:
-        self.ctrd, self.dqslice = utils.center_imagepeak(self.scidata[slc,:,:], dqm=self.dqmask[slc,:,:]) 
+        self.ctrd, self.dqslice = utils.center_imagepeak(
+                                    self.scidata[slc,:,:], 
+                                    dqm=self.dqmask[slc,:,:]) 
+        print(f'nrm_core.fit_fringes_single_integration(): ', end='')
+        print(f'\n\timarray {self.ctrd.shape:}\n\tdqarray {self.dqslice.shape:}')
     else:
         self.ctrd = utils.center_imagepeak(self.scidata[slc,:,:])  
     
 
-    # store the 2D cropped image centered on the brightest pixel, bad pixels smoothed over
-    #nrm.reference = self.ctrd  # self.ctrd is the cropped image centered on the brightest pixel
+    # store the 2D cropped image centered on the brightest pixel, 
+    # bad pixels smoothed over
 
     if self.psf_offset_ff is None:
         # returned values have offsets x-y flipped:
-        # Finding centroids the Fourier way assumes no bad pixels case - Fourier domain mean slope
-        centroid = utils.find_centroid(self.ctrd, self.instrument_data.threshold) # offsets from brightest pixel ctr
-        # use flipped centroids to update centroid of image for JWST - check parity for GPI, Vizier,...
+        # Finding centroids the Fourier way assumes no bad pixels case 
+        #   - Fourier domain mean slope
+
+        # offsets from brightest pixel ctr
+        centroid = utils.find_centroid(self.ctrd, self.instrument_data.threshold)
+        # use flipped centroids to update centroid of image for JWST 
         # pixel coordinates: - note the flip of [0] and [1] to match DS9 view
-        image_center = utils.centerpoint(self.ctrd.shape) + np.array((centroid[1], centroid[0])) # info only, unused
+        image_center = utils.centerpoint(self.ctrd.shape) + \
+                            np.array((centroid[1], centroid[0])) # info only, unused
         nrm.xpos = centroid[1]  # flip 0 and 1 to convert
         nrm.ypos = centroid[0]  # flip 0 and 1
         nrm.psf_offset = nrm.xpos, nrm.ypos  # renamed .bestcenter to .psf_offset
-        if self.debug: print("nrm.core.fit_fringes_single_integration: utils.find_centroid() -> nrm.psf_offset")
+        if self.debug: 
+            print("nrm.core.fit_fringes_single_integration: utils.find_centroid() -> nrm.psf_offset")
     else:
-        nrm.psf_offset = self.psf_offset_ff # user-provided psf_offset python-style offsets from array center are here.
+        # user-provided psf_offset python-style offsets from array center are here.
+        nrm.psf_offset = self.psf_offset_ff 
 
 
     nrm.make_model(fov=self.ctrd.shape[0], 
@@ -363,11 +383,17 @@ def fit_fringes_single_integration(args):
                    over=self.oversample,
                    psf_offset=nrm.psf_offset,  
                    pixscale=nrm.pixel)
+
     # again, fit just one slice...
     if self.instrument_data.arrname=="jwst_g7s6c":
-        nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.psf_offset, dqm=self.dqslice)
+        nrm.fit_image(self.ctrd, 
+                      modelin=nrm.model, 
+                      psf_offset=nrm.psf_offset,
+                      dqm=self.dqslice)
     else:
-        nrm.fit_image(self.ctrd, modelin=nrm.model, psf_offset=nrm.psf_offset)
+        nrm.fit_image(self.ctrd,
+                      modelin=nrm.model,
+                      psf_offset=nrm.psf_offset)
 
     """
     Attributes now stored in nrm object:
@@ -385,6 +411,6 @@ def fit_fringes_single_integration(args):
     For jwst_g7s6 cropped-to-match-data bad pixel array 'ctrb' is also stored
     """
 
-    self.save_output(slc, nrm)
+    self.save_output(slc, nrm)  # Please elucidate what this is for
     self.nrm = nrm # store  extracted values here
     return None
