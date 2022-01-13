@@ -114,7 +114,9 @@ setup(
     install_requires=[
         'astropy', 'scipy', 'matplotlib', 'linearfit', 'poppy',
     ],
-    tests_require=['pytest', 'scipy', 'matplotlib', 'linearfit', 'poppy',],
+    extras_require={
+        "dev": ['pytest', 'scipy', 'matplotlib', 'linearfit', 'poppy',],
+    },
     packages=find_packages(),
     package_data={PACKAGENAME: ['pars/*']},
     cmdclass={
