@@ -45,20 +45,6 @@ relic.release.write_template(version, PACKAGENAME)
 
 
 
-# make sure oifits.py is available
-try:
-    import oifits
-except ImportError:
-    try:
-        subprocess.check_call(['git', 'clone',
-                               'https://github.com/pboley/oifits.git'])
-        sys.path.insert(1, 'oifits')
-        import oifits
-    except subprocess.CalledProcessError as e:
-        print(e)
-        exit(1)
-
-
 # allows you to build sphinx docs from the pacakge
 # main directory with python setup.py build_sphinx
 try:
