@@ -6,12 +6,6 @@ from astropy.io import fits
 import string
 import nrm_analysis
 from nrm_analysis.misctools.implane2oifits import calibrate_oifits
-#rom nrm_analysis.fringefitting.LG_Model import NRM_Model
-#rom nrm_analysis.misctools import utils  
-#rom nrm_analysis import nrm_core, InstrumentData
-#rom nrm_analysis import find_affine2d_parameters as FAP
-#rom nrm_analysis.misctools.utils import Affine2d
-
 
 np.set_printoptions(precision=4, linewidth=160)
 np.set_printoptions(formatter={'float': lambda x: '{:+.2e}'.format(x)}, linewidth=80)
@@ -28,3 +22,4 @@ if __name__ == "__main__":
     calibrate_oifits(oidir+oi_abdor, oidir+oi_37093, oifdir=oidir)
     calibrate_oifits(oidir+oi_abdor, oidir+oi_36805, oifdir=oidir)
     calibrate_oifits(oidir+oi_37093, oidir+oi_36805, oifdir=oidir)
+    calibrate_oifits(oidir+oi_36805, oidir+oi_37093, oifdir=oidir)
