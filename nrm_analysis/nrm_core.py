@@ -174,18 +174,18 @@ class FringeFitter:
     # Feb 2021 Dec 2021 anand added dqmask to fringe fitting, removed bpdata use
     ###
 
-    def fit_fringes(self, fns, threads = 0):
+    def fit_fringes(self, fns, weighted=False, threads = 0):
         if type(fns) == str:
             fns = [fns, ]
 
         # Can get fringes for images in parallel
-        store_dict = [{"object":self, "file":fn,"id":jj} \
+        store_dict = [{"object":self, "file":fn,"id":jj, "weighted":weighted} \
                         for jj,fn in enumerate(fns)]
 
         t2 = time.time()
         for jj, fn in enumerate(fns):
             fit_fringes_parallel({"object":self, "file":fn,\
-                                  "id":jj},threads)
+                                  "id":jj, "weighted":weighted}, threads)
         t3 = time.time()
         print("Parallel with {0} threads took {1:.2f}s to fit all fringes".format(\
                threads, t3-t2))
@@ -299,6 +299,7 @@ def fit_fringes_parallel(args, threads):
     self = args['object']
     filename = args['file']
     id_tag = args['id']
+    weighted = args['weighted']
     self.prihdr, self.scihdr, self.scidata, self.dqmask = \
         self.instrument_data.read_data(filename)
 
@@ -307,7 +308,7 @@ def fit_fringes_parallel(args, threads):
     except:
         pass
 
-    store_dict = [{"object":self, "slc":slc} for slc in \
+    store_dict = [{"object":self, "slc":slc, "weighted":weighted} for slc in \
                   range(self.instrument_data.nwav)]
 
     if threads>0:
@@ -318,12 +319,13 @@ def fit_fringes_parallel(args, threads):
         pool.join()
     else:
         for slc in range(self.instrument_data.nwav):
-            fit_fringes_single_integration({"object":self, "slc":slc})
+            fit_fringes_single_integration({"object":self, "slc":slc, "weighted":weighted})
 
 def fit_fringes_single_integration(args):
     self = args["object"]
     slc = args["slc"]  # indexes each slice of 3D stack of images
     id_tag = args["slc"]
+    weighted = args["weighted"]
     nrm = NRM_Model(mask=self.instrument_data.mask,
                     pixscale=self.instrument_data.pscale_rad,
                     holeshape=self.instrument_data.holeshape,
