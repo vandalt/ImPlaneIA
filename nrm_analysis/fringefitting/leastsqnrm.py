@@ -33,6 +33,8 @@ def matrix_operations(img, model, flux = None, verbose=False, linfit=False, dqm=
     # img 2d array of image data
     # dqm 2d bool array of bad pixel locations (same shape as 2d img), or  None (for all-good data)
 
+    print("leastsqnrm.matrix_operations() - equally-weighted")
+
     flatimg = img.reshape(np.shape(img)[0] * np.shape(img)[1])
     flatdqm = dqm.reshape(np.shape(img)[0] * np.shape(img)[1])
     if verbose: 
@@ -167,10 +169,10 @@ def weighted_operations(img, model,  verbose=False, dqm=None):
     #    b is the data (image), 
     #    x is the coefficient vector we are solving for. 
     #
-    #    Solution 1:  equal weighting of data.
+    #    Solution 1:  equal weighting of data (matrix_operations()).
     #       x = inv(At.A).(At.b) 
     #
-    #    Solution 2:  weighting data by Poisson variance
+    #    Solution 2:  weighting data by Poisson variance (weighted_operations())
     #       x = inv(At.W.A).(At.W.b) 
     #       where W is a diagonal matrix of weights w_i, 
     #       weighting each data point i by the inverse of its variance:

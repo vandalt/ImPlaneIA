@@ -55,6 +55,7 @@ class FringeFitter:
         Various options can be set
 
         kwarg options:
+        weighted - least squares fit uses weighting by 1 / photon noise variance
         oversample - model oversampling (also how fine to measure the centering)
         psf_offset - If you already know the subpixel centering of your data, 
                      give it here (not recommended except when debugging with
@@ -83,6 +84,10 @@ class FringeFitter:
         # setting a default oversample value
         # - fast, not necessarily  the most accurate... 
         # ok to ~1e-3 binary contrast (given other systematic limits, 2021 end)??
+        self.weighted = False
+        if "weighted" in kwargs:
+            self.weighted = kwargs["weighted"]
+
         self.oversample = 3  
         if "oversample" in kwargs:
             self.oversample = kwargs["oversample"]
@@ -174,18 +179,18 @@ class FringeFitter:
     # Feb 2021 Dec 2021 anand added dqmask to fringe fitting, removed bpdata use
     ###
 
-    def fit_fringes(self, fns, weighted=False, threads = 0):
+    def fit_fringes(self, fns, threads = 0):
         if type(fns) == str:
             fns = [fns, ]
 
         # Can get fringes for images in parallel
-        store_dict = [{"object":self, "file":fn,"id":jj, "weighted":weighted} \
+        store_dict = [{"object":self, "file":fn,"id":jj} \
                         for jj,fn in enumerate(fns)]
 
         t2 = time.time()
         for jj, fn in enumerate(fns):
             fit_fringes_parallel({"object":self, "file":fn,\
-                                  "id":jj, "weighted":weighted}, threads)
+                                  "id":jj}, threads)
         t3 = time.time()
         print("Parallel with {0} threads took {1:.2f}s to fit all fringes".format(\
                threads, t3-t2))
@@ -272,15 +277,6 @@ class FringeFitter:
             np.savetxt(self.oitdir+self.instrument_data.rootfn+\
                        "/flux_{0:02d}.txt".format(slc), nrm.flux)
           
-        #print(nrm.linfit_result)
-        if nrm.linfit_result is not None:          
-            # save linearfit results to pickle file
-            myPickleFile = os.path.join(self.oitdir+self.instrument_data.rootfn,
-                                        "linearfit_result_{0:02d}.pkl".format(slc))
-            with open( myPickleFile , "wb" ) as f:
-                pickle.dump((nrm.linfit_result), f) 
-            print("Wrote pickled file  %s" % myPickleFile)
-                       
 
     def save_auto_figs(self, slc, nrm):
         
@@ -299,7 +295,6 @@ def fit_fringes_parallel(args, threads):
     self = args['object']
     filename = args['file']
     id_tag = args['id']
-    weighted = args['weighted']
     self.prihdr, self.scihdr, self.scidata, self.dqmask = \
         self.instrument_data.read_data(filename)
 
@@ -308,7 +303,7 @@ def fit_fringes_parallel(args, threads):
     except:
         pass
 
-    store_dict = [{"object":self, "slc":slc, "weighted":weighted} for slc in \
+    store_dict = [{"object":self, "slc":slc} for slc in \
                   range(self.instrument_data.nwav)]
 
     if threads>0:
@@ -319,13 +314,12 @@ def fit_fringes_parallel(args, threads):
         pool.join()
     else:
         for slc in range(self.instrument_data.nwav):
-            fit_fringes_single_integration({"object":self, "slc":slc, "weighted":weighted})
+            fit_fringes_single_integration({"object":self, "slc":slc})
 
 def fit_fringes_single_integration(args):
     self = args["object"]
     slc = args["slc"]  # indexes each slice of 3D stack of images
     id_tag = args["slc"]
-    weighted = args["weighted"]
     nrm = NRM_Model(mask=self.instrument_data.mask,
                     pixscale=self.instrument_data.pscale_rad,
                     holeshape=self.instrument_data.holeshape,
@@ -389,11 +383,13 @@ def fit_fringes_single_integration(args):
         nrm.fit_image(self.ctrd, 
                       modelin=nrm.model, 
                       psf_offset=nrm.psf_offset,
-                      dqm=self.dqslice)
+                      dqm=self.dqslice,
+                      weighted=self.weighted)
     else:
         nrm.fit_image(self.ctrd,
                       modelin=nrm.model,
-                      psf_offset=nrm.psf_offset)
+                      psf_offset=nrm.psf_offset,
+                      weighted=self.weighted)
 
     """
     Attributes now stored in nrm object:

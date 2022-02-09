@@ -352,7 +352,7 @@ class NRM_Model():
 
 
     def fit_image(self, image, reference=None, pixguess=None, rotguess=0, psf_offset=(0,0),
-                  modelin=None, savepsfs=False, dqm=None, weighted_lsq=False):
+                  modelin=None, savepsfs=False, dqm=None, weighted=False):
         """
         This works on 2D "centered" images fed to it.
         dqm is optional 2D bad pixel bool array, same size as image.  
@@ -379,7 +379,7 @@ class NRM_Model():
         confusion in scaling. Good luck!
         """
         self.model_in = modelin
-        self.weighted_lsq = weighted_lsq
+        self.weighted = weighted
         self.saveval = savepsfs
 
         if modelin is None:
@@ -428,7 +428,7 @@ class NRM_Model():
 
         #######################################################33  very old snippet below
         #######################################################33  very old snippet below
-        if self.weighted_lsq is False:
+        if self.weighted is False:
             self.soln, self.residual, self.cond, self.linfit_result = \
                 leastsqnrm.matrix_operations(image, self.fittingmodel, verbose=False, dqm=dqm)
         else:
