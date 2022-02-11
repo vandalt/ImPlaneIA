@@ -74,14 +74,21 @@ class NIRISS:
                   the latter for fast developmpent
         nbadpix:  Number of good pixels to use when fixing bad pixels DEPRECATED
         usebp:    Convert to usedq during initialization
-                    Internally this is changed to InstrumentData.usedq = usebp immediately for code clarity
-                    True (default) do not use DQ with DO_NOT_USE flag in input MAST data when fitting data with model.  
-                    False: Assume no bad pixels in input
+                  Internally this is changed to sellf.usedq = usebp immediately for code clarity
+                  True (default) do not use DQ with DO_NOT_USE flag in input MAST data when
+                  fitting data with model.  False: Assume no bad pixels in input
+        noise:    standard deviation of noise added to perfect images to enable candid
+                  plots without crashing on np.inf limits!  Image assumed to be in (np.float64) dn.
+                  Suggested noise: 1e-6.
         """
 
-        self.verbose=False
+        self.verbose = False
         if "verbose" in kwargs:
-            self.verbose=kwargs["verbose"]
+            self.verbose = kwargs["verbose"]
+
+        self.noise = None
+        if "noise" in kwargs:
+            self.noise = kwargs["noise"]
 
         if chooseholes:
             print("InstrumentData.NIRISS: ", chooseholes)
@@ -213,10 +220,13 @@ class NIRISS:
         # for utr data, need to read as 3D (ngroup, npix, npix)
         # fix bad pixels using DQ extension and LPL local averaging, 
         # but send bad pixel array down to where fringes are fit so they can be ignored.
+        # For perfectly noiseless data we add GFaussian zero mean self.noise std dev
+        # to imagge data.  Then std devs don't cause plot crashes with limits problems.
         
         with fits.open(fn, memmap=False) as fitsfile:
             # use context manager, memmap=False, deepcopy to avoid memory leaks
             scidata = copy.deepcopy(fitsfile[1].data)
+            if self.noise is not None: scidata += np.random.normal(0, self.noise, scidata.shape)
         
             # usually DQ ext in MAST file... make it non-fatal for DQ to be missing
             try:
@@ -225,10 +235,9 @@ class NIRISS:
                 dqmask = bpdata & self.bpval["DO_NOT_USE"] == self.bpval["DO_NOT_USE"] #
                 del bpdata # free memory
 
-                # True calling driver wants to skip using DO_NOT_USE DQ pixels in fit,
-                # force the bpexist flag to False here.
+                # True => driver wants to omit using pixels with dqflag raised in fit,
                 if self.usedq == True:
-                    print('InstrumentData.NIRISS.read_data: will not use DO_NOT_USE DQ pixels in fit')
+                    print('InstrumentData.NIRISS.read_data: will not use flagged DQ pixels in fit')
             except:
                 self.bpexist = False
 
@@ -240,7 +249,7 @@ class NIRISS:
                     if scidata.shape[0] > self.firstfew:
                         scidata = scidata[:self.firstfew, :, :]
                         dqmask = dqmask[:self.firstfew, :, :]
-                # 'nwav' name (historical) is actually nuber of data slices in the 3Dimage cube
+                # 'nwav' name (historical) is actually number of data slices in the 3Dimage cube
                 self.nwav=scidata.shape[0]
                 [self.wls.append(self.wls[0]) for f in range(self.nwav-1)]
 
