@@ -1429,7 +1429,7 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt, verbose=False, trim2sub8
         # is sliced to match science array in InstrumentData
         # RAC 9/21
         # already trimmed to N x 80 x 80 if required
-        mirobj['DQ'].data = np.zeros(mirobj[1].data.shape)
+        mirobj['DQ'].data = np.zeros(mirobj[1].data.shape, dtype=np.uint32)
 
         # Transfer non-conflicting keywords from sim data to mirage file header
         mirkeys = list(mirobj[0].header.keys())
