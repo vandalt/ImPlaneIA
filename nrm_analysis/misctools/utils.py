@@ -535,19 +535,21 @@ def crosscorrelatePSFs(a, A, ov, verbose=False):
 #    print("deprecated - switch to using  'center_imagepeak'")
 #    return center_imagepeak(img, r='default')
        
-def center_imagepeak(img, r=None, cntrimg = True, bpd=False, verbose=False):
+def center_imagepeak(img, r=None, cntrimg = True, dqm=False, verbose=False):
 
-    """Return a cropped version of the input image centered on the peak pixel.
+    """Cropped version of the input image centered on the peak pixel.
 
     Parameters
     ----------
-    img : numpy input array
-    bpd : bad pixel array eg STScI MAST DQ extenion for JWST-NIRISS AmI 
+    img : numpy input 2d array
+    dqm : bad pixel location 2d numpy array of bools 
+          eg STScI MAST DQ extension locations with DO_NOT_USE flag up.
+    Disused: bpd : bad pixel array eg STScI MAST DQ extenion for JWST-NIRISS AmI 
 
     Returns
     -------
-    cropped: numpy array
-        Cropped to place the brightest pixel at the center of the img array
+    cropped: numpy 2d array Cropped so brightest pixel is at the center
+    Optional: dqmcrop, numpy 2d array,if dqmask array is passed.
 
     """
     peakx, peaky, h = min_distance_to_edge(img)
@@ -557,8 +559,8 @@ def center_imagepeak(img, r=None, cntrimg = True, bpd=False, verbose=False):
         pass
 
     cropped = img[int(peakx-r):int(peakx+r+1), int(peaky-r):int(peaky+r+1)]
-    if type(bpd) is not bool: 
-        bpdcrop = bpd[int(peakx-r):int(peakx+r+1), int(peaky-r):int(peaky+r+1)]
+    if type(dqm) is not bool: 
+        dqmcrop = dqm[int(peakx-r):int(peakx+r+1), int(peaky-r):int(peaky+r+1)]
 
     if verbose:
         print('Cropped image shape:',cropped.shape)
@@ -566,7 +568,7 @@ def center_imagepeak(img, r=None, cntrimg = True, bpd=False, verbose=False):
         print(np.where(cropped == cropped.max()))
 
 
-    if type(bpd) is not bool: return cropped, bpdcrop
+    if type(dqm) is not bool: return cropped, dqmcrop
     else:                     return cropped
     
 
@@ -1427,7 +1429,7 @@ def amisim2mirage(datadir, amisimfns, mirexample, filt, verbose=False, trim2sub8
         # is sliced to match science array in InstrumentData
         # RAC 9/21
         # already trimmed to N x 80 x 80 if required
-        mirobj['DQ'].data = np.zeros(mirobj[1].data.shape)
+        mirobj['DQ'].data = np.zeros(mirobj[1].data.shape, dtype=np.uint32)
 
         # Transfer non-conflicting keywords from sim data to mirage file header
         mirkeys = list(mirobj[0].header.keys())
