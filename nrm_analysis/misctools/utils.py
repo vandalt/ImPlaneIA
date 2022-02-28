@@ -1220,7 +1220,7 @@ def combine_src_filt(bandpass, srcspec, trim=0.01, nlambda=19, verbose=False, pl
         ax.set_title("Combined Binned Spectrum (filter and source)")
         plt.show()
 
-    finalsrc = np.array((wave_m, effstims)).T
+    finalsrc = np.array((effstims,wave_m)).T # this is the order expected by InstrumentData
 
     return finalsrc
 
@@ -1239,6 +1239,19 @@ def test_spec_comb():
         band.plot()
         final = combine_src_filt(band, srcspec, verbose=True, plot=True)
 
+def get_cw_beta(bandpass):
+    """ 
+    Bandpass: array where the columns are weights, wavelengths
+    Return weighted mean wavelength in meters, fractional bandpass
+    """
+    from scipy.integrate import simps
+    wt = bandpass[:,0]
+    wl = bandpass[:,1]
+    cw = (wl*wt).sum()/wt.sum() # Weighted mean wavelength in meters "central wavelength"
+    area = simps(wt, wl)
+    ew = area / wt.max() # equivalent width
+    beta = ew/cw # fractional bandpass
+    return cw, beta
 
 # -----------------------------------------------------------------
 
