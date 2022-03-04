@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 import numpy.fft as fft
 from astropy.io import fits
+from astropy import units as u
 import os, sys
 import pickle
 import scipy
@@ -11,8 +12,8 @@ import time
 import poppy.matrixDFT as matrixDFT
 import matplotlib.pyplot as plt
 import synphot
+import stsynphot
 from stsynphot import grid_to_spec
-
 
 m_ = 1.0
 mm_ =  m_/1000.0
@@ -813,25 +814,6 @@ def neighbor_median(ctr, s, a2):
 #     return filterlist
 #
 
-# def combine_transmission(filt, SRC):
-#     ''' SRC is a spectral type string, e.g. A0V
-#         not the neatest, but gets the job done.'''
-#     import pysynphot
-#     filt_wls = np.zeros(len(filt))
-#     filt_wght = np.zeros(len(filt))
-#     for ii in range(len(filt)):
-#         filt_wls[ii] = filt[ii][1] # in m
-#         filt_wght[ii] = filt[ii][0]
-#     src = specFromSpectralType(SRC)
-#     src = src.resample(np.array(filt_wls)*1.0e10) # converts to angstrom for pysynphot
-#     specwavl, specwghts = src.getArrays()
-#     totalwght = specwghts * filt_wght
-#     transmissionlist = []
-#     ang_to_m = 1.0e-10
-#     for ii in range(len(filt_wls)):
-#         transmissionlist.append((totalwght[ii], filt_wls[ii]))
-#     return transmissionlist
-
 
 def makeA(nh, verbose=False):
     """ 
@@ -1007,93 +989,6 @@ def nb_pistons(multiplier=1.0, debug=False):
         if debug: print("variance of piston OPD: %.1e rad" % (phi_nb_.var() * (4.0*np.pi*np.pi)))
         return phi_nb_ * 4.3*um_ # phi_nb in m
 
-
-# def get_webbpsf_filter(filtfile, specbin=None, trim=False, verbose=False):
-#     """
-#     Returns array of [weight, wavelength_in_meters] empirically tested... 2014 Nov
-#     specbin: integer, bin spectrum down by this factor
-#     trim: (lambda_c, extend of 'live' spectrum), e.g. (2.77e-6, 0.4) trims below 0.8 and
-#           above 1.2 lambda_c
-#     """
-#     W = 1 # remove confusion - wavelength index
-#     T = 0 # remove confusion - trans index after reding in...
-#     f = fits.open(filtfile)
-#     thru = f[1].data
-#     f.close()
-#     tmp_array = np.zeros((len(thru), 2))
-#     for i in range(len(thru)):
-#         tmp_array[i,W] = thru[i][0] * 1.0e-10   # input in angst  _ANGSTROM = 1.0e-10
-#         tmp_array[i,T] = thru[i][1]             # weights (peak unity, unnormalized sum)
-#         if 0:
-#             if i == len(thru)//2:
-#                 if verbose: print("input line: %d " % i)
-#                 if verbose: print("raw input spectral wavelength: %.3e " % thru[i][0])
-#                 if verbose: print("cvt input spectral wavelength: %.3e " % tmp_array[i,W])
-#
-#     # remove leading and trailing throughput lines with 'flag' array of indices
-#     flag = np.where(tmp_array[:,T]!=0)[0]
-#     spec = np.zeros((len(flag), 2))
-#     spec[:,:] = tmp_array[flag, :]
-#
-#     # rebin as desired - fewer wavelengths for debugginng quickly
-#     if specbin:
-#         smallshape = spec.shape[0]//specbin
-#         if verbose: print("bin by",  specbin, "  from ", spec.shape[0], " to",  smallshape)
-#         spec = spec[:smallshape*specbin, :]  # clip trailing
-#         spec = krebin(spec, (smallshape,2))
-#         spec[:,W] = spec[:,W] / float(specbin) # krebin added up waves
-#         spec[:,T] = spec[:,T] / float(specbin) # krebin added up trans too
-#
-#     if trim:
-#         if verbose: print("TRIMming")
-#         wl = spec[:,W].copy()
-#         tr = spec[:,T].copy()
-#         idx = np.where((wl > (1.0 - 0.5*trim[1])*trim[0]) & (wl < (1.0 + 0.5*trim[1])*trim[0]))
-#         wl = wl[idx]
-#         tr = tr[idx]
-#         spec = np.zeros((len(idx[0]),2))
-#         spec[:,1] = wl
-#         spec[:,0] = tr
-#         if verbose: print("post trim - spec.shape", spec.shape)
-#
-#     if verbose: print("post specbin - spec.shape", spec.shape)
-#     if verbose: print("%d spectral samples " % len(spec[:,0]) + \
-#           "between %.3f and %.3f um" % (spec[0,W]/um_,spec[-1,W]/um_))
-#
-#     return spec
-#
-# def trim_webbpsf_filter(filt, specbin=None, plot=False, verbose=False):
-#     if verbose: print("================== " + filt + " ===================")
-#     beta = {"F277W":0.6, "F380M":0.15, "F430M":0.17, "F480M":0.2}
-#     lamc = {"F277W":2.70e-6, "F380M":3.8e-6, "F430M":4.24e-6, "F480M":4.8e-6}
-#     filterdirectory = os.getenv('WEBBPSF_PATH')+"/NIRISS/filters/"
-#     band = get_webbpsf_filter(filterdirectory+filt+"_throughput.fits",
-#                               specbin=specbin,
-#                               trim=(lamc[filt], beta[filt]))
-#     np.set_printoptions(edgeitems=3, infstr='inf', linewidth=75, nanstr='nan', precision=8,
-#         suppress=False, threshold=1000, formatter=None)
-#     if verbose: print("filter", filt, "band.shape", band.shape, band)
-#     wl = band[:,1]
-#     tr = band[:,0]
-#     if plot: plt.plot(wl/um_, np.log10(tr), label=filt)
-#     return band
-#
-# def testmain():
-#     import matplotlib.pyplot as plt
-#     fig = plt.figure(1,figsize=(6,4.5),dpi=150)
-#     trim_webbpsf_filter("F277W", specbin=6, plot=True)
-#     trim_webbpsf_filter("F380M", plot=True)
-#     trim_webbpsf_filter("F480M", plot=True)
-#     trim_webbpsf_filter("F430M", plot=True)
-#     ax = plt.axes()
-#     plt.setp(ax, xlim=(1.9, 5.1), ylim=(-4.9, 0.1))
-#     plt.ylabel("log10 ( Transmission )", fontsize=12)
-#     plt.xlabel("wavelength / micron", fontsize=12)
-#     plt.title("JWST NIRISS filters in WebbPSF data", fontsize=14)
-#     plt.legend(loc="lower left")
-#     plt.savefig("JWSTNIRISSfiltercurves.pdf", bbox_inches='tight')
-#     #plt.show()
-
 # -----------------------------------------------------------------
 # Following functions added 2/22 by RAC to replace older filter/src
 # combination routines: get_webbpsf_filter(), trim_webbpsf_filter(),
@@ -1172,7 +1067,6 @@ def combine_src_filt(bandpass, srcspec, trim=0.01, nlambda=19, verbose=False, pl
         finalsrc: numpy array of shape (nlambda,2) containing wavelengths, final throughputs
 
     """
-    import astropy.units as units
 
     wl_filt, th_filt = bandpass._get_arrays(bandpass.waveset)
     # print(len(wl_filt),len(th_filt))
@@ -1189,27 +1083,27 @@ def combine_src_filt(bandpass, srcspec, trim=0.01, nlambda=19, verbose=False, pl
     wave_bin_edges = np.linspace(minwave, maxwave, nlambda + 1)
     wavesteps = (wave_bin_edges[:-1] + wave_bin_edges[1:]) / 2
     deltawave = wave_bin_edges[1] - wave_bin_edges[0]
-    area = 1 * (units.m * units.m)
+    area = 1 * (u.m * u.m)
     effstims = []
     ptsin = len(wl_filt)
     binfac = ptsin // nlambda
     if verbose: print("Binning spectrum by %i: from %i points to %i points" % (binfac, ptsin, nlambda))
     for wave in wavesteps:
         if verbose:
-            print(f"\t Integrating across band centered at {wave.to(units.micron):.2f} "
-                  f"with width {deltawave.to(units.micron):.2f}")
+            print(f"\t Integrating across band centered at {wave.to(u.micron):.2f} "
+                  f"with width {deltawave.to(u.micron):.2f}")
         box = synphot.spectrum.SpectralElement(synphot.models.Box1D, amplitude=1, x_0=wave,
                                                width=deltawave) * bandpass
 
         binset = np.linspace(wave - deltawave, wave + deltawave,
-                             30)  # what wavelens to use when integrating across the sub-band?
+                             30)  
         binset = binset[binset >= 0]  # remove any negative values
         result = synphot.observation.Observation(srcspec, box, binset=binset).effstim('count', area=area)
         effstims.append(result)
 
-    effstims = units.Quantity(effstims)
+    effstims = u.Quantity(effstims)
     effstims /= effstims.sum()  # Normalized count rate is unitless
-    wave_m = wavesteps.to_value(units.m)  # convert to meters
+    wave_m = wavesteps.to_value(u.m)  # convert to meters
     effstims = effstims.to_value()  # strip units
 
     if plot:

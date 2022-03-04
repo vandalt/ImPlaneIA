@@ -15,11 +15,13 @@ import os, sys, time
 import copy
 # Module imports
 import synphot
-import stsynphot
+# import stsynphot
 # mask geometries, GPI, NIRISS, VISIR supported...
-from .misctools.mask_definitions import NRM_mask_definitions 
-from .misctools import utils
-from .misctools import lpl_ianc
+from nrm_analysis.misctools.mask_definitions import NRM_mask_definitions 
+from nrm_analysis.misctools import utils
+from nrm_analysis.misctools import lpl_ianc
+
+
 
 um = 1.0e-6
 
@@ -101,6 +103,8 @@ class NIRISS:
         if nspecbin is None:
             nspecbin = 19
 
+        self.lam_bin = nspecbin
+
         # src can be either a spectral type string or a user-defined synphot spectrum object
         if isinstance(src, synphot.spectrum.SourceSpectrum):
             print("Using user-defined synphot SourceSpectrum")
@@ -123,7 +127,6 @@ class NIRISS:
 
         self.filt = filt
 
-
         if bandpass is not None:
             print("InstrumentData.NIRISS: OVERRIDING BANDPASS WITH USER-SUPPLIED VALUES.")
             print("\t src, filt, nspecbin parameters will not be used")
@@ -134,40 +137,19 @@ class NIRISS:
                 self.throughput = np.array((wt,wl)).T
             else:
                 self.throughput = np.array(bandpass)  # type simplification
-                # wt = bandpass[:,0]
-                # wl = bandpass[:,1]
-                # print(" which is now  overwritten with user-specified bandpass:\n", bandpass)
-                # cw = (wl*wt).sum()/wt.sum() # Weighted mean wavelength in meters "central wavelength"
-                # area = simps(wt, wl)
-                # ew = area / wt.max() # equivalent width
-                # beta = ew/cw # fractional bandpass
-                # self.lam_c = {"F277W":cw, "F380M": cw, "F430M": cw, "F480M": cw,}
-                # self.lam_w = {"F277W": beta, "F380M": beta, "F430M": beta, "F480M": beta} 
-            self.lam_c, self.lam_w = utils.get_cw_beta(bandpass)
         else:
             filt_spec = utils.get_filt_spec(self.filt)
             src_spec = utils.get_src_spec(src)
             # **NOTE**: As of WebbPSF version 1.0.0 filter is trimmed to where throughput is 10% of peak
             # For consistency with WebbPSF simultions, use trim=0.1
-            bandpass = utils.combine_src_filt(filt_spec, 
+            self.throughput = utils.combine_src_filt(filt_spec, 
                                           src_spec, 
                                           trim=0.01, 
                                           nlambda=nspecbin,
-                                          verbose=False, 
+                                          verbose=self.verbose, 
                                           plot=False)
-            
-            self.bandpass = bandpass # np array ((nlambda,2)) first column weight, second column wavelengths
-            # update nominal filter parameters with those of the filter read in and used in the analysis...
-            # Weighted mean wavelength in meters, etc, etc "central wavelength" for the filter:
-            # from scipy.integrate import simps 
-            # self.lam_c[self.filt] = (self.throughput[:,1] * self.throughput[:,0]).sum() / self.throughput[:,0].sum() 
-            # area = simps(self.throughput[:,0], self.throughput[:,1])
-            # ew = area / self.throughput[:,0].max() # equivalent width
-            # beta = ew/self.lam_c[self.filt] # fractional bandpass
-            # self.lam_w[self.filt] = beta
-            cw, beta = utils.get_cw_beta(bandpass)
-            self.lam_c = cw
-            self.lam_w = beta
+
+        self.lam_c, self.lam_w = utils.get_cw_beta(self.throughput)
 
         if self.verbose: print("InstrumentData.NIRISS: ", self.filt, 
               ": central wavelength {:.4e} microns, ".format(self.lam_c/um), end="")
@@ -236,14 +218,14 @@ class NIRISS:
         # For perfectly noiseless data we add GFaussian zero mean self.noise std dev
         # to imagge data.  Then std devs don't cause plot crashes with limits problems.
         
-        with fits.open(fn, memmap=False) as fitsfile:
+        with fits.open(fn, memmap=False, do_not_scale_image_data=True) as fitsfile:
             # use context manager, memmap=False, deepcopy to avoid memory leaks
             scidata = copy.deepcopy(fitsfile[1].data)
             if self.noise is not None: scidata += np.random.normal(0, self.noise, scidata.shape)
         
             # usually DQ ext in MAST file... make it non-fatal for DQ to be missing
             try:
-                bpdata=copy.deepcopy(fitsfile['DQ'].data) # bad pixel extension
+                bpdata=copy.deepcopy(fitsfile['DQ'].data).astype(np.uint32) # bad pixel extension, forced to uint32
                 self.bpexist = True
                 dqmask = bpdata & self.bpval["DO_NOT_USE"] == self.bpval["DO_NOT_USE"] #
                 del bpdata # free memory
@@ -251,8 +233,10 @@ class NIRISS:
                 # True => driver wants to omit using pixels with dqflag raised in fit,
                 if self.usedq == True:
                     print('InstrumentData.NIRISS.read_data: will not use flagged DQ pixels in fit')
-            except:
+            except Exception as e:
+                print('InstrumentData.NIRISS.read_data: raised exception', e)
                 self.bpexist = False
+                dqmask = np.zeros(scidata.shape, dtype=np.uint32) # so it doesn't break if issues with DQ data
 
             if scidata.ndim == 3:  #len(scidata.shape)==3:
                 print("read_data() input: 3D cube")
