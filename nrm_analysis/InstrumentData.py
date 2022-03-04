@@ -73,7 +73,8 @@ class NIRISS:
         filt:     Filter name string like "F480M"
         bandpass: None or [(wt,wlen),(wt,wlen),...].  Monochromatic would be e.g. [(1.0, 4.3e-6)]
                   Explicit bandpass arg will replace *all* niriss filter-specific variables with 
-                  the given bandpass, so you can simulate 21cm psfs through something called "F430M"!
+                  the given bandpass (src, nspecbin, filt), so you can simulate 21cm psfs through 
+                  something called "F430M". Can also be synphot.spectrum.SourceSpectrum object.
         firstfew: None or the number of slices to truncate input cube to in memory,
                   the latter for fast developmpent
         nbadpix:  Number of good pixels to use when fixing bad pixels DEPRECATED
@@ -84,8 +85,9 @@ class NIRISS:
         noise:    standard deviation of noise added to perfect images to enable candid
                   plots without crashing on np.inf limits!  Image assumed to be in (np.float64) dn.
                   Suggested noise: 1e-6.
-        src:
-        nspecbin:
+        src:      source spectral type string e.g. "A0V" OR user-defined synphot.spectrum.SourceSpectrum object
+        nspecbin: Number of wavelength bins to use across the bandpass. Replaces deprecated `usespecbin` which 
+                  set **number of wavelengths to into each bin**, not nbins.
 
         """
 
