@@ -156,7 +156,7 @@ class FringeFitter:
         #######################################################################
         # Create OI text & oifits directories if they don't already exist
         try:
-            os.mkdir(self.oitdir)
+            os.makedirs(self.oitdir)
         except:
             if self.interactive is True:
                 print(self.oitdir+" Already exists, rewrite its contents? (y/n)")
@@ -170,7 +170,7 @@ class FringeFitter:
             else:
                 pass
         try:
-            os.mkdir(self.oifdir)
+            os.makedirs(self.oifdir)
         except FileExistsError:
             pass
 
@@ -299,7 +299,7 @@ def fit_fringes_parallel(args, threads):
         self.instrument_data.read_data(filename)
 
     try:
-        os.mkdir(self.oitdir+self.instrument_data.rootfn)
+        os.makedirs(self.oitdir+self.instrument_data.rootfn)
     except:
         pass
 

@@ -14,10 +14,14 @@ from astropy.io import fits
 import os, sys, time
 import copy
 # Module imports
+import synphot
+# import stsynphot
 # mask geometries, GPI, NIRISS, VISIR supported...
-from .misctools.mask_definitions import NRM_mask_definitions 
-from .misctools import utils
-from .misctools import lpl_ianc
+from nrm_analysis.misctools.mask_definitions import NRM_mask_definitions 
+from nrm_analysis.misctools import utils
+from nrm_analysis.misctools import lpl_ianc
+
+
 
 um = 1.0e-6
 
@@ -52,9 +56,9 @@ class NIRISS:
                        affine2d=None, 
                        bandpass=None,
                        nbadpix=4,
-                       usebp = True,
-                       firstfew = None,
-                       usespecbin  = None,
+                       usebp=True,
+                       firstfew=None,
+                       nspecbin=None,
                        **kwargs):
         """
         Initialize NIRISS class
@@ -64,12 +68,13 @@ class NIRISS:
         kwargs:
         UTR
         Or just look at the file structure
-        Either user has webbpsf and filter file can be read, or this will use a tophat and give a warning
+        Either user has webbpsf and filter file can be read, or...
         chooseholes: None, or e.g. ['B2', 'B4', 'B5', 'B6'] for a four-hole mask
-
+        filt:     Filter name string like "F480M"
         bandpass: None or [(wt,wlen),(wt,wlen),...].  Monochromatic would be e.g. [(1.0, 4.3e-6)]
                   Explicit bandpass arg will replace *all* niriss filter-specific variables with 
-                  the given bandpass, so you can simulate 21cm psfs through something called "F430M"!
+                  the given bandpass (src, nspecbin, filt), so you can simulate 21cm psfs through 
+                  something called "F430M". Can also be synphot.spectrum.SourceSpectrum object.
         firstfew: None or the number of slices to truncate input cube to in memory,
                   the latter for fast developmpent
         nbadpix:  Number of good pixels to use when fixing bad pixels DEPRECATED
@@ -80,6 +85,10 @@ class NIRISS:
         noise:    standard deviation of noise added to perfect images to enable candid
                   plots without crashing on np.inf limits!  Image assumed to be in (np.float64) dn.
                   Suggested noise: 1e-6.
+        src:      source spectral type string e.g. "A0V" OR user-defined synphot.spectrum.SourceSpectrum object
+        nspecbin: Number of wavelength bins to use across the bandpass. Replaces deprecated `usespecbin` which 
+                  set **number of wavelengths to into each bin**, not nbins.
+
         """
 
         self.verbose = False
@@ -89,17 +98,29 @@ class NIRISS:
         self.noise = None
         if "noise" in kwargs:
             self.noise = kwargs["noise"]
+        if "usespecbin" in kwargs: # compatability with previous arg
+            # but not really, usespecbin was binning factor, not number of bins
+            nspecbin = kwargs["usespecbin"]
+        # change how many wavelength bins will be used across the bandpass
+        if nspecbin is None:
+            nspecbin = 19
+
+        self.lam_bin = nspecbin
+
+        # src can be either a spectral type string or a user-defined synphot spectrum object
+        if isinstance(src, synphot.spectrum.SourceSpectrum):
+            print("Using user-defined synphot SourceSpectrum")
 
         if chooseholes:
             print("InstrumentData.NIRISS: ", chooseholes)
         self.chooseholes = chooseholes
 
+    
         # USEBP is USEDQ in the rest of code - use
         self.usedq = usebp
         print("InstrumentData.NIRISS: avoid fitting DO_NOT_USE bad pixels flagged in DQ extension", self.usedq)
         self.jwst_dqflags() # creates dicts self.bpval, self.bpgroup
         # self.bpexist set True/False if  DQ fits image extension exists/doesn't
-
 
         self.firstfew = firstfew
         if firstfew is not None: print("InstrumentData.NIRISS: analysing firstfew={:d} slices".format(firstfew))
@@ -108,64 +129,40 @@ class NIRISS:
 
         self.filt = filt
 
-        #############################
-        self.lam_bin = {"F277W": 50, "F380M": 20, "F430M":40,  "F480M":30} # 12 waves in f430 - data analysis
-                                                                           # use 150 for 3 waves ax f430m 
-        # change how many spectral pts get binned into  a single throughput value
-        if usespecbin: self.lam_bin[filt] = usespecbin    # f380 20 gets 21 wavelengths.  40 -> 10 wavelengths?
-
-        self.lam_c = {"F277W": 2.77e-6,  # central wavelength (SI)
-                      "F380M": 3.8e-6, 
-                      "F430M": 4.28521033106325E-06,
-                      "F480M": 4.8e-6}
-        self.lam_w = {"F277W":0.2, "F380M": 0.1, "F430M": 0.0436, "F480M": 0.08} # fractional filter width 
-        
-        try:
-            self.throughput = utils.trim_webbpsf_filter(self.filt, specbin=self.lam_bin[self.filt])
-        except:
-            self.throughput = utils.tophatfilter(self.lam_c[self.filt], self.lam_w[self.filt], npoints=11)
-            print("InstrumentData.NIRISS: ", "*** WARNING *** InstrumentData: Top Hat filter being used")
-
-        # Nominal
-        """self.lam_c = {"F277W": 2.77e-6,  # central wavelength (SI)
-                      "F380M": 3.8e-6, 
-                      "F430M": 4.28521033106325E-06,
-                      "F480M": 4.8e-6}
-        self.lam_w = {"F277W":0.2, "F380M": 0.1, "F430M": 0.0436, "F480M": 0.08} # fractional filter width """
-
-        # update nominal filter parameters with those of the filter read in and used in the analysis...
-        # Weighted mean wavelength in meters, etc, etc "central wavelength" for the filter:
-        from scipy.integrate import simps 
-        self.lam_c[self.filt] = (self.throughput[:,1] * self.throughput[:,0]).sum() / self.throughput[:,0].sum() 
-        area = simps(self.throughput[:,0], self.throughput[:,1])
-        ew = area / self.throughput[:,0].max() # equivalent width
-        beta = ew/self.lam_c[self.filt] # fractional bandpass
-        self.lam_w[self.filt] = beta
-
         if bandpass is not None:
-            bandpass = np.array(bandpass)  # type simplification
-            wt = bandpass[:,0]
-            wl = bandpass[:,1]
-            print(" which is now  overwritten with user-specified bandpass:\n", bandpass)
-            cw = (wl*wt).sum()/wt.sum() # Weighted mean wavelength in meters "central wavelength"
-            area = simps(wt, wl)
-            ew = area / wt.max() # equivalent width
-            beta = ew/cw # fractional bandpass
-            self.lam_c = {"F277W":cw, "F380M": cw, "F430M": cw, "F480M": cw,}
-            self.lam_w = {"F277W": beta, "F380M": beta, "F430M": beta, "F480M": beta} 
-            self.throughput = bandpass
-        if self.verbose: print("InstrumentData.NIRISS: ", self.filt, 
-              ": central wavelength {:.4e} microns, ".format(self.lam_c[self.filt]/um), end="")
-        if self.verbose: print("InstrumentData.NIRISS: ", "fractional bandpass {:.3f}".format(self.lam_w[self.filt]))
+            print("InstrumentData.NIRISS: OVERRIDING BANDPASS WITH USER-SUPPLIED VALUES.")
+            print("\t src, filt, nspecbin parameters will not be used")
+            # check type of bandpass. can be synphot spectrum
+            # if so, get throughput and wavelength arrays
+            if isinstance(bandpass, synphot.spectrum.SpectralElement):
+                wl, wt = bandpass._get_arrays(bandpass.waveset)
+                self.throughput = np.array((wt,wl)).T
+            else:
+                self.throughput = np.array(bandpass)  # type simplification
+        else:
+            filt_spec = utils.get_filt_spec(self.filt)
+            src_spec = utils.get_src_spec(src)
+            # **NOTE**: As of WebbPSF version 1.0.0 filter is trimmed to where throughput is 10% of peak
+            # For consistency with WebbPSF simultions, use trim=0.1
+            self.throughput = utils.combine_src_filt(filt_spec, 
+                                          src_spec, 
+                                          trim=0.01, 
+                                          nlambda=nspecbin,
+                                          verbose=self.verbose, 
+                                          plot=False)
 
-        try:
-            self.wls = [utils.combine_transmission(self.throughput, src), ]
-        except:
-            self.wls = [self.throughput, ]
+        self.lam_c, self.lam_w = utils.get_cw_beta(self.throughput)
+
+        if self.verbose: print("InstrumentData.NIRISS: ", self.filt, 
+              ": central wavelength {:.4e} microns, ".format(self.lam_c/um), end="")
+        if self.verbose: print("InstrumentData.NIRISS: ", "fractional bandpass {:.3f}".format(self.lam_w))
+
+        self.wls = [self.throughput,] 
+
         if self.verbose: print("self.throughput:\n", self.throughput)
 
         # Wavelength info for NIRISS bands F277W, F380M, F430M, or F480M
-        self.wavextension = ([self.lam_c[self.filt],], [self.lam_w[self.filt],])
+        self.wavextension = ([self.lam_c,], [self.lam_w,])
         self.nwav=1 # these are 'slices' if the data is pure imaging integrations - 
         #             nwav is old nomenclature from GPI IFU data.  Refactor one day...
         #############################
@@ -223,14 +220,14 @@ class NIRISS:
         # For perfectly noiseless data we add GFaussian zero mean self.noise std dev
         # to imagge data.  Then std devs don't cause plot crashes with limits problems.
         
-        with fits.open(fn, memmap=False) as fitsfile:
+        with fits.open(fn, memmap=False, do_not_scale_image_data=True) as fitsfile:
             # use context manager, memmap=False, deepcopy to avoid memory leaks
             scidata = copy.deepcopy(fitsfile[1].data)
             if self.noise is not None: scidata += np.random.normal(0, self.noise, scidata.shape)
         
             # usually DQ ext in MAST file... make it non-fatal for DQ to be missing
             try:
-                bpdata=copy.deepcopy(fitsfile['DQ'].data) # bad pixel extension
+                bpdata=copy.deepcopy(fitsfile['DQ'].data).astype(np.uint32) # bad pixel extension, forced to uint32
                 self.bpexist = True
                 dqmask = bpdata & self.bpval["DO_NOT_USE"] == self.bpval["DO_NOT_USE"] #
                 del bpdata # free memory
@@ -238,8 +235,10 @@ class NIRISS:
                 # True => driver wants to omit using pixels with dqflag raised in fit,
                 if self.usedq == True:
                     print('InstrumentData.NIRISS.read_data: will not use flagged DQ pixels in fit')
-            except:
+            except Exception as e:
+                print('InstrumentData.NIRISS.read_data: raised exception', e)
                 self.bpexist = False
+                dqmask = np.zeros(scidata.shape, dtype=np.uint32) # so it doesn't break if issues with DQ data
 
             if scidata.ndim == 3:  #len(scidata.shape)==3:
                 print("read_data() input: 3D cube")
