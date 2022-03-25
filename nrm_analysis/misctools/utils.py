@@ -9,7 +9,7 @@ import pickle
 import scipy
 from scipy.special import comb
 import time
-import poppy.matrixDFT as matrixDFT
+import nrm_analysis.misctools.matrixDFT as matrixDFT
 import matplotlib.pyplot as plt
 import synphot
 import stsynphot
