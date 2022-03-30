@@ -114,11 +114,16 @@ class NRM_Model():
         self.maskname = mask  # should change to "mask", and mask.maskname is then eg jwst_g7s6c or whatever 2021 feb anand
         # Cos incoming 'mask' is str, this is a mask object.
         #elf.mask = mask  # should change to "mask", and mask.maskname is then eg jwst_g7s6c or whatever 2021 feb anand
-        self.pixweight = pixweight 
+        self.pixweight = pixweight
+
 
         if mask is None:
             print("LG_Model.__init__: No mask name specified for model, using jwst_g7s6c")
             mask = mask_definitions.NRM_mask_definitions(maskname="jwst_g7s6c", 
+                                    chooseholes=chooseholes, 
+                                    holeshape="hex")
+        elif isinstance(mask, str):
+            mask = mask_definitions.NRM_mask_definitions(maskname=mask, 
                                     chooseholes=chooseholes, 
                                     holeshape="hex")
         self.ctrs = mask.ctrs
