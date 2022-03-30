@@ -116,10 +116,11 @@ class NRM_Model():
         #elf.mask = mask  # should change to "mask", and mask.maskname is then eg jwst_g7s6c or whatever 2021 feb anand
         self.pixweight = pixweight 
 
-
-        mask = mask_definitions.NRM_mask_definitions(maskname="jwst_g7s6c", 
-                                chooseholes=chooseholes, 
-                                holeshape="hex")
+        if mask is None:
+            print("LG_Model.__init__: No mask name specified for model, using jwst_g7s6c")
+            mask = mask_definitions.NRM_mask_definitions(maskname="jwst_g7s6c", 
+                                    chooseholes=chooseholes, 
+                                    holeshape="hex")
         self.ctrs = mask.ctrs
         self.d = mask.hdia
         self.D = mask.activeD

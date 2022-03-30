@@ -553,7 +553,7 @@ class NIRISS:
         implane2oifits.ObservablesFromText uses these to calculate baselines.
         """
         pa = self.pa
-        mask_ctrs = self.mask.ctrs
+        mask_ctrs = copy.deepcopy(self.mask.ctrs)
         # rotate by an extra 90 degrees (RAC 9/21)
         # these coords are just used to orient output in OIFITS files
         # NOT used for the fringe fitting itself
