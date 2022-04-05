@@ -11,7 +11,7 @@ from nrm_analysis.misctools.utils import Affine2d
 
 """
     Test Affine2d class' Identity transformation
-    anand@stsci.edu 2018.06.21
+    anand 2022.04.05
 
     run with pytest -s _moi_.py to see stdout on screen
 """
