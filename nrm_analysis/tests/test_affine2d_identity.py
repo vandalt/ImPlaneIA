@@ -29,25 +29,25 @@ class Affine2dTestCase(unittest.TestCase):
                                sx=sx,sy=sy, 
                                xo=xo,yo=yo, name="Ideal")
         # create nvecs random x,y locations
-        nvecs = 5
-        self.x = np.random.uniform(-10.0, 10.0, nvecs)
-        self.y = np.random.uniform(-10.0, 10.0, nvecs)
+        nvecs = 1000000
+        self.x = np.random.uniform(-1000.0, 10.0, nvecs)
+        self.y = np.random.uniform(-1000.0, 10.0, nvecs)
 
     def test_id_xy(self):
         """ 
             check that distortFargs returns same x,y vectors as those passed to it
         """
         xprime, yprime = self.aff_id.distortFargs(self.x, self.y)
-        self.assertTrue(np.allclose(xprime, self.x),  'test_affine2d_identity failed to preserve x')
-        self.assertTrue(np.allclose(yprime, self.y),  'test_affine2d_identity failed to preserve y')
+        norm = np.abs(xprime - self.x) + np.abs(yprime - self.y) # L1 norm
+        assert np.allclose(norm, 0, atol=1e-15), 'test_affine2d_identity failed to preserve x,y vector'
 
     def test_id_phase(self):
         """ 
             check that distortphase returns appropriate phasor  1.0 + 0j
         """
         phasor = self.aff_id.distortphase(self.x, self.y)
-        self.assertTrue(np.allclose(phasor.real, 1.0, atol=1e-15), 'test_affine2d_identity phasor.real=1 failed')
-        self.assertTrue(np.allclose(phasor.imag, 0.0, atol=1e-15), 'test_affine2d_identity phasor.imag=0 failed')
+        norm = np.abs(phasor.real - 1) + np.abs(phasor.imag) # L1 norm
+        assert np.allclose(norm, 0, atol=1e-15), 'test_affine2d_identity failed to preserve phasor 1+0j'
 
 if __name__ == "__main__":
     unittest.main()
