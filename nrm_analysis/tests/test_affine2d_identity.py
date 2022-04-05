@@ -38,16 +38,16 @@ class Affine2dTestCase(unittest.TestCase):
             check that distortFargs returns same x,y vectors as those passed to it
         """
         xprime, yprime = self.aff_id.distortFargs(self.x, self.y)
-        self.assertTrue(np.abs(xprime - self.x).sum() + np.abs(yprime - self.y).sum() 
-                      < 1e-15,  'test_affine2d_identity failed to preserve x,y')
+        self.assertTrue(np.allclose(xprime, self.x),  'test_affine2d_identity failed to preserve x')
+        self.assertTrue(np.allclose(yprime, self.y),  'test_affine2d_identity failed to preserve y')
 
     def test_id_phase(self):
         """ 
             check that distortphase returns appropriate phasor  1.0 + 0j
         """
         phasor = self.aff_id.distortphase(self.x, self.y)
-        self.assertTrue(np.abs(phasor.real - 1.0).sum() + np.abs(phasor.imag.sum()) 
-                      < 1e-15,  'test_affine2d_identity failed to preserve phase')
+        self.assertTrue(np.allclose(phasor.real, 1.0, atol=1e-15), 'test_affine2d_identity phasor.real=1 failed')
+        self.assertTrue(np.allclose(phasor.imag, 0.0, atol=1e-15), 'test_affine2d_identity phasor.imag=0 failed')
 
 if __name__ == "__main__":
     unittest.main()
